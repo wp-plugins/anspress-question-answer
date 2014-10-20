@@ -13,7 +13,11 @@ AnsPress - Best question and answer plugin for WordPress.
 == Description ==
 Demo & support forum: http://open-wp.com/questions/
 
+We have recently moved our respiratory from https://wordpress.org/plugins/anspress/ to https://wordpress.org/plugins/anspress-question-answer/
+
+
 = Looking for someone to customize AnsPress ? Hire us. Contact us at support@open-wp.com =
+
 
 Easily add question and answer section like stackoverflow.com or quora.com in your WordPress.
 AnsPress is a most complete question and answer system for WordPress. AnsPress is made with developers in mind, highly customizable. AnsPress provide an easy to use override system for theme. List of features:

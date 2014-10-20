@@ -1,0 +1,384 @@
+.clearfix:before,
+.clearfix:after{
+  display: table;
+  content: " ";
+  clear:both;
+}
+
+.wp-list-table th#asker, .wp-list-table th#answerer {
+    width: 60px;
+}
+
+.wp-list-table th#answers {
+    width: 30px;
+}
+.wp-list-table th#question_category,.wp-list-table th#question_tags {
+    width: 100px;
+}
+.wp-list-table th#vote {
+    width: 60px;
+}
+
+.wp-list-table th#status {
+    width: 60px;
+}
+
+.wp-list-table th#parent_question{
+	width: 30%;
+}
+.wp-list-table th#flag{
+	width: 40px;
+}
+th.column-question_status {
+    width: 50px;
+}
+td.column-vote_note strong, td.column-post_title > a {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 0.2em;
+}
+
+.question-status {
+    background: #DDDDDD;
+    border-radius: 3px;
+    color: #FFFFFF;
+    display: block;
+    font-size: 11px;
+    padding: 1px 5px;
+    text-align: center;
+}
+
+.question-status.open{
+	background:	#8FC61B;
+}
+.question-status.duplicate{
+	background:	#F7BA36;
+}
+.question-status.publish {
+    background: #00bfdd;
+}
+.question-status.solved {
+    background: #4AC1FF;
+}
+.question-status.closed {
+    background:#F64D55;
+}
+
+
+
+
+.wp-list-table .type-question .ans-count {
+    display: block;
+    padding: 2px 0;
+    text-align: center;
+}
+.wp-list-table .vote-count{
+	text-align:center;
+}
+
+
+.wp-list-table .type-answer .answerer{
+	width:50px;
+}
+
+.form-table .flag-note{
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+}
+
+.wp-list-table .flag-count, .wp-list-table .flag-count {
+    background: #ddd;
+    border-radius: 3px;
+    color: #FFFFFF;
+    display: block;
+    margin-top: 6px;
+    padding: 2px 0;
+    text-align: center;
+    width: 21px;
+}
+.wp-list-table .flag-count.flagged, .wp-list-table .flag-count.flagged{
+	background: #ec5858;
+}
+
+
+/* Option Tabs */
+
+#ap_opt_nav {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    float: left;
+    margin-bottom: 0;
+    margin-right: 15px;
+    margin-top: 0;
+    width: 200px;
+}
+
+#ap_opt_nav li{
+    margin-bottom: 0;
+}
+#ap_opt_nav li.active a{
+    background: #FFFFFF;
+    color: #666666;
+}
+
+#ap_opt_nav li a{
+    background: #eeeeee;
+    border-bottom: 1px solid #dddddd;
+    color: #666;
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 10px 15px;
+    text-decoration: none;
+}
+
+.tab-content {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    margin-top: -2px;
+    overflow: hidden;
+    padding: 5px 15px;
+}
+.tab-content .tab-pane{
+	display:none;
+}
+
+.tab-content .tab-pane.active{
+	display:block;
+}
+
+.flag-note-item{
+
+}
+.ap-option-section{
+    border-bottom: 1px dotted #EEEEEE;
+    margin: 5px 0 0;
+    padding: 10px 0;	
+}
+
+th.column-category {
+    width: 100px;
+}
+
+#ap_flag_meta_box .flag-item, #ap_answers_meta_box .answer {
+    border-bottom: 1px solid #eee;
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+}
+#ap_flag_meta_box .flag-item:last-child, #ap_answers_meta_box .answer:last-child{
+	border-bottom:none;
+}
+#ap_flag_meta_box .flagger, #ap_answers_meta_box .author {
+    float: left;
+    margin-right: 5px;
+    margin-top: 4px;
+    width: 200px;
+}
+#ap_flag_meta_box .flag-message strong{
+	display:block;
+}
+#ap_flag_meta_box .flag-item:hover .row-actions, #ap_answers_meta_box .answer:hover .row-actions {
+	visibility:visible;
+}
+
+#ap_flag_meta_box .flag-item  .flag-message, #ap_answers_meta_box .answer .answer-content{
+	overflow:hidden;
+}
+.ap-label-color-field .wp-picker-container{
+	position:absolute;
+}
+.get-support {
+    margin-bottom: 20px;
+}
+
+#anspress-points-table .column-points .point {
+    background: #419efd;
+    border-radius: 2px;
+    color: #fff;
+    display: table;
+    font-weight: bold;
+    padding: 0 5px;
+    text-align: center;
+}
+#anspress-points-table .column-points .point.negative{
+	background: #f45a5a;
+}
+#ap-point-edit {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 0 15px;
+}
+#ap-point-edit .button-primary{
+	margin-bottom:10px;
+}
+.addon-count {
+    background: none repeat scroll 0 0 #333333;
+    border-radius: 50%;
+    color: #ffffff;
+    display: inline-block;
+    font-size: 16px;
+    height: 25px;
+    line-height: 22px;
+    text-align: center;
+    width: 25px;
+}
+.ap-addon-status {
+    background: none repeat scroll 0 0 rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    padding: 5px 14px 5px 10px;
+    position: absolute;
+    top: 5px;
+    z-index: 9;
+}
+.ap-install > h2 {
+    margin-bottom: 20px;
+    padding: 0;
+    text-align: center;
+}
+.ap-install > h2 > *{
+	display:block;
+}
+
+.ap-install-indi {
+    background: none repeat scroll 0 0 #ffffff;
+    border-radius: 10px;
+    content: "";
+    display: block;
+    height: 170px;
+    left: 50%;
+    margin-left: -5px;
+    margin-top: 35px;
+    position: absolute;
+    transition: all 1s ease 0s;
+    width: 10px;
+}
+
+.ap-install-indi > span {
+    background: none repeat scroll 0 0 #49c742;
+    display: block;
+    height: 0;
+    transition: all 0.5s ease 0s;
+    width: 10px;
+}
+.ap-install-box {
+    background: none repeat scroll 0 0 #fbfbfb;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    display: block;
+    height: 300px;
+    margin: 0 auto;
+    overflow: hidden;
+    position: relative;
+}
+.ap-start-installation {
+    background: none repeat scroll 0 0 #ff8041;
+    border: medium none;
+    border-radius: 3px;
+    color: #ffffff;
+    cursor: pointer;
+    display: table;
+    margin: 0 auto 30px;
+    padding: 12px 30px;
+    position: relative;
+}
+
+.ap-install-steps {
+    margin: 0;
+    position: absolute;
+    transition: all 1s ease 0s;
+    width: 3010px;
+}
+.ap-install-steps > li {
+    display: block;
+    float: left;
+    height: 300px;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-top: 0;
+    padding: 10px;
+    width: 480px;
+	text-align:center;
+}
+.ap-install-steps li a, .ap-install-steps .twitter-button {
+    display: block;
+    font-size: 17px;
+    margin-bottom: 15px;
+    padding: 15px;
+    text-align: center;
+    text-decoration: none;
+}
+.ap-install-steps li:last-child a {
+    margin: 0;
+}
+.ap-install-steps li .done {
+	background:#49c742;
+	transition: all 0.5s ease 0s;
+	color:#fff;
+}
+.install-popup {
+    background: none repeat scroll 0 0 #ffffff;
+    border-radius: 8px;
+    padding: 10px;
+}
+.install-popup select {
+    display: table;
+    margin: 0 auto;
+}
+.ap-continue {
+    background: none repeat scroll 0 0 #49c742;
+    border: medium none;
+    border-radius: 2px;
+    color: #ffffff;
+    display: block;
+    margin: 0 auto;
+    padding: 1px 10px;
+}
+
+.twitter-button > small {
+    display: block;
+    font-size: 12px;
+    margin-top: 6px;
+}
+.escape_install {
+    display: block;
+    text-align: center;
+}
+
+.badge-type {
+    background: none repeat scroll 0 0 #ddd;
+    border-radius: 2px;
+    display: block;
+    padding: 1px 6px;
+    text-align: center;
+    width: 50px;
+	color:#fff;
+}
+.badge-type.badge-gold {
+    background: #ffc250;
+}
+.badge-type.badge-silver {
+    background: #d6d6da;
+}
+.badge-type.badge-bronze {
+    background: #c26f27;
+}
+
+.doante-to-anspress {
+    background: none repeat scroll 0 0 #fff;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    padding: 10px;
+    text-align: center;
+}
+.ap-install {
+    background: none repeat scroll 0 0 #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    margin: 0 auto;
+    max-width: 500px;
+    padding: 20px;
+}
+.ap-install-steps .start-install {
+    padding-top: 80px;
+    text-align: center;
+}

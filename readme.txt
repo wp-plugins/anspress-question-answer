@@ -8,16 +8,16 @@ Stable tag: 1.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-AnsPress - Best question and answer plugin for WordPress.
+AnsPress - Best question and answer plugin for WordPress. Made with developers in mind, highly customizable
 
 == Description ==
 Demo & support forum: http://open-wp.com/questions/
 
-We have recently moved our respiratory from https://wordpress.org/plugins/anspress/ to https://wordpress.org/plugins/anspress-question-answer/
+We have recently moved our repository from https://wordpress.org/plugins/anspress/ to https://wordpress.org/plugins/anspress-question-answer/
 
 
-= Looking for someone to customize AnsPress ? Hire us. Contact us at support@open-wp.com =
-
+= Looking for someone to customize AnsPress ? Hire us. =
+Contact us at support@open-wp.com
 
 Easily add question and answer section like stackoverflow.com or quora.com in your WordPress.
 AnsPress is a most complete question and answer system for WordPress. AnsPress is made with developers in mind, highly customizable. AnsPress provide an easy to use override system for theme. List of features:

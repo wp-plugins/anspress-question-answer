@@ -32,8 +32,8 @@ if ( ! defined( 'WPINC' ) ) {
 // define	
 define('AP_VERSION', '1.2');
 define('AP_DB_VERSION', '10');
-
-define('DS', DIRECTORY_SEPARATOR);
+if (!defined('DS'))
+	define('DS', DIRECTORY_SEPARATOR);
 define('ANSPRESS_DIR', plugin_dir_path( __FILE__ ));
 define('ANSPRESS_URL', plugin_dir_url( __FILE__ ));
 define('ANSPRESS_WIDGET_DIR', ANSPRESS_DIR.'widgets'.DS);

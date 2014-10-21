@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_
 Tags: question, answer, q&a, forum, community, profile, stackoverflow, quora
 Requires at least: 3.5.1
 Tested up to: 4.0
-Stable tag: 1.3
+Stable tag: 1.3.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -144,6 +144,10 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 
 == Changelog ==
+
+= 1.3.1 =
+
+* Checkboxes not saving data needs fix now #131 
 
 = 1.2 =
 

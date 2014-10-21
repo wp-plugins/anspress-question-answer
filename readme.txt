@@ -22,6 +22,7 @@ Contact us at support@open-wp.com
 Easily add question and answer section like stackoverflow.com or quora.com in your WordPress.
 AnsPress is a most complete question and answer system for WordPress. AnsPress is made with developers in mind, highly customizable. AnsPress provide an easy to use override system for theme. List of features:
 
+  * Real time loading, without page reload.
   * Sorting question and answer by many options.
   * Ajax based form submission
   * Theme system

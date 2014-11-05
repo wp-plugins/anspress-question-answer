@@ -135,7 +135,7 @@ class AP_User {
 			<div class="form-group">
 				<label for="username" class="ap-form-label"><?php _e('User name', 'ap') ?></label>
 				<div class="no-overflow">
-					<input type="text" name="username" id="username" value="" class="form-control" placeholder="<?php _e('Username', 'ap'); ?>" disabled />
+				<?php $current_user = wp_get_current_user(); echo'<input type="text" name="'.$current_user->user_login.'" id="'.$current_user->user_login.'" class="form-control" placeholder="'.$current_user->user_login.'" disabled /> '?>
 				</div>
 			</div>
 			<div class="form-group">
@@ -335,11 +335,12 @@ class AP_User {
 				$id_or_email = $u->ID;
 			}
 			
-			$image_a =  wp_get_attachment_image_src( get_user_meta($id_or_email, '_ap_avatar', true), 'thumbnail');
 			
-			if($image_a[0]){
+			$resized = ap_get_resized_avatar($id_or_email, $size);
+			
+			if($resized){
 
-				return "<img alt='{$alt}' src='{$image_a[0]}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
+				return "<img alt='{$alt}' src='{$resized}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
 			}
 			
 			return $avatar;
@@ -416,6 +417,7 @@ function ap_get_user_question_list($user_id, $limit = 5, $title_limit = 50){
 }
 
 function ap_user_display_name($id = false, $no_html = false){
+	
 	if(!$id)
 		$id = get_the_author_meta('ID');
 	
@@ -428,8 +430,24 @@ function ap_user_display_name($id = false, $no_html = false){
 		return '<span class="who"><a href="'.ap_user_link($id).'">'.$user->display_name.'</a></span>';
 	}
 	
-	if($no_html)
-			return __('Anonymous', 'ap');		
+	global $post;
+	
+	if($post->post_type =='question' || $post->post_type =='answer' ){
+		$name = get_post_meta($post->ID, 'anonymous_name', true);
+		
+		if($no_html){
+			if($name != '')
+				return $name;
+			else
+				return __('Anonymous', 'ap');
+		}else{
+			if($name != '')
+				return '<span class="who">'.$name.'</span>';
+			else
+				return '<span class="who">'.__('Anonymous', 'ap').'</span>';
+		}
+	}
+	
 	return '<span class="who">'.__('Anonymous', 'ap').'</span>';
 }
 
@@ -437,6 +455,9 @@ function ap_user_link($user_id = false, $sub = false){
 	if(!$user_id)
 		$user_id = get_the_author_meta('ID');
 	
+	if($user_id == 0)
+		return false;
+		
 	$user = get_userdata($user_id);
 	$base = rtrim(ap_get_link_to(array('ap_page' => 'user', 'user' => $user->user_login)), '/');
 	$args = '';
@@ -538,7 +559,7 @@ function ap_user_template(){
 		$total_followers = ap_get_current_user_meta('followers');
 
 		// how many users to show per page
-		$users_per_page = 10;
+		$users_per_page = ap_opt('followers_limit');
 		
 		// grab the current page number and set to 1 if no page number is set
 		$paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
@@ -565,7 +586,7 @@ function ap_user_template(){
 		$total_following = ap_get_current_user_meta('following');
 
 		// how many users to show per page
-		$users_per_page = 10;
+		$users_per_page = ap_opt('following_limit');
 		
 		// grab the current page number and set to 1 if no page number is set
 		$paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
@@ -811,7 +832,7 @@ function ap_avatar_upload_form(){
 	if(ap_get_user_page_user() == get_current_user_id()){
 		?>
 		<form method="post" action="#" enctype="multipart/form-data" data-action="ap-upload-form" class="">
-			<div class="ap-btn ap-upload-o">
+			<div class="ap-btn ap-upload-o <?php echo ap_icon('upload'); ?>">
 				<span><?php _e('Upload avatar', 'ap'); ?></span>
 				<input type="file" name="thumbnail" class="ap-upload-input" data-action="ap-upload-field">
 			</div>
@@ -922,5 +943,38 @@ function ap_check_if_photogenic($user_id){
 		return true;
 	
 	return false;
+}
+
+function ap_get_resized_avatar($id_or_email, $size = 32){
+	$upload_dir = wp_upload_dir();
+	$file_url = $upload_dir['baseurl'].'/avatar/'.$size;
+	
+	$image_meta =  wp_get_attachment_metadata( get_user_meta($id_or_email, '_ap_avatar', true), 'thumbnail');
+
+	if($image_meta === false || empty($image_meta))
+		return false;
+		
+	$orig_file_name = str_replace('-'.$image_meta['sizes']['thumbnail']['width'].'x'.$image_meta['sizes']['thumbnail']['height'], '', $image_meta['sizes']['thumbnail']['file']);
+	
+	$orig_dir = str_replace('/'.$orig_file_name, '', $image_meta['file']);
+	
+	$file = $upload_dir['basedir'].'/'.$orig_dir.'/'.$image_meta['sizes']['thumbnail']['file'];
+	$file = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $file);
+	
+	$avatar_dir = $upload_dir['basedir'].'/avatar/'.$size;
+	$avatar_dir = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $avatar_dir);
+	
+	if(!file_exists($upload_dir['basedir'].'/avatar'))
+		mkdir($upload_dir['basedir'].'/avatar', 0777);
+		
+	if(!file_exists($avatar_dir))
+		mkdir($avatar_dir, 0777);
+
+	if(!file_exists($avatar_dir.'/'.$orig_file_name)){
+		$image_new = $avatar_dir.'/'. $orig_file_name;
+		ap_smart_resize_image($file , null, $size , $size , false , $image_new , false , false ,100 );
+	}
+	
+	return $file_url.'/'.$orig_file_name;
 }
 

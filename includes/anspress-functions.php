@@ -44,13 +44,12 @@ function ap_default_options(){
 	return array(
 		'base_page' 			=> get_option('ap_base_page_created'),
 		'base_page_slug' 		=> $page->post_name,
-		'allow_non_loggedin' 	=> true,
+		'show_login_signup' 	=> true,
 		'show_login' 			=> true,
 		'show_signup' 			=> true,
-		'login_after_signup' 	=> true,
 		'theme' 				=> 'default',
 		'author_credits' 		=> false,
-		'clear_databse' 		=> false,
+		'clear_database' 		=> false,
 		'minimum_qtitle_length'	=> 3,
 		'minimum_question_length'=> 5,
 		'multiple_answers' 		=> false,
@@ -85,6 +84,8 @@ function ap_default_options(){
 		'users_per_page'		=> 15,
 		'cover_width_small'		=> 275,
 		'cover_height_small'	=> 80,
+		'followers_limit'		=> 10,
+		'following_limit'		=> 10,
 		'captcha_ask'			=> true,
 		'captcha_answer'		=> true,
 		'moderate_new_question'	=> 'no_mod',
@@ -93,6 +94,9 @@ function ap_default_options(){
 		'question_prefix'		=> 'question',
 		'min_point_new_tag'		=> 100,
 		'min_tags'				=> 2,
+		'allow_anonymous'		=> false,
+		'enable_captcha_skip'	=> false,
+		'captcha_skip_rpoints'	=> 40
 	);
 }
 
@@ -434,8 +438,7 @@ function ap_ans_tab(){
 		$link = '?sort=';
 		$ans_count = ap_count_ans(get_the_ID());
 	?>
-		<div class="ap-anstabhead ap-tlitem clearfix">
-			<span class="ap-icon-answer ap-tlicon"></span>
+		<div class="ap-anstabhead clearfix">
 			<h2 class="ap-answer-count pull-left" data-view="ap-answer-count-label"><?php printf(_n('<span>1 Answer</span>', '<span>%d Answers</span>', $ans_count, 'ap'), $ans_count); ?><span itemprop="answerCount" style="display:none;"><?php echo $ans_count; ?></span></h2>
 			<ul class="ap-ans-tab ap-tabs clearfix" role="tablist">
 				<li class="<?php echo $order == 'newest' ? ' active' : ''; ?>"><a href="<?php echo $link.'newest'; ?>"><?php _e('Newest', 'ap'); ?></a></li>
@@ -864,4 +867,21 @@ function ap_ask_btn($parent_id = false){
 		$args['parent'] = get_query_var('parent');
 	
 	echo '<a class="ap-btn ap-ask-btn-head pull-right" href="'.ap_get_link_to($args).'">'.__('Ask Question').'</a>';
+}
+
+function ap_icon($name){
+	$icons = array(
+		'follow' 		=> 'ap-icon-plus',
+		'unfollow' 		=> 'ap-icon-minus',
+		'upload' 		=> 'ap-icon-upload',
+		'unchecked' 	=> 'ap-icon-checkbox-unchecked',
+		'checked' 		=> 'ap-icon-checkbox-checked',
+	);
+	
+	$icons = apply_filters('ap_icon', $icons);
+	
+	if(isset($icons[$name]))
+		return $icons[$name];
+		
+	return '';
 }

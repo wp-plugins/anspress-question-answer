@@ -1,10 +1,10 @@
 === AnsPress - Question and answer plugin ===
-Contributors: nerdaryan, alexandruias, KTS915, floriangareis, peterolle, mertskaplan, chrintz, masterbip, sm_rasmy, chadfullerton
+Contributors: nerdaryan, alexandruias, KTS915, Zoker, peterolle, mertskaplan, chrintz, masterbip, sm_rasmy, chadfullerton
 Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
 Tags: question, answer, q&a, forum, community, profile, stackoverflow, quora
 Requires at least: 3.5.1
 Tested up to: 4.0
-Stable tag: 1.3.1
+Stable tag: 1.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -59,12 +59,6 @@ GooglePlus: [@openwp](https://plus.google.com/+rahularyannerdaryan?rel=author)
 
 = Help & Support =
 For fast help and support, please post on our forum http://open-wp.com/questions/
-
-= Language =
-
- * Spanish - by Peter Olle
- * Turkish - by mertskaplan
- * Danish  - by chrintz
 
 
 **Page Shortcodes**

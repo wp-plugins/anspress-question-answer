@@ -66,6 +66,7 @@ class anspress_posts
 		add_action( 'admin_init', array( $this, 'init_actions' ) ); 
 		add_action( 'init', array($this, 'ap_make_post_parent_public') );
 		add_action( 'save_post', array($this, 'ans_parent_post'), 0, 2 );	
+		add_action( 'save_post', array($this, 'action_on_new_post'), 0, 2 );	
 		add_action('wp_ajax_search_questions', array($this, 'suggest_questions'));
 		add_filter( 'post_type_link', array($this, 'custom_question_link'), 10, 2 );		
 		add_filter('get_pagenum_link', array($this, 'custom_page_link'));
@@ -82,11 +83,8 @@ class anspress_posts
 		add_action('wp_trash_post', array($this, 'trash_post_action'));
 		add_action('untrash_post', array($this, 'untrash_ans_on_question_untrash'));
 		//add_action('delete_post', array($this, 'delete_action'));		
-		add_action('after_delete_post', array($this, 'post_delete_action'));
-		
-		// add custom post feed
-		add_feed('anspress-feed', 'question_feed');
-	}
+
+}
     // Register Custom Post Type    
     public function create_cpt_tax()
     {
@@ -482,6 +480,28 @@ class anspress_posts
 			
 		}
 	}
+	
+	public function action_on_new_post( $post_id, $post ) {
+		// return on autosave
+		if(defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) { return; }
+		
+		if ( wp_is_post_revision( $post_id ) )
+			return;
+		
+		/* if ( !current_user_can( 'edit_post', $post->ID ))
+			return $post->ID; */
+		
+		if ( $post->post_type == 'question' ) {
+			//check if post have updated meta, if not this is a new post :D
+			$updated = get_post_meta($post_id, ANSPRESS_UPDATED_META, true);
+			if($updated == '')
+				do_action('ap_new_question', $post_id, $post);
+		}elseif ( $post->post_type == 'answer' ) {
+			$updated = get_post_meta($post_id, ANSPRESS_UPDATED_META, true);
+			if($updated == '')
+				do_action('ap_new_answer', $post_id, $post);
+		}
+	}
 	// make post_parent public for admin_init
 	public function ap_make_post_parent_public() {
 		if ( is_admin() )
@@ -741,10 +761,5 @@ class anspress_posts
 		}
 		return $sql;
 	}
-	
-	function question_feed(){
-		get_template_part('feed', 'questions');
-	}
-
 
 }

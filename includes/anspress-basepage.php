@@ -167,8 +167,14 @@ class AP_BasePage {
 		echo '<div class="ap-container">';
 		do_action('ap_page_top');
 		dynamic_sidebar( 'ap-before' );
-		echo '<div class="ap-dtable">';
-		echo '<div class="ap-cl">';
+		if ((ap_current_page_is() == 'question') and (is_active_sidebar('ap-qsidebar' ))){
+		echo '<div class="ap-dtable">';}
+		else {
+		echo '<div>';
+		}
+		if ( !is_question() && is_active_sidebar( 'ap-sidebar' ))
+			echo '<div class="ap-cl">';
+		
 		include ap_get_theme_location(ap_get_current_page_template());
 		
 		if(is_question_tags())
@@ -176,8 +182,9 @@ class AP_BasePage {
 		
 		if(is_question_categories())
 			ap_pagi(ap_get_link_to('categories') . '/%_%', ceil( $total_terms / $per_page ), $paged);
-			
-		echo '</div>';
+		
+		if ( !is_question())	
+			echo '</div>';
 		
 		if ( !is_question() && is_active_sidebar( 'ap-sidebar' ) ) {
 			echo '<div class="ap-sidebar">';
@@ -187,10 +194,16 @@ class AP_BasePage {
 		
 		echo '</div>';
 		
+		if ((ap_current_page_is() == 'question') and (is_active_sidebar('ap-qsidebar' ))) {
+		echo'<div class="question-sidebar">';
+		dynamic_sidebar( 'ap-qsidebar' );
+		echo'</div>';
+		}
+
 		if(!ap_opt('author_credits')){
 			?>
-				<div class="ap-footer">
-					<p class="ap-author-credit">AnsPress Version <?php echo AP_VERSION; ?></p>
+				<div class="ap-footer clearfix">
+					<p class="ap-author-credit"><a href="http://open-wp.com">AnsPress</a> Version <?php echo AP_VERSION; ?></p>
 				</div>
 			<?php
 		}

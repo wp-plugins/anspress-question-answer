@@ -23,6 +23,7 @@ function init_scripts_front(){
 			
 		wp_enqueue_script( 'ap-site-js', ANSPRESS_URL.'assets/ap-site.js', 'jquery', AP_VERSION);		
 		wp_enqueue_script( 'tooltipster', ap_get_theme_url('js/jquery.tooltipster.min.js'), 'jquery', AP_VERSION);
+		wp_enqueue_script( 'jstorage', ap_get_theme_url('js/jstorage.js'), 'jquery', AP_VERSION);
 		//wp_enqueue_script( 'perfect-scrollbar', ap_get_theme_url('js/perfect-scrollbar.min.js'), 'jquery', AP_VERSION);
 		wp_enqueue_script( 'ap-js', ap_get_theme_url('js/ap.js'), 'jquery', AP_VERSION);
 		wp_enqueue_style( 'tagsinput', ap_get_theme_url('css/bootstrap-tagsinput.css'), array(), AP_VERSION);
@@ -162,3 +163,14 @@ function ap_widgets_positions(){
 		'after_title'  	=> '</h3>',
 	) );
 }
+
+/* for overriding icon in social login plugin */
+function ap_social_login_icons( $provider_id, $provider_name, $authenticate_url )
+{
+	?>
+	<a rel = "nofollow" href = "<?php echo $authenticate_url; ?>" data-provider = "<?php echo  $provider_id ?>" class = "wp-social-login-provider wp-social-login-provider-<?php echo strtolower( $provider_id ); ?> btn btn-<?php echo strtolower( $provider_id ); ?>">
+		<i class="ap-icon-<?php echo strtolower( $provider_id ); ?>"></i> <span><?php echo $provider_name; ?></span>
+	</a>
+	<?php
+}
+add_filter( 'wsl_render_login_form_alter_provider_icon_markup', 'ap_social_login_icons', 10, 3 );

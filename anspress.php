@@ -15,7 +15,7 @@
  * Plugin URI:        http://open-wp.com
  * Description:       The most advance community question and answer system for WordPress
  * Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
- * Version:           1.3.1
+ * Version:           1.4
  * Author:            Rahul Aryan
  * Author URI:        http://open-wp.com
  * Text Domain:       ap
@@ -30,7 +30,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 // define	
-define('AP_VERSION', '1.3.1');
+define('AP_VERSION', '1.4');
 define('AP_DB_VERSION', '10');
 if (!defined('DS'))
 	define('DS', DIRECTORY_SEPARATOR);
@@ -95,6 +95,7 @@ require_once( plugin_dir_path( __FILE__ ) . 'includes/anspress-points.php' );
 require_once( plugin_dir_path( __FILE__ ) . 'includes/anspress-history.php' );
 require_once( plugin_dir_path( __FILE__ ) . 'includes/anspress-shortcodes.php' );
 require_once( plugin_dir_path( __FILE__ ) . 'includes/anspress-widgets.php' );
+require_once( plugin_dir_path( __FILE__ ) . 'includes/image_resize.php' );
 
 
 /*

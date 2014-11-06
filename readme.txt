@@ -1,5 +1,5 @@
 === AnsPress - Question and answer plugin ===
-Contributors: nerdaryan, alexandruias, KTS915, Zoker, peterolle, mertskaplan, chrintz, masterbip, sm_rasmy, monocat, chadfullerton
+Contributors: nerdaryan, alexandruias, Zoker, peterolle, mertskaplan, chrintz, masterbip, sm_rasmy, monocat, KTS915, chadfullerton
 Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
 Tags: question, answer, q&a, forum, community, profile, stackoverflow, quora
 Requires at least: 3.5.1

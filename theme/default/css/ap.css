@@ -434,7 +434,7 @@ body.anspress .ap-container {
     width: 30%;
 }
 
-.ap-container .question-title {
+.ap-container .question-title.entry-title {
     font-size: 15px;
     font-weight: 600;
     line-height: 22px;
@@ -1943,6 +1943,7 @@ ul.ap-pagination {
     display: block;
     float: right;
     font-size: 20px;
+	line-height:1;
 }
 
 .ap-modal-close:hover {
@@ -1965,6 +1966,10 @@ ul.ap-pagination {
     list-style: none outside none;
     margin: 0 10px 0 0;
     padding: 0;
+}
+
+.ap-container .ap-participants-list li:nth-child(n+4){
+	margin-top:10px;
 }
 
 .ap-tax-description {
@@ -3836,4 +3841,9 @@ a.disable:hover {
 }
 #wp-social-login-connect-options a.btn-linkedin {
     background: #007bb6;
+}
+
+#submit-flag-question {
+	float:right;
+	margin:0 10px 10px 0;
 }

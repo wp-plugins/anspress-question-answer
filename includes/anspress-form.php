@@ -142,6 +142,7 @@ class anspress_form
 	
 	public function on_new_answer($post_id, $post){
 		if($post_id){
+
 			$user_id = get_current_user_id();	
 			$question = get_post($post->post_parent);
 			// set default value for meta
@@ -161,8 +162,7 @@ class anspress_form
 			
 			update_post_meta($post_id, ANSPRESS_BEST_META, 0);
 			
-			do_action('ap_after_inserting_answer', $post_id);
-			ap_do_event('new_answer', $post_id, $user_id, $question->ID, $result);
+			do_action('ap_after_inserting_answer', $post_id);			
 		}
 	}
 	
@@ -452,6 +452,8 @@ class anspress_form
 					
 					if($logged_in)
 						$result['redirect_to'] = get_permalink($post->ID);
+					
+					ap_do_event('new_answer', $post_id, $user_id, $question->ID, $result);
 				}				
 				
 				if($_POST['action'] == 'ap_submit_answer')
@@ -1038,6 +1040,7 @@ class anspress_form
 	public function login_signup_modal(){
 		if(!is_user_logged_in()){
 		?>
+		<?php if (ap_opt('custom_login_url') == ''): ?>
 		<div class="ap-modal flag-note" id="ap_login_modal" tabindex="-1" role="dialog">
 			<div class="ap-modal-bg"></div>
 			<div class="ap-modal-content">
@@ -1049,7 +1052,9 @@ class anspress_form
 				</div>
 			</div>		  
 		</div>
+		<?php endif;?>
 		<?php if (ap_opt('show_signup')): ?>
+		<?php if (ap_opt('custom_signup_url') == ''): ?>
 		<div class="ap-modal flag-note" id="ap_signup_modal" tabindex="-1" role="dialog">
 			<div class="ap-modal-bg"></div>
 			<div class="ap-modal-content">
@@ -1061,6 +1066,7 @@ class anspress_form
 				</div>
 			</div>		  
 		</div>
+		<?php endif;?>
 		<?php endif;?>
 		<?php
 		}
@@ -1085,22 +1091,44 @@ class anspress_form
 					</div>
 				</div>
 				<?php endif; ?>
+				<?php if(ap_opt('show_signup') || ap_opt('show_login')):?>
 				<div class="ap-ac-accordion">
 					<strong>
 						<i class="<?php echo ap_icon('unchecked') ?>"></i>
 						<i class="<?php echo ap_icon('checked') ?>"></i>
-						<?php _e('Login or sign up', 'ap'); ?>
+						<?php if(ap_opt('show_signup') && ap_opt('show_login')):?>
+						<?php _e('Login or Sign Up', 'ap'); ?>
+						<?php elseif (ap_opt('show_signup')): ?>
+						<?php _e('Sign up', 'ap'); ?>
+						<?php elseif(ap_opt('show_login')): ?>
+						<?php _e('Login', 'ap'); ?>
+						<?php endif; ?>
 					</strong>
 					<div class="ap-site-ac accordion-content">
+						<?php if (ap_opt('show_login')): ?>
+						<?php if (ap_opt('custom_login_url') != ''): ?>
+						<?php $customloginurl=ap_opt('custom_login_url');?>
+						<a href="<?php echo $customloginurl?>" class="ap-btn" title="<?php _e('Click here to login if you already have an account on this site.', 'ap'); ?>"><?php _e('Login', 'ap'); ?></a>
+						<?php else: ?>
 						<a href="#ap_login_modal" class="ap-open-modal ap-btn" title="<?php _e('Click here to login if you already have an account on this site.', 'ap'); ?>"><?php _e('Login', 'ap'); ?></a>
+						<?php endif; ?>
+						<?php endif;?>
 						<?php if (ap_opt('show_signup')): ?>
+						<?php if (ap_opt('custom_signup_url') != ''): ?>
+						<?php $customsignupurl=ap_opt('custom_signup_url');?>
+						<a href="<?php echo $customsignupurl?>" class="ap-btn" title="<?php _e('Click here to signup if you do not have an account on this site.', 'ap'); ?>"><?php _e('Sign Up', 'ap'); ?></a>
+						<?php else: ?>
 						<a href="#ap_signup_modal" class="ap-open-modal ap-btn" title="<?php _e('Click here to signup if you do not have an account on this site.', 'ap'); ?>"><?php _e('Sign Up', 'ap'); ?></a>
+						<?php endif;?>
 						<?php endif; ?>
 					</div>
 				</div>
+				<?php endif;?>
+				<?php if (ap_opt('show_social_login')): ?>
 				<div class="ap-social-ac">
 					<?php do_action( 'wordpress_social_login' ); ?>
 				</div>
+				<?php endif;?>
 			</div>		
 		<?php
 		}
@@ -1415,7 +1443,7 @@ function ap_edit_question_form($question_id = false){
 	
 
 	?>
-	<form action="" id="ask_question_form" method="POST" data-action="ap-submit-question">			
+	<form action="" id="edit_question_form" method="POST" data-action="ap-submit-question">			
 		<div class="form-groups">
 			<div class="ap-fom-group-label"><?php _e('Edit question', 'ap'); ?></div>
 			<?php do_action('ap_edit_question_form_fields', $question, $validate); ?>

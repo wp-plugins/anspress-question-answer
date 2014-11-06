@@ -1,5 +1,5 @@
 === AnsPress - Question and answer plugin ===
-Contributors: nerdaryan, alexandruias, KTS915, Zoker, peterolle, mertskaplan, chrintz, masterbip, sm_rasmy, chadfullerton
+Contributors: nerdaryan, alexandruias, KTS915, Zoker, peterolle, mertskaplan, chrintz, masterbip, sm_rasmy, monocat, chadfullerton
 Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
 Tags: question, answer, q&a, forum, community, profile, stackoverflow, quora
 Requires at least: 3.5.1
@@ -140,6 +140,67 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 == Changelog ==
 
+= 1.4 =
+
+* [new] custom login URL, toggle login signup
+* [fix] text domain
+* [fix] added missing close icon in modal
+* [fix] Structured Data missing format #148
+* [fix] Undefined error if anonymous
+* [fix] bootstrap-tagsinput.min.js.map missing #172
+* Show anonymous name if submitted
+* Anonymous answer posting
+* [new] Anonymous question posting #170
+* [fix] add default meta when create post from wp-admin #134
+* Improved style of login, signup and social login
+* Updated font icon
+* Add ability to disable/enable login and signup
+* [fix] favorite button
+* Fix conflict with avatar outside anspress
+* Store question and answer fields data in browser
+* Added wordpress login from to prevent conflict
+* Improved style of question page
+* Removed new answer history from answer
+* Hide change label icon if user cant change label
+* Removed login backdrop
+* Updated POT
+* style fix, typo
+* Skip reCaptcha based on user points
+* Fix ReCaptha options
+* Improved avatar resize
+* Show the username of the user in Edit profile
+* Added option for users_per_page
+* Fix Allow anonymous option
+* Fix Show signup form option
+* Center anonymous box
+* Fix sidebar
+* fix author credit
+* [new] Added anonymous
+* Added icon function
+* Added trigger for voting
+* [new] Added options
+* Added dynamic image resize 
+* fix body question width, add cursor style
+* Fix body width with no sidebar
+* Fix users pagination
+* Fix modal style, fix modal typo
+* Added limit to question widget
+* Added ap_icon
+* Fix pagination issue
+* Minor style fix
+* Responsive Search Widget
+* Better modal style
+* body width
+* Revert "Added realTime addon, for live notification"
+* Removed realtime
+* Minor spelling correction
+* Added Chinese language
+* Sanitized data
+* [Fix] Status message overlay each other #133
+* [New] X point needed to create a new tag, minimum numbers of tags
+* Styled search suggestion
+* Checkbox not saving 
+
 = 1.3.1 =
 
 * Checkboxes not saving data needs fix now #131 
@@ -155,7 +216,7 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 * Responsive inserted images
 * Increase the text-holder size for tags
 * Increase the text-holder size for tags
-* Fix tag style issue …
+* Fix tag style issue
 * Fix tag style issue
 * Wrong padding off question sort buttons on user question page, fix overlay issue
 * Improved user links
@@ -181,12 +242,12 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 * Added Arabic language, shared by shady2
 * Fix typo
-* Fix wrong message when submiting a question …
+* Fix wrong message when submiting a question
 * Reposition the comma for better alignment
 * Fix un-clickable links
 * Fix tag Arrow
 * Add comma to separate tags
-* Fix bug at following users …
+* Fix bug at following users
 * #122 [Fix] External images cannot be inserted {446}
 * Added post_discussion widget
 * Added: Discussion on a post
@@ -204,7 +265,7 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 * Fixed duplicate "last updated action"
 * Improved list page SEO
 * #116 "Unanswered" filter should mean "Unsolved"
-* changed the file name of anspress-shortcodes.php to anspress-basepage… …
+* changed the file name of anspress-shortcodes.php to anspress-basepage
 * Removed messaging system
 * Fixed email addon, private messages and improved SEO of answers
 * Admin can set prefix of question #67
@@ -227,7 +288,7 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 * Added entry-title class for titles #90
 * User can create tag
 * Fixed: Form validation when multibyte letters
-* Improved login and signup …
+* Improved login and signup
 * updated like_escape to esc_like
 * Added Crayon Syntax Highlighter computability
 * Added page title
@@ -316,7 +377,7 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 * Added points events
 * Added delete action in points
 * Added points editing
-* Improved AnsPress option Added option to disable tags Added option to …
+* Improved AnsPress option Added option to disable tags Added option to
 * Added tags suggestion and label options
 * fixed followers query
 * fixed view count system to use ap_meta table

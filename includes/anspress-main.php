@@ -31,7 +31,8 @@ class anspress {
 	 * and styles.
 	 */
 	private function __construct() {
-
+	
+		remove_action('pre_comment_on_post', 'dsq_pre_comment_on_post');
 		// Load plugin text domain
 		add_action( 'wp_loaded', array( $this, 'flush_rules' ) );
 		
@@ -276,7 +277,9 @@ class anspress {
 	
 	public function body_class($classes){
 		// add anspress class to body
-		$classes[] = 'anspress';
+		if(is_anspress())
+			$classes[] = 'anspress';
+			
 		// return the $classes array
 		return $classes;
 	}

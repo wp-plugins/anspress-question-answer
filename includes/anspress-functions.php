@@ -49,6 +49,7 @@ function ap_default_options(){
 		'show_login_signup' 	=> true,
 		'show_login' 			=> true,
 		'show_signup' 			=> true,
+		'double_titles'			=> false,
 		'show_social_login'		=> false,
 		'theme' 				=> 'default',
 		'author_credits' 		=> false,
@@ -497,7 +498,7 @@ function ap_questions_tab(){
 			<li class="<?php echo $order == 'oldest' ? ' active' : ''; ?>"><a href="<?php echo $link.'oldest'; ?>"><?php _e('Oldest', 'ap'); ?></a></li>			
 		</ul>
 		<div class="pull-right">
-			<ul class="ap_status ap-dropdown">
+			<div class="ap_status ap-dropdown">
 				<a href="#" class="btn ap-btn ap-dropdown-toggle"><?php _e('Label', 'ap'); ?> &#9662;</a>
 				<ul class="ap-dropdown-menu">
 					<?php
@@ -508,7 +509,7 @@ function ap_questions_tab(){
 						}
 					?>
 				</ul>
-			</ul>
+			</div>
 		</div>
 	</div>
 	<?php

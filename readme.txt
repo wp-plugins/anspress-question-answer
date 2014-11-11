@@ -140,6 +140,33 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 == Changelog ==
 
+= 1.4.1 =
+
+*  Added conical url in head
+*  [new] Added feed in wp_head #91 
+*  [new]link to profile and tooltip for participants, [fix]show user login in edit profile , [new]Option for private question, [fix]ask button align
+*  [fix] Anonymous name not working in answer #186
+*  [fix] Label icon
+*  [fix]cannot send question comment with disqus
+*  Also hide unneeded space, when double title
+*  [fix]disqus conflict with anspress
+*  [fix]title is to the top of the page
+*  [fix]title is to the top of the page
+*  [fix]ask page title not disappearing
+*  [fix] missing DIV
+*  Add anspress class only if anspress base page
+*  [added] override stylesheet
+*  [fix] email not sent when answered
+*  Added ko_KR and id language files
+*  Option to hide the titles, sidebar style fix, fix input type
+*  [fix] typo
+*  sidebar stylefix
+*  Move option
+*  [fix] avatar not loading in comment #192
+*  [fix] double email to admin when answer
+*  [fix] No content loaded on question edit #183
+*  added comment id for better seo
+
 = 1.4 =
 
 * [new] custom login URL, toggle login signup

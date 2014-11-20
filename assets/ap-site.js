@@ -23,9 +23,8 @@ APjs.site.prototype = {
 			jQuery('.ap-signup-fields #password').on('keyup', jQuery.proxy(this.checkPasswordLength, this, '#password'));
 		}
 		
-		this.checkUsernameLength();
-		this.checkUsernameAvilable();
 		this.checkEmail();
+		this.checkEmailAvailable();
 		
 		this.castVote();
 		this.favorite();
@@ -66,7 +65,6 @@ APjs.site.prototype = {
 		this.deleteMessage();
 		this.questionSuggestion();
 		this.flushRules();
-		this.ajaxLoginForm();
 		this.loadNewTagForm();
 		this.newTag();
 		this.loginAccor();
@@ -76,9 +74,16 @@ APjs.site.prototype = {
 			jQuery('.ap-modal.active').toggleClass('active');
 		});
 		
-		jQuery('.ap-open-modal').click(function(e){
+		jQuery('body').delegate('.ap-open-modal', 'click', function(e){
 			e.preventDefault();
 			var id = jQuery(this).attr('href');
+			/* ensure all other models are closed */
+			jQuery('.ap-open-modal').each(function() {
+				var model_id = jQuery(this).attr('href')
+				jQuery(model_id).removeClass('active');
+			});
+
+			/* activate our model */
 			jQuery(id).addClass('active');
 		});
 		
@@ -203,67 +208,9 @@ APjs.site.prototype = {
 		});
 	},
 	
-	/* check length of username */
-	checkUsernameLength: function(){
-		var self = this;
-		jQuery('.anspress').delegate('#ap_signup_modal #username', 'keyup blur', function(){
-			var field = jQuery(this);		
-			var parent = field .closest('.form-group');
-			if (field.val().length <= 4){
-				self.fieldValidationClass(parent, 'has-error');
-				if(parent.find('.help-block').length == 0)
-					self.helpBlock(parent, aplang.username_less);
-				
-				self.toggleFormSubmission(field.closest('form'), false);
-			}
-			else{
-				parent.removeClass('has-error');
-				self.fieldValidationClass(parent, 'has-feedback');
-				if(parent.find('.help-block').length >0)
-					parent.find('.help-block').remove();
-				
-				self.toggleFormSubmission(field.closest('form'), true);
-			}
-		});
-	},
-	
-	/* check if username is available */
-	checkUsernameAvilable: function(){
-		var self = this;
-		jQuery('.anspress').delegate('#ap_signup_modal #username', 'blur', function(){
-			var field = jQuery(this);		
-			var parent = field .closest('.form-group');
-			
-			jQuery.ajax({  
-				type: 'POST',  
-				url: ajaxurl,  
-				data: {  
-					action: 'ap_check_username',  
-					username: jQuery(field).val(),  
-				},  
-				context:this,
-				success: function(data){ 
-					if(data == 'true'){
-						parent.removeClass('has-error');
-						self.fieldValidationClass(parent, 'has-feedback');
-						if(parent.find('.help-block').length >0)
-							parent.find('.help-block').remove();
-						
-						self.toggleFormSubmission(field.closest('form'), true);
-					}else{
-						self.fieldValidationClass(parent, 'has-error');
-						if(parent.find('.help-block').length == 0)
-							self.helpBlock(parent, aplang.username_not_avilable);
-						
-						self.toggleFormSubmission(field.closest('form'), false);
-					}
-					
-				} 
-			});
-		}); 
-	},
+
 	/* check if email is available */
-	checkEmailAvilable: function(){
+	checkEmailAvailable: function(){
 		var self = this;
 		jQuery('.anspress').delegate('form #email', 'blur', function(){
 			var field = jQuery(this);		
@@ -736,11 +683,8 @@ APjs.site.prototype = {
 					self.clearError('#ask_question_form');
 					self.addMessage(responce['message'], 'error');
 					self.appendFormError('#ask_question_form', responce['error']);
-					if(typeof responce['error']['recaptcha_response_field'] !== 'undefined'){
-						var errorString = "&error=" + encodeURIComponent(responce['error']['recaptcha_response_field']);
-						Recaptcha.create(recaptch_public+errorString, "recaptcha", { theme: "clean",callback: Recaptcha.focus_response_field});
-						console.log(errorString);
-					}
+					/* if there is an error we reload the captcha regardless, as it won't be valid a second time */
+					Recaptcha.reload();
 				}else{
 					self.addMessage(responce['message'], 'error');
 				}
@@ -1542,45 +1486,7 @@ APjs.site.prototype = {
 		});
 	},
 	
-	ajaxLoginForm:function(){
-		var self = this;
-		
-		self.submitAjaxForm(
-			'#ap-login-form',
-			function(){
-				self.showLoading(aplang.sending);
-			},
-			function(data){
-				self.hideLoading();
-				if(data['status']){
-					self.addMessage(data['message'], 'success');
-					jQuery('.ap-account-button').remove();
-					location.reload();
-				}else{
-					self.addMessage(data['message'], 'error');
-				}
-			}
-		);
-		
-		self.submitAjaxForm(
-			'#ap-signup-form',
-			function(){
-				self.showLoading(aplang.sending);
-				
-			},
-			function(data){
-				self.hideLoading();
-				if(data['status']){
-					self.addMessage(data['message'], 'success');
-					jQuery('#ap_signup_modal').toggleClass('active');
-					jQuery('#ap_login_modal').toggleClass('active');
-					jQuery('#ap-login-form').prepend('<strong>'+data['message']+'</strong>');
-				}else{
-					self.addMessage(data['message'], 'error');
-				}
-			}
-		);
-	},
+	
 	loadNewTagForm:function(){
 		var self = this;
 		jQuery('.anspress').delegate('#ap-load-new-tag-form', 'click', function(e){
@@ -1623,10 +1529,19 @@ APjs.site.prototype = {
 	loginAccor:function(){
 		var self = this;
 		jQuery('.ap-ac-accordion > strong').click(function(){
-			jQuery('.ap-ac-accordion').removeClass('active');
-			jQuery('.ap-ac-accordion .accordion-content').hide();
-			jQuery(this).parent().addClass('active');
-			jQuery(this).next().slideToggle();
+			var $elm = jQuery(this).parent();
+			if(!$elm.hasClass('active'))
+			{
+				jQuery('.ap-ac-accordion').removeClass('active');
+				jQuery('.ap-ac-accordion .accordion-content').hide();
+				jQuery(this).parent().addClass('active');
+				jQuery(this).next().slideToggle();
+			}
+			else
+			{
+				$elm.removeClass('active');
+				$elm.find('.accordion-content').hide();
+			}
 		});
 	}
 	

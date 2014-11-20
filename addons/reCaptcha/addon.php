@@ -50,6 +50,7 @@ class AP_ReCaptcha_Addon
 			</script>
 		<?php
 		wp_enqueue_script( 'ap-recaptcha', ANSPRESS_ADDON_URL. 'reCaptcha/recaptcha.js', 'jquery', AP_VERSION);
+		wp_enqueue_style( 'ap-recaptcha-css', ANSPRESS_ADDON_URL. 'reCaptcha/responsive_recaptcha.css', array(), AP_VERSION);
 	}
 	public function ap_recaptcha_validation($error){
 		require_once('recaptchalib.php');
@@ -101,7 +102,7 @@ function ap_recaptch_html(){
 	$error = null;
 
 	if(!is_super_admin() && (ap_opt('captcha_ask') || ap_opt('captcha_answer')))
-		echo recaptcha_get_html(ap_opt('recaptcha_public_key'), $error);
+		echo recaptcha_get_html(ap_opt('recaptcha_public_key'), $error, is_ssl());
 }
 
 AP_ReCaptcha_Addon::get_instance();

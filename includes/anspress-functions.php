@@ -282,6 +282,18 @@ function ap_edit_a_btn_html(){
 	}
 	return;
 }
+
+function ap_post_edited_time() {
+	if (get_the_time('s') != get_the_modified_time('s')){
+		printf('<span class="edited-text">%1$s</span> <span class="edited-time">%2$s</span>',
+		__('Edited on','ap'),
+		get_the_modified_time()
+		);
+	
+	}
+	return;
+}
+
 function ap_answer_edit_link(){
 	$post_id = get_the_ID();
 	if(ap_user_can_edit_ans($post_id)){		
@@ -579,10 +591,10 @@ function ap_select_answer_btn_html($post_id){
 	$nonce = wp_create_nonce( $action );	
 	
 	if(!ap_is_answer_selected($ans->post_parent)){		
-		return '<a href="#" class="ap-btn-select ap-sicon ap-icon-checkmark ap-tip" data-button="ap-select-answer" data-args="'. $post_id.'-'. $nonce .'" title="'.__('Select this answer as best', 'ap').'"></a>';
+		return '<a href="#" class="ap-btn-select ap-sicon '.ap_icon('tick').' ap-tip" data-button="ap-select-answer" data-args="'. $post_id.'-'. $nonce .'" title="'.__('Select this answer as best', 'ap').'"></a>';
 		
 	}elseif(ap_is_answer_selected($ans->post_parent) && ap_is_best_answer($ans->ID)){
-		return '<a href="#" class="ap-btn-select ap-sicon ap-icon-checkmark selected ap-tip" data-button="ap-select-answer" data-args="'. $post_id.'-'. $nonce .'" title="'.__('Unselect this answer', 'ap').'"></a>';
+		return '<a href="#" class="ap-btn-select ap-sicon '.ap_icon('tick').' selected ap-tip" data-button="ap-select-answer" data-args="'. $post_id.'-'. $nonce .'" title="'.__('Unselect this answer', 'ap').'"></a>';
 		
 	}
 }
@@ -881,6 +893,7 @@ function ap_icon($name){
 		'upload' 		=> 'ap-icon-upload',
 		'unchecked' 	=> 'ap-icon-checkbox-unchecked',
 		'checked' 		=> 'ap-icon-checkbox-checked',
+		'tick' 			=> 'ap-icon-tick',
 	);
 	
 	$icons = apply_filters('ap_icon', $icons);

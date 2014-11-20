@@ -50,7 +50,7 @@ function init_scripts_front(){
 			'not_valid_email' 				=> __( 'Not a valid email', 'ap' ),
 			'username_less' 				=> __( 'Username length must be 4 or higher', 'ap' ),
 			'username_not_avilable' 		=> __( 'Username not available', 'ap' ),
-			'email_already_in_use' 			=> __( 'Email already in use', 'ap' ),
+			'email_already_in_use' 			=> sprintf(__( 'Email already in use. %sDo you want to reset your password?%s', 'ap' ), '<a href="'. wp_lostpassword_url() .'">', '</a>'),
 			'loading' 						=> __( 'Loading', 'ap' ),
 			'sending' 						=> __( 'Sending request', 'ap' ),
 			'adding_to_fav' 				=> __( 'Adding question to your favorites', 'ap' ),
@@ -78,6 +78,10 @@ function init_scripts_front(){
 			'deleting_message' 				=> __( 'Deleting message', 'ap' ),
 			'uploading' 					=> __( 'Uploading', 'ap' ),
 		) );
+
+		wp_localize_script( 'ap-site-js', 'apoptions', array(
+			'ajaxlogin' => ap_opt('ajax_login'),
+		));
 	}
 }
 
@@ -101,10 +105,15 @@ if ( ! function_exists( 'ap_comment' ) ) :
 										
 					<p class="ap-comment-texts">
 						<?php echo get_comment_text(); ?>
-						<?php printf( ' - <time datetime="%1$s">%2$s %3$s</time>',
+						<?php $a=" e ";$b=" ";$time=get_option('date_format').$b.get_option('time_format').$a.get_option('gmt_offset');
+								printf( ' - <a title="%6$s" href="#li-comment-%7$s"><time datetime="%1$s">%2$s %3$s %5$s %4$s</time></a>',
 								get_comment_time( 'c' ),
 								ap_human_time(get_comment_time('U')),
-								__('ago', 'ap')
+								__('ago', 'ap'),
+								$author = get_comment_author( $comment),
+								__('by','ap'),
+								get_comment_time($time),
+								$comment_id = get_comment_ID()
 							);
 						?>
 					</p>

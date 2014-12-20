@@ -28,7 +28,9 @@
 					</div>			
 				</div>
 				<div class="answer-content" itemprop="text">
-					<?php the_content(); ?>
+					<?php
+						the_content();
+					?>
 				</div>			
 				<ul class="ap-user-actions clearfix">
 					<li><?php ap_edit_a_btn_html() ; ?></li>					

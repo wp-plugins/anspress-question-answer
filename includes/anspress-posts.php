@@ -191,7 +191,15 @@ class anspress_posts
 		// register CPT answer
         register_post_type('answer', $ans_args);
 		
-		register_post_status( 'moderate', array(
+		register_post_status( 'closed', array(
+			  'label'                     => __( 'Closed', 'ap' ),
+			  'public'                    => true,
+			  'show_in_admin_all_list'    => false,
+			  'show_in_admin_status_list' => true,
+			  'label_count'               => _n_noop( 'Closed <span class="count">(%s)</span>', 'Moderate <span class="count">(%s)</span>' )
+		 ) );
+		 
+		 register_post_status( 'moderate', array(
 			  'label'                     => __( 'Moderate', 'ap' ),
 			  'public'                    => true,
 			  'show_in_admin_all_list'    => false,
@@ -206,9 +214,6 @@ class anspress_posts
 			  'show_in_admin_status_list' => true,
 			  'label_count'               => _n_noop( 'Private Question <span class="count">(%s)</span>', 'Private Question <span class="count">(%s)</span>' )
 		 ) );
-		 
-		 //add_feed('question-feed', array($this, 'question_feed'));
-		// add_feed('answer-feed', array($this, 'answer_feed'));
         
     }
     
@@ -697,8 +702,8 @@ class anspress_posts
 		global $wpdb;
 		if(isset($query->query['ap_query']) && $query->query['ap_query'] == 'answer_sort_newest'){		
 			$sql['orderby'] = 'IF('.$wpdb->prefix.'postmeta.meta_key = "'.ANSPRESS_BEST_META.'" AND '.$wpdb->prefix.'postmeta.meta_value = 1, 0, 1), '.$sql['orderby'];
-		}elseif(isset($query->query['ap_query']) && $query->query['ap_query'] == 'answer_sort_voted'){	
-			$sql['orderby'] = 'IF(mt2.meta_value = 1, 0, 1), '.$sql['orderby'];
+		}elseif(isset($query->query['ap_query']) && $query->query['ap_query'] == 'answer_sort_voted'){
+			$sql['orderby'] = 'IF(mt1.meta_value = 1, 0, 1), '.$sql['orderby'];
 		}
 		return $sql;
 	}
@@ -724,6 +729,9 @@ class anspress_posts
 			  }elseif($post->post_status == 'private_question'){
 				   $complete = ' selected=\'selected\'';
 				   $label = '<span id=\'post-status-display\'>'.__('Private Question', 'ap').'</span>';
+			  }elseif($post->post_status == 'closed'){
+				   $complete = ' selected=\'selected\'';
+				   $label = '<span id=\'post-status-display\'>'.__('Closed', 'ap').'</span>';
 			  }
 			  ?>
 			  
@@ -732,6 +740,7 @@ class anspress_posts
 					  jQuery(document).ready(function(){
 						   jQuery("select#post_status").append("<option value=\'moderate\' '.$complete.'>'.__('Moderate', 'ap').'</option>");
 						   jQuery("select#post_status").append("<option value=\'private_question\' '.$complete.'>'.__('Private Question', 'ap').'</option>");
+						   jQuery("select#post_status").append("<option value=\'closed\' '.$complete.'>'.__('Closed', 'ap').'</option>");
 						   jQuery(".misc-pub-section label").append("'.$label.'");
 					  });
 			  </script>';

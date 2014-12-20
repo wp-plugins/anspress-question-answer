@@ -3,8 +3,8 @@ Contributors: nerdaryan, alexandruias, Zoker, peterolle, mertskaplan, chrintz, m
 Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
 Tags: question, answer, q&a, forum, community, profile, stackoverflow, quora
 Requires at least: 3.5.1
-Tested up to: 4.0
-Stable tag: 1.4.2
+Tested up to: 4.1
+Stable tag: 1.4.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,7 +22,6 @@ Contact us at support@open-wp.com
 Easily add question and answer section like stackoverflow.com or quora.com in your WordPress.
 AnsPress is a most complete question and answer system for WordPress. AnsPress is made with developers in mind, highly customizable. AnsPress provide an easy to use override system for theme. List of features:
 
-  * Real time loading, without page reload.
   * Sorting question and answer by many options.
   * Ajax based form submission
   * Theme system
@@ -139,6 +138,10 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 
 == Changelog ==
+
+= 1.4.2 =
+
+* Made compatible with WordPress 4.1
 
 = 1.4.1 =
 

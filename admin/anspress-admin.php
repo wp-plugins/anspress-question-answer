@@ -101,6 +101,8 @@ class anspress_admin {
 		add_action( 'wp_ajax_ap_install_rewrite_rules', array($this, 'ap_install_rewrite_rules') );
 		add_action( 'wp_ajax_ap_install_finish', array($this, 'ap_install_finish') );
 		
+		add_action( 'wp_ajax_ap_delete_flag', array($this, 'ap_delete_flag') );
+		
 		add_action( 'save_post', array($this, 'update_rewrite') );
 	}
 
@@ -163,8 +165,10 @@ class anspress_admin {
 		$Modcount =	'';	
 		if($mod_count > 0)
 			$Modcount = ' <span class="update-plugins count"><span class="plugin-count">'.number_format_i18n($mod_count).'</span></span>';
-			
-		add_menu_page( 'AnsPress', 'AnsPress'.$Totalcount, 'manage_options', 'anspress', array($this, 'dashboard_page'), ANSPRESS_URL . '/assets/answer.png', 6 );
+		
+		$pos = $this->get_free_menu_position(50, 0.3);
+		
+		add_menu_page( 'AnsPress', 'AnsPress'.$Totalcount, 'manage_options', 'anspress', array($this, 'dashboard_page'), ANSPRESS_URL . '/assets/answer.png', $pos );
 		
 		add_submenu_page('anspress', __( 'All Questions', 'ap' ), __( 'All Questions', 'ap' ),	'manage_options', 'edit.php?post_type=question', '');
 		
@@ -195,6 +199,20 @@ class anspress_admin {
 		add_submenu_page('ap_install', __( 'Install', 'ap' ), __( 'Install', 'ap' ),	'manage_options', 'anspress_install', array( $this, 'display_install_page' ));
 		
 	}
+	
+	public function get_free_menu_position($start, $increment = 0.3){
+        foreach ($GLOBALS['menu'] as $key => $menu) {
+            $menus_positions[] = $key;
+        }
+ 
+        if (!in_array($start, $menus_positions)) return $start;
+ 
+        /* the position is already reserved find the closet one */
+        while (in_array($start, $menus_positions)) {
+            $start += $increment;
+        }
+        return $start;
+    }
 	
 	// highlight the proper top level menu
 	public function tax_menu_correction($parent_file) {
@@ -397,6 +415,11 @@ public function ap_menu_metaboxes(){
 				<li>
 					<label class="menu-item-title">
 						<input type="radio" value="" name="menu-item[<?php echo $_nav_menu_placeholder ; ?>][menu-item-url]" class="menu-item-checkbox" data-url="ANSPRESS_USERS_PAGE_URL" data-title="<?php _e('Users', 'ap'); ?>"> <?php _e('Users', 'ap'); ?>
+					</label>
+				</li>
+				<li>
+					<label class="menu-item-title">
+						<input type="radio" value="" name="menu-item[<?php echo $_nav_menu_placeholder ; ?>][menu-item-url]" class="menu-item-checkbox" data-url="ANSPRESS_USER_PROFILE_URL" data-title="<?php _e('My profile', 'ap'); ?>"> <?php _e('My profile', 'ap'); ?>
 					</label>
 				</li>
 			</ul>
@@ -842,6 +865,14 @@ public function ap_menu_metaboxes(){
 			update_option('ap_installed', true);
 		}
 		die(admin_url('/admin.php?page=anspress_options'));
+	}
+	
+	public function ap_delete_flag(){
+		$id = (int)sanitize_text_field($_POST['flag_id']);
+		if(wp_verify_nonce($_POST['nonce'], 'flag_delete'.$id) && current_user_can('manage_options')){
+			return ap_delete_meta(false, $id);
+		}
+		die();
 	}
 	
 	public function update_rewrite($post_id){

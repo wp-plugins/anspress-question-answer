@@ -11,9 +11,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 AnsPress - Best question and answer plugin for WordPress. Made with developers in mind, highly customizable
 
 == Description ==
-Demo & support forum: http://open-wp.com/questions/
-
-We have recently moved our repository from https://wordpress.org/plugins/anspress/ to https://wordpress.org/plugins/anspress-question-answer/
+Demo & support forum: http://wp3.in/questions/
 
 
 = Looking for someone to customize AnsPress ? Hire us. =
@@ -51,9 +49,9 @@ AnsPress is a most complete question and answer system for WordPress. AnsPress i
 
 = Developers =
 
-Project site: [Open-WP](http://open-wp.com)
-GitHub repo: [Git AnsPress](https://github.com/open-wp/anspress/)
-Twitter: [@openwp](http://twitter.com/openwp)
+Project site: [Open-WP](http://wp3.in)
+GitHub repo: [Git AnsPress](https://github.com/wp3/anspress/)
+Twitter: [@openwp](http://twitter.com/wp3in)
 GooglePlus: [@openwp](https://plus.google.com/+rahularyannerdaryan?rel=author)
 
 = Help & Support =
@@ -139,7 +137,7 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 == Changelog ==
 
-= 1.4.2 =
+= 1.4.3 =
 
 * Made compatible with WordPress 4.1
 

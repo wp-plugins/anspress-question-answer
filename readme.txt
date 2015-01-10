@@ -55,7 +55,7 @@ Twitter: [@openwp](http://twitter.com/wp3in)
 GooglePlus: [@openwp](https://plus.google.com/+rahularyannerdaryan?rel=author)
 
 = Help & Support =
-For fast help and support, please post on our forum http://open-wp.com/questions/
+For fast help and support, please post on our forum http://wp3.in/questions/
 
 
 **Page Shortcodes**

@@ -449,10 +449,10 @@ function ap_select_answer_btn_html($post_id){
 	$nonce = wp_create_nonce( $action );	
 	
 	if(!ap_is_answer_selected($ans->post_parent)){		
-		return '<a href="#" class="ap-btn-select ap-sicon '.ap_icon('check').' ap-tip" data-button="ap-select-answer" data-args="'. $post_id.'-'. $nonce .'" title="'.__('Select this answer as best', 'ap').'">'.__('Select answer', 'ap').'</a>';
+		return '<a href="#" class="ap-btn-select ap-sicon '.ap_icon('check').' ap-tip" data-action="select_answer" data-query="answer_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=select_best_answer" title="'.__('Select this answer as best', 'ap').'">'.__('Select answer', 'ap').'</a>';
 		
 	}elseif(ap_is_answer_selected($ans->post_parent) && ap_is_best_answer($ans->ID)){
-		return '<a href="#" class="ap-btn-select ap-sicon '.ap_icon('cross').' selected ap-tip" data-button="ap-select-answer" data-args="'. $post_id.'-'. $nonce .'" title="'.__('Unselect this answer', 'ap').'">'.__('Unselect answer', 'ap').'</a>';
+		return '<a href="#" class="ap-btn-select ap-sicon '.ap_icon('cross').' selected ap-tip" data-action="select_answer" data-query="answer_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=select_best_answer" title="'.__('Unselect this answer', 'ap').'">'.__('Unselect answer', 'ap').'</a>';
 		
 	}
 }
@@ -465,7 +465,7 @@ function ap_post_delete_btn_html($post_id = false, $echo = false){
 		$action = 'delete_post_'.$post_id;
 		$nonce = wp_create_nonce( $action );
 		
-		$output = '<a href="#" class="delete-btn" data-button="ap-delete-post ap-tip" data-args="'. $post_id.'-'. $nonce .'" title="'.__('Delete', 'ap').'">'.ap_icon('delete', true).__('Delete', 'ap').'</a>';
+		$output = '<a href="#" class="delete-btn ap-tip" data-action="ap_delete_post" data-query="post_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=delete_post" title="'.__('Delete', 'ap').'">'.ap_icon('delete', true).__('Delete', 'ap').'</a>';
 
 		if($echo)
 			echo $output;
@@ -775,6 +775,10 @@ function ap_responce_message($id)
 		'undo_vote' => array('type' => 'success', 'message' => __('Your vote has been removed.', 'ap')),
 		'undo_vote_your_vote' => array('type' => 'warning', 'message' => __('Undo your vote first.', 'ap')),
 		'cannot_vote_own_post' => array('type' => 'warning', 'message' => __('You cannot vote on your own question or answer.', 'ap')),
+		'unselected_the_answer' => array('type' => 'success', 'message' => __('Best answer is unselected for your question.', 'ap')),
+		'selected_the_answer' => array('type' => 'success', 'message' => __('Best answer is selected for your question.', 'ap')),
+		'question_moved_to_trash' => array('type' => 'success', 'message' => __('Question moved to trash.', 'ap')),
+		'answer_moved_to_trash' => array('type' => 'success', 'message' => __('Answer moved to trash.', 'ap')),
 	);
 
 	/**

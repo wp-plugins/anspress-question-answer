@@ -399,7 +399,12 @@ class AnsPress_Process_Form
 		
 		// if error in form then return
 		if($validate->have_error()){
-			$this->result = $ap_errors;
+			$this->result = array(
+				'form' 			=> $_POST['ap_form_action'],
+				'message_type' 	=> 'error',
+				'message'		=> __('Check missing fields and then re-submit.', 'ap'),
+				'errors'		=> $ap_errors
+			);
 			return;
 		}
 
@@ -443,7 +448,7 @@ class AnsPress_Process_Form
 
 		if($post_id){				
 			// get existing answer count
-			$current_ans = ap_count_all_answers($question->ID);
+			$current_ans = ap_count_published_answers($question->ID);
 
 			if (!is_user_logged_in() && ap_opt('allow_anonymous') && isset($fields['name']))
 				update_post_meta($post_id, 'anonymous_name', $fields['name']);
@@ -476,16 +481,13 @@ class AnsPress_Process_Form
 					'postid' 		=> $post_id, 
 					'action' 		=> 'new_answer',
 					'div_id' 		=> '#answer_'.get_the_ID(),
-					'count' 		=> $current_ans,
-					'count_label' 	=> $count_label,
 					'can_answer' 	=> ap_user_can_answer($post->ID),
 					'html' 			=> $html,
 					'message' 		=> 'answer_submitted',
+					'view'			=> array('answer_count' => $current_ans, 'answer_count_label' => $count_label)
 				);
 				
 				$this->result = $result;
-
-				//unset($_POST);
 				
 			}
 		}

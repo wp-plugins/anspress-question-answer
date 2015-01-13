@@ -35,6 +35,7 @@ AnsPress.site.prototype = {
 		this.appendFormError();
 		this.appendMessageBox();
 		this.ap_comment_form();
+		this.afterPostingAnswer();
 
 	},
 
@@ -96,16 +97,23 @@ AnsPress.site.prototype = {
 		$( document ).ajaxComplete(function( event, data, settings ) {
 			ApSite.hideLoading();
 			if(typeof data !== 'undefined' && typeof data.responseJSON !== 'undefined' && typeof data.responseJSON.ap_responce !== 'undefined'){
-
-				if(typeof data.responseJSON.message !== 'undefined'){
-					var type = typeof data.responseJSON.message_type === 'undefined' ? 'success' : data.responseJSON.message_type;				
-					ApSite.addMessage(data.responseJSON.message, type);
+				var data = data.responseJSON;
+				if(typeof data.message !== 'undefined'){
+					var type = typeof data.message_type === 'undefined' ? 'success' : data.message_type;				
+					ApSite.addMessage(data.message, type);
 				}
 
-				$(document).trigger('ap_after_ajax', data.responseJSON);
+				$(document).trigger('ap_after_ajax', data);
 				
-				if (data.responseJSON.do !== 'undefined' && typeof ApSite[data.responseJSON.do] === 'function')
-					ApSite[data.responseJSON.do](data.responseJSON);
+				if (data.do !== 'undefined' && typeof ApSite[data.do] === 'function')
+					ApSite[data.do](data);
+
+				if (data.view !== 'undefined'){
+					$.each(data.view, function(i, view){
+						$('[data-view="'+ i +'"]').text(view);				
+						$('[data-view="'+ i +'"]').text(view);
+					});
+				}
 
 			}
 		});
@@ -127,16 +135,15 @@ AnsPress.site.prototype = {
 		$('.ap-loading-icon').hide();
 	},
 
-	suggest_similar_questions: function(elm){
-		var uid = this.uniqueId();
-		$(elm).on('keyup', function(){
+	suggest_similar_questions: function(action){
+		$(action).on('keyup', function(){
 			ApSite.doAjax( 
-				apAjaxData('ap_ajax_action=suggest_similar_questions&value=' + $(elm).val()), 
+				apAjaxData('ap_ajax_action=suggest_similar_questions&value=' + $(this).val()), 
 				function(data){
 					if(typeof data['html'] !== 'undefined')
 						$('#similar_suggestions').html(data['html']);
 				}, 
-				elm,
+				this,
 				false,
 				true
 			);
@@ -144,18 +151,18 @@ AnsPress.site.prototype = {
 
 	},
 
-	ap_ajax_form:function(form){		
-		$('body').delegate(form,'submit', function(){
+	ap_ajax_form:function(action){		
+		$('body').delegate(action,'submit', function(){
 			
 			if(typeof tinyMCE !== 'undefined')
 				tinyMCE.triggerSave();
 
 			ApSite.doAjax( 
-				apAjaxData($(form).formSerialize()), 
+				apAjaxData($(this).formSerialize()), 
 				function(data){
 					console.log(data);
 				}, 
-				form
+				this
 			);
 			return false;
 		})
@@ -209,12 +216,11 @@ AnsPress.site.prototype = {
 			$(data.container).append(data.html);
 	},
 
-	load_comment_form: function(elm){
-		var q = $(elm).data('query');
+	load_comment_form: function(action){
 
-		$(elm).click( function(e){
+		$(action).click( function(e){
 			e.preventDefault();
-			
+			var q = $(this).attr('data-query');
 			ApSite.doAjax( 
 				apAjaxData(q), 
 				function(data){
@@ -224,13 +230,13 @@ AnsPress.site.prototype = {
 						scrollTop: ($(data.container).offset().top) - 50
 					}, 500);
 
-					if(typeof $(elm).attr('data-toggle') !== 'undefined')
-						$($(elm).attr('data-toggle')).hide();
+					if(typeof $(this).attr('data-toggle') !== 'undefined')
+						$($(this).attr('data-toggle')).hide();
 
 					$('#ap-comment-textarea').focus();
 					ApSite.doAction('ap_ajax_form');
 				}, 
-				elm,
+				this,
 				false,
 				true
 			);
@@ -259,45 +265,41 @@ AnsPress.site.prototype = {
 			return false;
 		})
 	},
-	delete_comment: function(elm){
-		var q = $(elm).data('query');
-
-		$('body').delegate(elm, 'click', function(e){
+	delete_comment: function(action){
+		$('body').delegate(action, 'click', function(e){
 			e.preventDefault();
-			
+			var q = $(this).attr('data-query');
 			ApSite.doAjax( 
 				apAjaxData(q), 
 				function(data){
-					if(typeof $(elm).attr('data-toggle') !== 'undefined')
-						$($(elm).attr('data-toggle')).hide();
+					if(typeof $(this).attr('data-toggle') !== 'undefined')
+						$($(this).attr('data-toggle')).hide();
 				}, 
-				elm,
+				this,
 				false,
 				true
 			);
 		});
 	},
 
-	ap_subscribe: function(elm){
-		var q = $(elm).data('query');
-
-		$(elm).click( function(e){
+	ap_subscribe: function(action){
+		$(action).click( function(e){
 			e.preventDefault();
-			
+			var q = $(this).attr('data-query');
 			ApSite.doAjax( 
 				apAjaxData(q), 
 				function(data){
-					if(data.message_type == 'success'){
-						$(elm).addClass('active');
-						$(elm).closest('.ap-subscribe').addClass('active');
+					if(data.action == 'subscribed'){
+						$(this).addClass('active');
+						$(this).closest('.ap-subscribe').addClass('active');
 					}else{
-						$(elm).removeClass('active');
-						$(elm).closest('.ap-subscribe').removeClass('active');
+						$(this).removeClass('active');
+						$(this).closest('.ap-subscribe').removeClass('active');
 					}
 				}, 
-				elm,
+				this,
 				function(){
-					$(elm).closest('.ap-subscribe').toggleClass('active');
+					$(this).closest('.ap-subscribe').toggleClass('active');
 				}
 			);
 		});
@@ -336,7 +338,50 @@ AnsPress.site.prototype = {
 				false
 			);
 		});
+	},
+
+	afterPostingAnswer: function(){
+		$(document).on('ap_after_ajax', function(e, data){
+			if(typeof data.action !== 'undefined' && data.action == 'new_answer'){
+				if($('#answers').length === 0){
+					$('#question').after($(data['html']));
+					$(data['div_id']).hide();
+				}else
+					$('#answers').append($(data['html']).hide());				
+				
+				$(data.div_id).slideDown(500);
+			}
+		});
+	},
+
+	select_answer: function(action){
+		$('body').delegate(action, 'click', function(e){
+			e.preventDefault();
+			var q = $(this).attr('data-query');
+
+			ApSite.doAjax( 
+				apAjaxData(q)
+			);
+		});
+	},
+
+	ap_delete_post: function(action){
+		$('body').delegate(action, 'click', function(e){
+			e.preventDefault();
+			var q = $(this).attr('data-query');
+
+			ApSite.doAjax( 
+				apAjaxData(q), 
+				function(data){
+					if(typeof data.action !== 'undefined' && data.action == 'delete_answer')
+						$(data.div_id).slideUp(500).fadeOut(300, function(){ $(this).remove(); })
+				}, 
+				this,
+				false
+			);
+		});
 	}
+	
 
 
 

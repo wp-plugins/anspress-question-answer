@@ -49,12 +49,9 @@ class AnsPress_Vote_Ajax extends AnsPress_Ajax
 				//register an action
 				do_action('ap_removed_subscribe', $question_id, $counts);
 
-				ap_send_json(ap_ajax_responce('unsubscribed'));
+				ap_send_json(ap_ajax_responce(array('message' => 'unsubscribed', 'action' => 'unsubscribed')));
 				return;
-				
-				$title = __('Add to subscribe list', 'ap');
-				$action = 'removed';
-				$message = __('Removed question from your subscribe list', 'ap');
+
 			}else{
 				$row = ap_add_vote($userid, 'subscriber', $question_id);
 				$counts = ap_post_subscribers_count($question_id);
@@ -65,7 +62,7 @@ class AnsPress_Vote_Ajax extends AnsPress_Ajax
 				//register an action
 				do_action('ap_added_subscribe', $question_id, $counts);
 				
-				ap_send_json(ap_ajax_responce('subscribed'));
+				ap_send_json(ap_ajax_responce(array('message' => 'subscribed', 'action' => 'subscribed')));
 			}
 			
 		}
@@ -471,8 +468,8 @@ function ap_vote_btn($post = false){
 	$nonce 	= wp_create_nonce( 'vote_'.$post->ID );
 	$vote 	= ap_is_user_voted( $post->ID , 'vote');
 
-	$voted 	= isset($vote) ? true : false;
-	$type 	= isset($vote) ? $vote->type : '';
+	$voted 	= $vote ? true : false;
+	$type 	= $vote ? $vote->type : '';
 	?>
 		<div data-id="<?php echo $post->ID; ?>" class="ap-vote net-vote" data-action="vote">
 			<a class="<?php echo ap_icon('vote_up') ?> ap-tip vote-up<?php echo $voted ? ' voted' :''; echo ($type == 'vote_down') ? ' disable' :''; ?>" data-query="ap_ajax_action=vote&type=up&post_id=<?php echo $post->ID; ?>&__nonce=<?php echo $nonce ?>" href="#" title="<?php _e('Up vote this post', 'ap'); ?>"></a>

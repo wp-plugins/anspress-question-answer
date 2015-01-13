@@ -24,21 +24,12 @@ class AnsPress_Ajax
 		add_action('ap_ajax_suggest_similar_questions', array($this, 'suggest_similar_questions'));
 		add_action('ap_ajax_load_comment_form', array($this, 'load_comment_form'));
 		add_action('ap_ajax_delete_comment', array($this, 'delete_comment'));
-		
-		add_action('wp_ajax_nopriv_ap_check_email', array($this, 'check_email'));
-		add_action('wp_ajax_recount_votes', array($this, 'recount_votes'));
-		add_action('wp_ajax_recount_views', array($this, 'recount_views'));
-		add_action('wp_ajax_recount_fav', array($this, 'recount_fav'));
-		add_action('wp_ajax_recount_flag', array($this, 'recount_flag'));
-		add_action('wp_ajax_recount_close', array($this, 'recount_close'));
+		add_action('ap_ajax_select_best_answer', array($this, 'select_best_answer'));
+		add_action('ap_ajax_delete_post', array($this, 'delete_post'));
 		
 		add_action('wp_ajax_ap_suggest_tags', array($this, 'ap_suggest_tags'));
 		add_action('wp_ajax_nopriv_ap_suggest_tags', array($this, 'ap_suggest_tags'));
-		
-		add_action('wp_ajax_ap_set_best_answer', array($this, 'ap_set_best_answer'));
-		
-		add_action('wp_ajax_ap_suggest_questions', array($this, 'ap_suggest_questions'));
-		add_action('wp_ajax_nopriv_ap_suggest_questions', array($this, 'ap_suggest_questions'));
+
 
     }
 
@@ -137,6 +128,11 @@ class AnsPress_Ajax
 		ap_send_json($result);
     }
 
+    /**
+     * Ajax action for deleting comment
+     * @return void
+     * @since 2.0.0
+     */
     public function delete_comment(){
     	if(isset($_POST['comment_ID']) && ap_user_can_delete_comment((int)$_POST['comment_ID'] ) && wp_verify_nonce( $_POST['__nonce'], 'delete_comment' )){
     		$delete = wp_delete_comment( (int)$_POST['comment_ID'], true );
@@ -151,6 +147,79 @@ class AnsPress_Ajax
     	ap_send_json( ap_ajax_responce('no_permission'));
     }
 
+    /**
+     * Ajax action for selecting a best answer
+     * @return void
+     * @since 2.0.0
+     */
+    public function select_best_answer(){
+		$answer_id = (int)$_POST['answer_id'];
+		
+		if(!is_user_logged_in()){
+			ap_send_json( ap_ajax_responce('no_permission'));
+			return;
+		}
+
+		if(!wp_verify_nonce( $_POST['__nonce'], 'answer-'.$answer_id )){
+			ap_send_json( ap_ajax_responce('something_wrong'));
+			return;
+		}
+
+		$post = get_post($answer_id);
+		$user_id = get_current_user_id();
+		
+		if(ap_is_answer_selected($post->post_parent)){
+			ap_do_event('unselect_answer', $user_id, $post->post_parent, $post->ID);
+			update_post_meta($post->ID, ANSPRESS_BEST_META, 0);
+			update_post_meta($post->post_parent, ANSPRESS_SELECTED_META, false);
+			update_post_meta($post->post_parent, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
+			ap_send_json( ap_ajax_responce(array('message' => 'unselected_the_answer', 'action' => 'unselected_answer', 'do' => 'redirect', 'redirect_to' => get_permalink($post->ID))));
+
+		}else{
+			ap_do_event('select_answer', $user_id, $post->post_parent, $post->ID);
+			update_post_meta($post->ID, ANSPRESS_BEST_META, 1);
+			update_post_meta($post->post_parent, ANSPRESS_SELECTED_META, $post->ID);
+			update_post_meta($post->post_parent, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
+			$html = ap_select_answer_btn_html($answer_id);
+			ap_send_json( ap_ajax_responce(array('message' => 'selected_the_answer', 'action' => 'selected_answer', 'do' => 'redirect', 'redirect_to' => get_permalink($post->ID))));
+		}
+	}
+
+	public function delete_post()
+	{
+		$post_id = (int) $_POST['post_id'];
+
+		$action = 'delete_post_'.$post_id;	
+		
+		if(!wp_verify_nonce( $_POST['__nonce'], $action )){
+			ap_send_json( ap_ajax_responce('something_wrong'));
+			return;
+		}
+
+		if(!ap_user_can_delete($post_id)){
+			ap_send_json( ap_ajax_responce('no_permission'));
+			return;
+		}
+		
+		$post = get_post( $post_id );
+		wp_trash_post($post_id);
+		if($post->post_type == 'question'){
+			ap_send_json( ap_ajax_responce( array('action' => 'delete_question', 'do' => 'redirect', 'redirect_to' => get_permalink(ap_opt('anspress_questions')), 'message' => 'question_moved_to_trash')));
+		}else{
+			$current_ans = ap_count_published_answers($post->post_parent);
+			$count_label = sprintf( _n('1 Answer', '%d Answers', $current_ans, 'ap'), $current_ans);
+			$remove = (!$current_ans ? true : false);
+			ap_send_json( ap_ajax_responce(array(
+				'action' 		=> 'delete_answer', 
+				'div_id' 			=> '#answer_'.$post_id,
+				'count' 		=> $current_ans,
+				'count_label' 	=> $count_label,
+				'message' 		=> 'answer_moved_to_trash',
+				'view'			=> array('answer_count' => $current_ans, 'answer_count_label' => $count_label))));
+		}
+		
+	}
+
 	
 	public function check_email(){
 	   $email = sanitize_text_field($_POST['email']);
@@ -160,172 +229,6 @@ class AnsPress_Ajax
            echo 'false' ;
 		else
 			echo 'true';
-		
-		die();
-	}
-	
-	public function recount_votes(){
-		$args=array(
-			'post_type' => 'question',
-			'showposts' => 40,
-			'orderby' => 'meta_value_num',
-			'meta_query' => array(
-				array(
-				 'key' => ANSPRESS_VOTE_META,
-				 'compare' => 'NOT EXISTS'
-				),
-			)
-		);
-		$questions = new WP_Query($args);
-
-		if($questions->have_posts()){
-			$count = $questions->found_posts;
-			while ( $questions->have_posts() ) : $questions->the_post(); 
-				add_post_meta(get_the_ID(), ANSPRESS_VOTE_META, '0', true);
-			endwhile ;
-			wp_reset_query();
-
-			printf( __( 'Checked %s questions.', 'ap' ), $count);
-		}else{
-			 _e( 'All questions looks fine.', 'ap' );
-		}
-		
-		$args=array(
-			'post_type' => 'answer',
-			'showposts' => 40,
-			'orderby' => 'meta_value_num',
-			'meta_query' => array(
-				array(
-				 'key' => ANSPRESS_VOTE_META,
-				 'compare' => 'NOT EXISTS'
-				),
-			)
-		);
-		$questions = new WP_Query($args);
-
-		if($questions->have_posts()){
-			$count = $questions->found_posts;
-			while ( $questions->have_posts() ) : $questions->the_post(); 
-				add_post_meta(get_the_ID(), ANSPRESS_VOTE_META, '0', true);
-			endwhile ;
-			wp_reset_query();
-
-			printf( __( 'Checked %s answers.', 'ap' ), $count);
-		}else{
-			 _e( 'All answers looks fine.', 'ap' );
-		}
-		
-		die();
-	}
-	public function recount_views(){
-		$args=array(
-			'post_type' => 'question',
-			'showposts' => 40,
-			'orderby' => 'meta_value_num',
-			'meta_query' => array(
-				array(
-				 'key' => ANSPRESS_VIEW_META,
-				 'compare' => 'NOT EXISTS'
-				),
-			)
-		);
-		$questions = new WP_Query($args);
-
-		if($questions->have_posts()){
-			$count = $questions->found_posts;
-			while ( $questions->have_posts() ) : $questions->the_post(); 
-				add_post_meta(get_the_ID(), ANSPRESS_VIEW_META, '0', true);
-			endwhile ;
-			wp_reset_query();
-
-			printf( __( 'Checked %s questions.', 'ap' ), $count);
-		}else{
-			 _e( 'All questions looks fine.', 'ap' );
-		}
-		
-		die();
-	}	
-	public function recount_fav(){
-		$args=array(
-			'post_type' => 'question',
-			'showposts' => 40,
-			'orderby' => 'meta_value_num',
-			'meta_query' => array(
-				array(
-				 'key' => ANSPRESS_FAV_META,
-				 'compare' => 'NOT EXISTS'
-				),
-			)
-		);
-		$questions = new WP_Query($args);
-
-		if($questions->have_posts()){
-			$count = $questions->found_posts;
-			while ( $questions->have_posts() ) : $questions->the_post(); 
-				add_post_meta(get_the_ID(), ANSPRESS_FAV_META, '0', true);
-			endwhile ;
-			wp_reset_query();
-
-			printf( __( 'Checked %s questions.', 'ap' ), $count);
-		}else{
-			 _e( 'All questions looks fine.', 'ap' );
-		}
-		
-		die();
-	}	
-	public function recount_flag(){
-		$args=array(
-			'post_type' => 'question',
-			'showposts' => 40,
-			'orderby' => 'meta_value_num',
-			'meta_query' => array(
-				array(
-				 'key' => ANSPRESS_FLAG_META,
-				 'compare' => 'NOT EXISTS'
-				),
-			)
-		);
-		$questions = new WP_Query($args);
-
-		if($questions->have_posts()){
-			$count = $questions->found_posts;
-			while ( $questions->have_posts() ) : $questions->the_post(); 
-				add_post_meta(get_the_ID(), ANSPRESS_FLAG_META, '0', true);
-			endwhile ;
-			wp_reset_query();
-
-			printf( __( 'Checked %s questions.', 'ap' ), $count);
-		}else{
-			 _e( 'All questions looks fine.', 'ap' );
-		}
-		
-		die();
-	}
-	public function recount_close(){
-		$args=array(
-			'post_type' => 'question',
-			'showposts' => 40,
-			'orderby' => 'meta_value_num',
-			'meta_query' => array(
-				array(
-				 'key' => ANSPRESS_CLOSE_META,
-				 'compare' => 'NOT EXISTS'
-				),
-			)
-		);
-		$questions = new WP_Query($args);
-
-		if($questions->have_posts()){
-			$count = $questions->found_posts;
-			while ( $questions->have_posts() ) : $questions->the_post(); 
-				add_post_meta(get_the_ID(), ANSPRESS_CLOSE_META, '0', true);
-			endwhile ;
-			wp_reset_query();
-
-			printf( __( 'Checked %s questions.', 'ap' ), $count);
-		}else{
-			 _e( 'All questions looks fine.', 'ap' );
-		}
 		
 		die();
 	}
@@ -363,54 +266,5 @@ class AnsPress_Ajax
 		
 		die(json_encode($result));
 	}
-	
-	public function ap_set_best_answer(){
-		$args = explode('-', sanitize_text_field($_POST['args']));
-		
-		if(wp_verify_nonce( $args[1], 'answer-'.$args[0] )){
-			$post = get_post($args[0]);
-			$user_id = get_current_user_id();
-			if(ap_is_answer_selected($post->post_parent)){
-				ap_do_event('unselect_answer', $user_id, $post->post_parent, $post->ID);
-				update_post_meta($post->ID, ANSPRESS_BEST_META, 0);
-				update_post_meta($post->post_parent, ANSPRESS_SELECTED_META, false);
-				update_post_meta($post->post_parent, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
-				$html = ap_select_answer_btn_html($args[0]);
-				$result	= array('action' => 'unselected', 'message' => __('Unselected the answer', 'ap'), 'html' => $html);
-			}else{
-				ap_do_event('select_answer', $user_id, $post->post_parent, $post->ID);
-				update_post_meta($post->ID, ANSPRESS_BEST_META, 1);
-				update_post_meta($post->post_parent, ANSPRESS_SELECTED_META, $post->ID);
-				update_post_meta($post->post_parent, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
-				$html = ap_select_answer_btn_html($args[0]);
-				$result	= array('action' => 'selected', 'message' => __('Thank you for awarding best answer', 'ap'), 'html' => $html);
-			}
-			
-		}else{
-			$result	= array('action' => false, 'message' => __('Please try again', 'ap'));
-		}
-		die(json_encode($result));
-	}
-	public function ap_suggest_questions(){
-		$keyword = sanitize_text_field($_POST['q']);
-		$questions = get_posts(array(
-			'post_type'   	=> 'question',
-			'showposts'   	=> 10,
-			's' 			=> $keyword,
-		));
-		
-		
-		if($questions){
-			$items = array();
-			foreach ($questions as $k => $p){
-				$count = ap_count_answer_meta($p->ID);
-				$items[$k]['html'] 			= '<a class="ap-sqitem" href="'.get_permalink($p->ID).'">'.get_avatar($p->post_author, 30).'<div class="apqstitle">'.$p->post_title.'</div><span class="apsqcount">'. sprintf(_n('1 Answer', '%d Answers', $count, 'ap' ), $count) .'</span></a>';
-			}
-			$result = array('status' => true, 'items' => $items);
-		}else{
-			$result = array('status' => false, 'message' => __('No related questions found', 'ap'));
-		}
-		
-		die(json_encode($result));
-	}
+
 }

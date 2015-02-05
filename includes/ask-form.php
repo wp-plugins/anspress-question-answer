@@ -40,6 +40,7 @@ new AnsPress_Ask_Form;
 function ap_ask_form($editing = false){
     global $editing_post;
 
+    $is_private = false;
     if($editing){
         $is_private = $editing_post->post_status == 'private_post' ? true : false;
     }
@@ -57,7 +58,7 @@ function ap_ask_form($editing = false){
                 'desc'  => __('Write a meaningful title for the question.', 'ap'),
                 'value' => ( $editing ? $editing_post->post_title : sanitize_text_field( @$_POST['title'] ) ),
                 'order' => 5,
-                'attar' => 'data-action="suggest_similar_questions"',
+                'attr' => 'data-action="suggest_similar_questions"',
                 'autocomplete' => false,
             ),
             array(
@@ -74,17 +75,9 @@ function ap_ask_form($editing = false){
                 'value' => ( $editing ? $editing_post->post_content : @$_POST['description']  ),
                 'settings' => array(
                     'textarea_rows' => 8,
+                    'tinymce' => ap_opt('question_text_editor') ? false : true,
                 ),
             ),
-            array(
-                'name' => 'is_private',
-                'label' => __('Private', 'ap'),
-                'type'  => 'checkbox',
-                'desc'  => __('This question ment to be private, only visible to admin and moderator.', 'ap'),
-                'value' => ( $editing ? $is_private : sanitize_text_field( @$_POST['is_private'] ) ),
-                'order' => 12,
-                'show_desc_tip' => false
-            ),            
             array(
                 'name' => 'parent_id',
                 'type'  => 'hidden',
@@ -93,6 +86,16 @@ function ap_ask_form($editing = false){
             ),
         ),
     );
+
+    if(ap_opt('allow_private_posts'))
+        $args['fields'][] = array(
+            'name' => 'is_private',
+            'type'  => 'checkbox',
+            'desc'  => __('Only visible to admin and moderator.', 'ap'),
+            'value' => $is_private,
+            'order' => 12,
+            'show_desc_tip' => false
+        );
     
     /**
      * FILTER: ap_ask_form_fields

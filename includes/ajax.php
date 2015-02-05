@@ -41,6 +41,10 @@ class AnsPress_Ajax
      * @since 2.0.1
      */
     public function suggest_similar_questions(){
+
+    	if(empty($_POST['value'] ))
+    		return;
+
     	$keyword = sanitize_text_field($_POST['value']);
 		$questions = get_posts(array(
 			'post_type'   	=> 'question',
@@ -55,10 +59,15 @@ class AnsPress_Ajax
 			$items .= '<p>'.__('We found similar questions that have already been asked, click to read them. Avoid creating duplicate questions, it will be deleted.').'</p>';
 			$items .= '</div>';
 			$items .= '<div class="ap-similar-questions">';
-			foreach ($questions as $k => $p){
+			foreach ($questions as $p){
 				$count = ap_count_answer_meta($p->ID);
 				$p->post_title = ap_highlight_words($p->post_title, $keyword);
-				$items .= '<a class="ap-sqitem" href="'.get_permalink($p->ID).'">'.$p->post_title.'<span class="acount">'. sprintf(_n('1 Answer', '%d Answers', $count, 'ap' ), $count) .'</span></a>';
+				
+				if(!isset($_POST['is_admin']))
+					$items .= '<a class="ap-sqitem" href="'.get_permalink($p->ID).'">'.$p->post_title.'<span class="acount">'. sprintf(_n('1 Answer', '%d Answers', $count, 'ap' ), $count) .'</span></a>';
+
+				else
+					$items .= '<div class="ap-q-suggestion-item"><a class="select-question-button button button-primary button-small" href="'.add_query_arg(array('post_type' => 'answer', 'post_parent' => $p->ID), admin_url( 'post-new.php' )).'">'.__('Select', 'ap').'</a><span class="question-title">'.$p->post_title.'</span><span class="acount">'. sprintf(_n('1 Answer', '%d Answers', $count, 'ap' ), $count) .'</span></div>';
 			}
 			$items .= '</div>';
 			$result = array('status' => true, 'html' => $items);
@@ -78,13 +87,13 @@ class AnsPress_Ajax
     	$result = array(
     		'ap_responce' 	=> true,
     		'action' 		=> 'load_comment_form',
-    		'do' 			=> 'append'
     	);
 
-		if((wp_verify_nonce( $_REQUEST['__nonce'], 'comment_form_nonce' ) && ap_user_can_comment()) || (isset($_REQUEST['comment_ID']) && ap_user_can_edit_comment((int)$_REQUEST['comment_ID'] ) && wp_verify_nonce( $_REQUEST['__nonce'], 'edit_comment_'.(int)$_REQUEST['comment_ID'] ))){
-
+		if((wp_verify_nonce( $_REQUEST['__nonce'], 'comment_form_nonce' )) || (wp_verify_nonce( $_REQUEST['__nonce'], 'edit_comment_'.(int)$_REQUEST['comment_ID'] ))){
 			
-
+			$comment_args  = array();
+			$content = '';
+			$commentid = '';
 			if(isset($_REQUEST['comment_ID'])){
 				$comment = get_comment($_REQUEST['comment_ID']);
 				$comment_post_ID = $comment->comment_post_ID;
@@ -102,20 +111,31 @@ class AnsPress_Ajax
 				'id_form' => 'ap-commentform',
 				'title_reply' => '',
 				'logged_in_as' => '',
-				'comment_field' => '<textarea name="comment" rows="3" aria-required="true" id="ap-comment-textarea" class="form-control autogrow" placeholder="'.__('Respond to the post.', 'ap').'">'.@$content.'</textarea><input type="hidden" name="ap_form_action" value="comment_form"/><input type="hidden" name="ap_ajax_action" value="comment_form"/><input type="hidden" name="__nonce" value="'.$nonce.'"/>'.@$commentid,
+				'comment_field' => '<div class="ap-comment-submit"><input type="submit" value="'.__('Post Comment', 'ap').'" name="submit"></div><div class="ap-comment-textarea"><textarea name="comment" rows="3" aria-required="true" id="ap-comment-textarea" class="ap-form-control autogrow" placeholder="'.__('Respond to the post.', 'ap').'">'.$content.'</textarea></div><input type="hidden" name="ap_form_action" value="comment_form"/><input type="hidden" name="ap_ajax_action" value="comment_form"/><input type="hidden" name="__nonce" value="'.$nonce.'"/>'.$commentid,
 				'comment_notes_after' => ''
 			);
 			
 			if(isset($_REQUEST['comment_ID']))
 				$comment_args['label_submit'] = __('Update comment', 'ap');
 
-			$current_user = get_userdata( get_current_user_id() );
+			//$current_user = get_userdata( get_current_user_id() );
+			global $withcomments;
+			$withcomments = true;
 
+			$question = new Question_Query('p='.$comment_post_ID);
 			ob_start();
-				echo '<div class="ap-comment-form clearfix">';
-					echo '<div class="ap-content-inner">';
-						comment_form($comment_args, $comment_post_ID );
-					echo '</div>';
+				echo '<div class="ap-comment-block clearfix">';
+					//if(ap_user_can_comment() || (isset($_REQUEST['comment_ID']) && ap_user_can_edit_comment((int)$_REQUEST['comment_ID'] ))){
+						echo '<div class="ap-comment-form clearfix">';
+							echo '<div class="ap-comment-inner">';
+								comment_form($comment_args, $comment_post_ID );
+							echo '</div>';
+						echo '</div>';
+					//}
+					while( $question->have_posts() ) : $question->the_post();
+					comments_template();
+					endwhile;
+					wp_reset_postdata();
 				echo '</div>';
 			$result['html'] = ob_get_clean();
 			$result['container'] = '#comments-'.$comment_post_ID;
@@ -181,7 +201,7 @@ class AnsPress_Ajax
 			update_post_meta($post->post_parent, ANSPRESS_SELECTED_META, $post->ID);
 			update_post_meta($post->post_parent, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
 			$html = ap_select_answer_btn_html($answer_id);
-			ap_send_json( ap_ajax_responce(array('message' => 'selected_the_answer', 'action' => 'selected_answer', 'do' => 'redirect', 'redirect_to' => get_permalink($post->ID))));
+			ap_send_json( ap_ajax_responce(array('message' => 'selected_the_answer', 'action' => 'selected_answer', 'do' => 'redirect', 'html' => $html, 'redirect_to' => get_permalink($post->ID))));
 		}
 	}
 
@@ -204,7 +224,7 @@ class AnsPress_Ajax
 		$post = get_post( $post_id );
 		wp_trash_post($post_id);
 		if($post->post_type == 'question'){
-			ap_send_json( ap_ajax_responce( array('action' => 'delete_question', 'do' => 'redirect', 'redirect_to' => get_permalink(ap_opt('anspress_questions')), 'message' => 'question_moved_to_trash')));
+			ap_send_json( ap_ajax_responce( array('action' => 'delete_question', 'do' => 'redirect', 'redirect_to' => get_permalink(ap_opt('questions_page_id')), 'message' => 'question_moved_to_trash')));
 		}else{
 			$current_ans = ap_count_published_answers($post->post_parent);
 			$count_label = sprintf( _n('1 Answer', '%d Answers', $current_ans, 'ap'), $current_ans);
@@ -214,6 +234,7 @@ class AnsPress_Ajax
 				'div_id' 			=> '#answer_'.$post_id,
 				'count' 		=> $current_ans,
 				'count_label' 	=> $count_label,
+				'remove' 		=> $remove,
 				'message' 		=> 'answer_moved_to_trash',
 				'view'			=> array('answer_count' => $current_ans, 'answer_count_label' => $count_label))));
 		}
@@ -235,7 +256,7 @@ class AnsPress_Ajax
 	
 	public function ap_suggest_tags(){
 		$keyword = sanitize_text_field($_POST['q']);
-		$tags = get_terms( 'question_tags', array(
+		$tags = get_terms( 'question_tag', array(
 			'orderby'   	=> 'count',
 			'order' 		=> 'DESC',
 			'hide_empty' 	=> false,
@@ -243,28 +264,21 @@ class AnsPress_Ajax
 			'number' 		=> 8
 		));
 		
-		$new_tag_html = '';
-		if(ap_user_can_create_tag())
-			$new_tag_html = '<div class="ap-cntlabel"><a href="#" id="ap-load-new-tag-form" data-args="'.wp_create_nonce('new_tag_form').'">'.__('Create new tag', 'ap').'</a></div>';
-		
+		//$new_tag_html = '';
+		//if(ap_user_can_create_tag())
+			//$new_tag_html = '<div class="ap-cntlabel"><a href="#" id="ap-load-new-tag-form" data-args="'.wp_create_nonce('new_tag_form').'">'.__('Create new tag', 'ap').'</a></div>';
+
 		if($tags){
 			$items = array();
 			foreach ($tags as $k => $t){
-				$items[$k]['id'] 		= $t->slug;
-				$items[$k]['name'] 		= $t->name;
-				$items[$k]['count'] 	= $t->count;
-				$items[$k]['description'] = ap_truncate_chars($t->description, 80);
+				$items[$k]		= $t->name;
 			}
-			$result = array('status' => true, 'items' => $items, 'form' => '<div class="clearfix"></div>'.$new_tag_html);
-		}else{
-			$form = '';
-			if(ap_user_can_create_tag())
-				$form = '<div class="ap-esw warning">'.__('No tags found', 'ap').'</div>'.ap_tag_form();
-				
-			$result = array('status' => false, 'message' => __('No related tags found', 'ap'), 'form' => $form);
+
+			$result = array('status' => true, 'items' => $items);
+			die(json_encode($result));
 		}
 		
-		die(json_encode($result));
+		die(json_encode(array('status' => false)));
 	}
 
 }

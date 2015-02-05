@@ -73,16 +73,17 @@ function ap_default_options(){
 		'theme' 				=> 'default',
 		'author_credits' 		=> false,
 		'clear_database' 		=> false,
-		'minimum_qtitle_length'	=> 3,
-		'minimum_question_length'=> 5,
+		'minimum_qtitle_length'	=> 10,
+		'minimum_question_length'=> 10,
 		'multiple_answers' 		=> false,
 		'minimum_ans_length' 	=> 5,
 		'avatar_size_qquestion' => 50,
 		'allow_private_post'	=> true,
-		'avatar_size_qanswer' 	=> 30,
+		'avatar_size_qanswer' 	=> 50,
 		'avatar_size_qcomment' 	=> 25,
+		'avatar_size_list' 		=> 45,
 		'down_vote_points' 		=> -1,
-		'flag_note' 			=> array(0 => array('title' => 'it is spam', 'description' => 'This question is effectively an advertisement with no disclosure. It is not useful or relevant, but promotional.')),			
+		'flag_note' 			=> array('spam' => 'This question is effectively an advertisement with no disclosure. It is not useful or relevant, but promotional.'),			
 		'question_per_page' 	=> '20',
 		'answers_per_page' 		=> '5',
 		'answers_sort' 			=> 'active',
@@ -107,7 +108,10 @@ function ap_default_options(){
 		'captcha_skip_rpoints'	=> 40,
 		'only_admin_can_answer'	=> false,
 		'logged_in_can_see_ans'	=> false,
-		'logged_in_can_see_comment'	=> false
+		'logged_in_can_see_comment'	=> false,
+		'show_comments_by_default'	=> false,
+		'question_text_editor'	=> false,
+		'answer_text_editor'	=> false,
 	);
 	
 	/**

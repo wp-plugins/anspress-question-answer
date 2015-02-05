@@ -105,13 +105,15 @@ AnsPress.site.prototype = {
 
 				$(document).trigger('ap_after_ajax', data);
 				
-				if (data.do !== 'undefined' && typeof ApSite[data.do] === 'function')
+				if (typeof data.do !== 'undefined' && typeof ApSite[data.do] === 'function')
 					ApSite[data.do](data);
 
-				if (data.view !== 'undefined'){
+				if (typeof data.view !== 'undefined'){
 					$.each(data.view, function(i, view){
-						$('[data-view="'+ i +'"]').text(view);				
 						$('[data-view="'+ i +'"]').text(view);
+						
+						if(view !== 0)
+							$('[data-view="'+ i +'"]').removeClass('ap-view-count-0');
 					});
 				}
 
@@ -125,7 +127,7 @@ AnsPress.site.prototype = {
 
 	showLoading: function(){
 		var uid = this.uniqueId();
-		var el = $('<div class="ap-loading-icon ap-uid" id="apuid-'+ uid +'"><i class="icon-sync"><i></div>');
+		var el = $('<div class="ap-loading-icon ap-uid" id="apuid-'+ uid +'"><i class="apicon-sync"><i></div>');
 		$('body').append(el);
 		
 		return '#apuid-'+ uid;
@@ -137,6 +139,9 @@ AnsPress.site.prototype = {
 
 	suggest_similar_questions: function(action){
 		$(action).on('keyup', function(){
+			if($.trim($(this).val()) == '')
+				return;
+
 			ApSite.doAjax( 
 				apAjaxData('ap_ajax_action=suggest_similar_questions&value=' + $(this).val()), 
 				function(data){
@@ -160,7 +165,8 @@ AnsPress.site.prototype = {
 			ApSite.doAjax( 
 				apAjaxData($(this).formSerialize()), 
 				function(data){
-					console.log(data);
+					if(typeof tinyMCE !== 'undefined' && typeof data.type !== 'undefined' && data.type == 'success')
+						tinyMCE.activeEditor.setContent('');
 				}, 
 				this
 			);
@@ -207,6 +213,7 @@ AnsPress.site.prototype = {
 	},
 
 	redirect:function(data){
+		console.log(typeof data.redirect_to !== 'undefined');
 		if(typeof data.redirect_to !== 'undefined')
 			window.location.replace(data.redirect_to);
 	},
@@ -218,13 +225,14 @@ AnsPress.site.prototype = {
 
 	load_comment_form: function(action){
 
-		$(action).click( function(e){
+		$('body').delegate(action, 'click', function(e){
 			e.preventDefault();
 			var q = $(this).attr('data-query');
 			ApSite.doAjax( 
 				apAjaxData(q), 
 				function(data){
 					$('.ap-comment-form').remove();					
+					$(this).closest('.ap-content-inner').append(data.html);
 
 					$('html, body').animate({
 						scrollTop: ($(data.container).offset().top) - 50
@@ -234,7 +242,8 @@ AnsPress.site.prototype = {
 						$($(this).attr('data-toggle')).hide();
 
 					$('#ap-comment-textarea').focus();
-					ApSite.doAction('ap_ajax_form');
+
+					$($(this).attr('href')).addClass('have-comments').removeClass('no-comment');
 				}, 
 				this,
 				false,
@@ -259,6 +268,8 @@ AnsPress.site.prototype = {
 						$('#li-comment-'+data.comment_ID).replaceWith($(data['html']).hide().slideDown(100));
 						$('.ap-comment-form').remove();
 					}
+					$(this)[0].reset();
+					$('.ap-comment-form').fadeOut(200, function(){$(this).remove()});
 				}, 
 				this
 			);
@@ -316,7 +327,7 @@ AnsPress.site.prototype = {
 				function(data){
 					var vote_c = $(this).parent();
 					vote_c.find('.ap-vote-fade').remove();
-					if(data['action'] == 'voted' || data['action'] == 'undo'){
+					if(typeof data['action'] !== 'undefined' && data['action'] == 'voted' || data['action'] == 'undo'){
 						if(data['action'] == 'voted'){
 							
 							$(this).addClass('voted');
@@ -380,10 +391,27 @@ AnsPress.site.prototype = {
 				false
 			);
 		});
+	},
+
+	ap_upload_field:function(action){
+		var self = this;
+		var form 
+		$(action).change(function(){
+			$(this).closest('form').submit();
+		});
+		
+		$('[data-action="ap_upload_form"]').submit(function(){
+			$(this).ajaxSubmit({
+				success: function(data){
+					$('body').trigger('uploadForm', data);
+				},
+				url:ajaxurl,
+				dataType:'json'
+			});
+			
+			return false
+		});
 	}
-	
-
-
 
 }
 

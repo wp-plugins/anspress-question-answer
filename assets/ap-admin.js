@@ -63,103 +63,20 @@ APjs.admin.prototype = {
 	
 	/* automatically called */
 	initialize: function() {
-		this.recountVotes();
-		this.recountViews();
-		this.recountFav();
-		this.recountFlag();
-		this.recountClose();
 		this.saveOptions();
 		this.editPoints();
 		this.savePoints();
 		this.newPointForm();
 		this.deletePoint();
-		this.toggleAddons();
-		this.install();
 		this.badges();
 		this.deleteFlag();
 	},
 	
-	recountVotes:function(){
-		jQuery('[data-action="recount-votes"]').click(function(e){
-			jQuery.ajax({  
-				type: 'POST',  
-				url: ajaxurl,  
-				data: {  
-					action: 'recount_votes' 
-				},  
-				context:this,
-				success: function(data){ 
-					jQuery(this).after('<p>'+data+'</p>')
-				} 
-			});
-		});
-	},
-	recountViews:function(){
-		jQuery('[data-action="recount-views"]').click(function(e){
-			jQuery.ajax({  
-				type: 'POST',  
-				url: ajaxurl,  
-				data: {  
-					action: 'recount_views' 
-				},  
-				context:this,
-				success: function(data){ 
-					jQuery(this).after('<p>'+data+'</p>')
-				} 
-			});
-		});
-	},
-	recountFav:function(){
-		jQuery('[data-action="recount-fav"]').click(function(e){
-			jQuery.ajax({  
-				type: 'POST',  
-				url: ajaxurl,  
-				data: {  
-					action: 'recount_fav' 
-				},  
-				context:this,
-				success: function(data){ 
-					jQuery(this).after('<p>'+data+'</p>')
-				} 
-			});
-		});
-	},
-	recountFlag:function(){
-		jQuery('[data-action="recount-flag"]').click(function(e){
-			jQuery.ajax({  
-				type: 'POST',  
-				url: ajaxurl,  
-				data: {  
-					action: 'recount_flag' 
-				},  
-				context:this,
-				success: function(data){ 
-					jQuery(this).after('<p>'+data+'</p>')
-				} 
-			});
-		});
-	},
-	recountClose:function(){
-		jQuery('[data-action="recount-close"]').click(function(e){
-			jQuery.ajax({  
-				type: 'POST',  
-				url: ajaxurl,  
-				data: {  
-					action: 'recount_close' 
-				},  
-				context:this,
-				success: function(data){ 
-					jQuery(this).after('<p>'+data+'</p>')
-				} 
-			});
-		});
-	},
 	saveOptions: function(){
-		jQuery('#ap-options').submit(function(){
+		jQuery('#options_form').submit(function(){
 			 var checkboxes = jQuery.param( jQuery(this).find('input:checkbox:not(:checked)').map(function() {
 			   return { name: this.name, value: this.checked ? this.value : '0' };
 			 }));
-			 console.log(checkboxes);
 			jQuery.ajax({  
 				type: 'POST',  
 				url: ajaxurl,  
@@ -350,143 +267,15 @@ APjs.admin.prototype = {
 			return false;
 		});
 	},
-	toggleAddons:function(){
-		jQuery('.wp-admin').delegate('[data-action="ap-toggle-addon"]', 'click', function(e){
-			e.preventDefault();
-			var args = jQuery(this).data('args');
-			jQuery.ajax({
-				type: 'POST',  
-				url: ajaxurl,  
-				data:  {
-					action: 'ap_toggle_addon',
-					args: args
-				},
-				context:this,
-				dataType:'json',
-				success: function(data){
-					if(jQuery('#ap-message').length > 0)
-						jQuery('#ap-message').remove();
-						
-					if(data['status'] == 'activate'){
-						jQuery(this).closest('.theme').find('.ap-addon-status').show();
-					}else if(data['status'] == 'deactivate'){
-						jQuery(this).closest('.theme').find('.ap-addon-status').hide();
-					}
-					jQuery(this).parent().html(data['html']);
-					jQuery('#wpbody .wrap').prepend(data['message']);
-					jQuery('#ap-message').slideDown().delay(5000).queue(function(next) {jQuery(this).remove(); next(); });
-				}
-			});
-			
-			return false;
-		});
-	},
-	install: function(){
-		var self = this;
-		var idni = jQuery('.ap-install-indi > span');
-		jQuery('#start-install').click(function(e){
-			e.preventDefault();
-			jQuery('.ap-install-steps').animate({'left': '-500px'}, 300);
-		});
-		
-		jQuery('#continue-base-install').click(function(e){	
-			e.preventDefault();
-			jQuery('.ap-install-steps #continue-base-install').text('Wait...');
-			jQuery.ajax({
-				type: 'POST',  
-				url: ajaxurl,  
-				data:  {
-					action: 'ap_install_base_page',
-					base_page: jQuery('select[name="base_page"]').val(),
-					args: jQuery('#start-install').data('args')
-				},
-				context:this,
-				dataType:'json',
-				success: function(data){					
-					jQuery('.ap-install-steps').animate({'left': '-1000px'}, 300);
-				}
-			});
-		
-		});
-		jQuery('#continue-dbcheck-install').click(function(e){	
-			e.preventDefault();
-			jQuery(this).text('Wait...');
-			jQuery.ajax({
-				type: 'POST',  
-				url: ajaxurl,  
-				data:  {
-					action: 'ap_install_data_table',
-					args: jQuery('#start-install').data('args')
-				},
-				context:this,
-				dataType:'json',
-				success: function(data){					
-					jQuery('.ap-install-steps').animate({'left': '-2000px'}, 300);
-				}
-			});
-		});
-		jQuery('#continue-dopt-install').click(function(e){	
-			e.preventDefault();
-			jQuery(this).text('Wait...');
-			jQuery.ajax({
-				type: 'POST',  
-				url: ajaxurl,  
-				data:  {
-					action: 'ap_install_default_opt',
-					args: jQuery('#start-install').data('args'),
-					label: jQuery('#default-label').val(),
-					rank: jQuery('#default-rank').val(),
-				},
-				context:this,
-				dataType:'json',
-				success: function(data){					
-					jQuery('.ap-install-steps').animate({'left': '-1500px'}, 300);
-				}
-			});
-		});
-		jQuery('#continue-rewrite-install').click(function(e){	
-			e.preventDefault();
-			jQuery(this).text('Wait...');
-			jQuery.ajax({
-				type: 'POST',  
-				url: ajaxurl,  
-				data:  {
-					action: 'ap_install_rewrite_rules',
-					args: jQuery('#start-install').data('args')
-				},
-				context:this,
-				dataType:'json',
-				success: function(data){					
-					jQuery('.ap-install-steps').animate({'left': '-2500px'}, 300);
-				}
-			});
-		});
-		jQuery('#ap-finish-installation').click(function(){
-			jQuery.ajax({
-				type: 'POST',  
-				url: ajaxurl,  
-				data:  {
-					action: 'ap_install_finish',
-					args: jQuery('#start-install').data('args')
-				},
-				context:this,
-				success: function(data){					
-					window.location.replace(data);
-				}
-			});
-		});
-	},
+	
+	
 	deleteFlag : function(){
-		jQuery('#ap-delete-flag').click(function(e){
+		jQuery('[data-action="ap-delete-flag"]').click(function(e){
 			e.preventDefault();
 			jQuery.ajax({
 				type: 'POST',  
 				url: ajaxurl,  
-				data:  {
-					action	: 'ap_delete_flag',
-					flag_id : jQuery(this).data('id'),
-					nonce 	: jQuery(this).data('nonce')
-				},
+				data:  jQuery(this).attr('href'),
 				context:this,
 				success: function(data){					
 					jQuery(this).closest('.flag-item').remove();
@@ -497,18 +286,19 @@ APjs.admin.prototype = {
 }
 
 function ap_option_flag_note(){
-	jQuery('#add-flag-note').click(function(e){
-		e.preventDefault();
-		var count = (jQuery('.flag-note-ite').length)+1;
-		var clone = jQuery('#first-note').clone().removeAttr('id');
-		clone.find('input').attr('value', '');
-		clone.find('input').attr('name', 'anspress_opt[flag_note]['+count+'][title]');
-		clone.find('textarea').attr('name', 'anspress_opt[flag_note]['+count+'][description]');
-		clone.find('textarea').text('');
-		jQuery(clone).insertBefore(this);
+	jQuery('body').delegate('[data-action="ap_add_field"]', 'click', function(){
+		var copy 	= jQuery(this).data('copy');
+		var field_c = jQuery(this).data('field');
+		var count = (jQuery(field_c+' > div').length)+1;
+		var html = jQuery('#'+copy+' .ap-repeatbable-field').html();
+		html = html.replace('#', count).replace('#', count).replace('#', count);
+		jQuery(html).appendTo('#'+field_c);
+
 	});
-	jQuery('body').delegate('.delete-flag-note', 'click', function(){
-		jQuery(this).parent().parent().parent().remove();
+	jQuery('body').delegate('[data-action="ap_delete_field"]', 'click', function(){
+		var toggle = jQuery(this).data('toggle');
+
+		jQuery('#'+toggle).remove();
 	});
 }
 
@@ -577,22 +367,35 @@ function ap_add_item_to_menu(menuItem, callback) {
 }
 jQuery(document).ready(function (jQuery){  
 
-	/* jQuery( "#ap_q_search" ).autocomplete({
-		source: function( request, response ) {  
-			jQuery.getJSON( ajaxurl + "?callback=?&action=search_questions", request, function( data ) {  
-				response( jQuery.map( data, function( item ) {
-					jQuery.each( item, function( i, val ) {
-						val.label = val.url; // build result for autocomplete from suggestion array data
-					} );
-					return item;
-				} ) );
-		  } );  
-		},
-		minLength: 2,
-		select: function( event, ui ) {
-			jQuery('#ap_q').val(ui.item.id);
-		},
-	}); */
+	var container = document.querySelector('#ap-dash-tiles');
+
+	if(typeof Masonry !== 'undefined')
+		var msnry = new Masonry( container, {
+		  // options
+		  columnWidth: '.grid-sizer',
+		  itemSelector: '.ap-dash-tile'
+		});
+	
+	jQuery('#select-question-for-answer').on('keyup', function(){
+		if(jQuery.trim(jQuery(this).val()) == '')
+			return;
+		jQuery.ajax({
+			type: 'POST',
+			url: ajaxurl, 
+			data: {
+				action: 'ap_ajax',
+				ap_ajax_action: 'suggest_similar_questions',
+				value: jQuery(this).val(),
+				is_admin: true
+			}, 
+			success: function(data){
+				if(typeof data['html'] !== 'undefined')
+					jQuery('#similar_suggestions').html(data['html']);
+			}, 
+			dataType: 'json',
+			context: this,
+		});
+	});
 	
 	ap_option_flag_note();
 	ap_submit_menu();

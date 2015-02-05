@@ -16,6 +16,7 @@ class AnsPress_Vote_Ajax extends AnsPress_Ajax
 	{
 		add_action( 'ap_ajax_subscribe_question', array($this, 'subscribe_question') ); 
 		add_action( 'ap_ajax_vote', array($this, 'vote') ); 
+		add_action( 'ap_ajax_flag_post', array($this, 'flag_post') ); 
 	}
 
 	public function subscribe_question()
@@ -142,6 +143,39 @@ class AnsPress_Vote_Ajax extends AnsPress_Ajax
 
 	}
 
+	/**
+	 * Flag a post as inappropriate
+	 * @return void
+	 * @since 2.0.0-alpha2
+	 */
+	public function flag_post()
+	{
+		$post_id = (int)$_POST['post_id'];
+		if(!wp_verify_nonce( $_POST['__nonce'], 'flag_'. $post_id  ) && is_user_logged_in()){
+			ap_send_json(ap_ajax_responce('something_wrong'));
+			return;
+		}
+
+		$userid = get_current_user_id();
+		$is_flagged = ap_is_user_flagged( $post_id );
+		
+		if($is_flagged){
+			ap_send_json(ap_ajax_responce(array('message' => 'already_flagged')));
+			echo json_encode(array('action' => false, 'message' => __('You already flagged this post', 'ap')));			
+		}else{
+
+			$row = ap_add_flag($userid, $post_id);
+				
+			$count = ap_post_flag_count( $post_id );
+			
+			//update post meta
+			update_post_meta($post_id, ANSPRESS_FLAG_META, $count);
+			ap_send_json(ap_ajax_responce(array('message' => 'flagged', 'action' => 'flagged', 'view' => array($post_id.'_flag_count' => $count),  'count' => $count)));
+		}			
+		
+		die();
+	}
+
 }
 new AnsPress_Vote_Ajax();
 
@@ -183,7 +217,7 @@ class anspress_vote
 		add_action( 'wp_ajax_ap_follow', array($this, 'ap_follow') ); 
 		add_action( 'wp_ajax_nopriv_ap_follow', array($this, 'ap_follow') ); 
 		
-		add_action( 'wp_ajax_ap_submit_flag_note', array($this, 'ap_submit_flag_note') ); 
+		
     }
 
 	/**
@@ -304,50 +338,26 @@ class anspress_vote
 		}
 		die();
 	}
-	
-	// vote for closing, ajax request 
-	public function ap_submit_flag_note(){
-		$args = explode('-', sanitize_text_field($_POST['args']));
-		$note_id = sanitize_text_field($_POST['note_id']);
-		$other_note = sanitize_text_field($_POST['other_note']);
-		
-		if(wp_verify_nonce( $args[1], 'flag_submit_'.$args[0] ) && is_user_logged_in()){
-			global $wpdb;
-			$userid = get_current_user_id();
-			$is_flagged = ap_is_user_flagged($args[0]);
-			
-			if($is_flagged){
-				// if already then return
-				echo json_encode(array('action' => false, 'message' => __('You already flagged this post', 'ap')));			
-			}else{
-				if($note_id != 'other')
-					$row = ap_add_flag($userid, $args[0], $note_id);
-				else
-					$row = ap_add_flag($userid, $args[0], NULL, $other_note);
-					
-				$counts = ap_post_flag_count($args[0]);
-				//update post meta
-				update_post_meta($args[0], ANSPRESS_FLAG_META, $counts);
-				
-				echo json_encode(array('row' => $row, 'action' => 'flagged', 'text' => __('Flag','ap').' ('.$counts.')','title' =>  __('You have flagged this post', 'ap'), 'message' => __('This post is notified to moderator. Thank you for helping us', 'ap')));
-			}
-			
-		}else{
-			echo '0'.__('Please try again', 'ap');	
-		}
-		
-		die();
-	}
+
 }
 
+/**
+ * @param string $type
+ */
 function ap_add_vote($userid, $type, $actionid){	
 	return ap_add_meta($userid, $type, $actionid );
 }
 
+/**
+ * @param string $type
+ */
 function ap_remove_vote($type, $userid, $actionid){
 	return ap_delete_meta(array('apmeta_type' => $type, 'apmeta_userid' => $userid, 'apmeta_actionid' => $actionid));
 }
 
+/**
+ * @param string $type
+ */
 function ap_count_vote($userid = false, $type, $actionid =false, $value = 1){
 	global $wpdb;
 	if(!$userid){
@@ -458,10 +468,10 @@ function ap_post_subscribers_count($postid = false){
 /**
  * Output voting button
  * @param  int $post 
- * @return void
+ * @return null|string
  * @since 0.1
  */
-function ap_vote_btn($post = false){
+function ap_vote_btn($post = false, $echo = true){
 	if(!$post)
 		global $post;
 		
@@ -470,6 +480,8 @@ function ap_vote_btn($post = false){
 
 	$voted 	= $vote ? true : false;
 	$type 	= $vote ? $vote->type : '';
+
+	ob_start();
 	?>
 		<div data-id="<?php echo $post->ID; ?>" class="ap-vote net-vote" data-action="vote">
 			<a class="<?php echo ap_icon('vote_up') ?> ap-tip vote-up<?php echo $voted ? ' voted' :''; echo ($type == 'vote_down') ? ' disable' :''; ?>" data-query="ap_ajax_action=vote&type=up&post_id=<?php echo $post->ID; ?>&__nonce=<?php echo $nonce ?>" href="#" title="<?php _e('Up vote this post', 'ap'); ?>"></a>
@@ -479,11 +491,17 @@ function ap_vote_btn($post = false){
 			<a data-tipposition="bottom" class="<?php echo ap_icon('vote_down') ?> ap-tip vote-down<?php echo $voted ? ' voted' :''; echo ($type == 'vote_up') ? ' disable' :''; ?>" data-query="ap_ajax_action=vote&type=down&post_id=<?php echo $post->ID; ?>&__nonce=<?php echo $nonce ?>" href="#" title="<?php _e('Down vote this post', 'ap'); ?>"></a>
 		</div>
 	<?php
+	$html = ob_get_clean();
+
+	if($echo){
+		echo $html;
+	}else{
+		return $html;
+	}
 }
 
 /**
  * Output subscribe btn HTML
- * @param  object $question  post Object
  * @return string
  * @since 2.0.1
  */
@@ -495,28 +513,14 @@ function ap_subscribe_btn_html($post = false){
 	$subscribed = ap_is_user_subscribed($post->ID);
 
 	$nonce = wp_create_nonce( 'subscribe_'.$post->ID );
-	$title = (!$total_favs) ? (__('Subscribe', 'ap')) : (__('Subscribed', 'ap'));
+	$title = (!$subscribed) ? (__('Subscribe', 'ap')) : (__('Subscribed', 'ap'));
 
 	?>
-		<div class="ap-subscribe<?php echo ($subscribed) ? ' active' :''; ?>">
-			<span class="ap-subscribe-label"><?php echo $title ?></span>
-			<span id="<?php echo 'subscribe_'.$post->ID; ?>" class="ap-radio-btn subscribe-btn <?php echo ($subscribed) ? ' active' :''; ?>" data-query="ap_ajax_action=subscribe_question&question_id=<?php echo $post->ID ?>&__nonce=<?php echo $nonce ?>" data-action="ap_subscribe" data-args="<?php echo $post->ID.'-'.$nonce; ?>"></span>
-			<!-- <span class="ap-subscribers-count"> 
-				<?php  
-					/*if( $total_favs =='1' && $subscribed)
-						_e('You are subscribed', 'ap'); 
-					elseif($subscribed)
-						printf( __( 'You and %s people subscribed this question', 'ap' ), ($total_favs -1));
-					elseif($total_favs == 0)
-						 _e( 'Subscribe this question', 'ap' );
-					else
-						printf( _n( '%d people subscribed this question', '%d peoples subscribed this question', $total_favs, 'ap' ), $total_favs); */
-				?>
-			</span> -->
+		<div class="ap-subscribe<?php echo ($subscribed) ? ' active' :''; ?> clearfix">
+			<a id="<?php echo 'subscribe_'.$post->ID; ?>" href="#" class="ap-btn subscribe-btn <?php echo ($subscribed) ? ' active' :''; ?>" data-query="ap_ajax_action=subscribe_question&question_id=<?php echo $post->ID ?>&__nonce=<?php echo $nonce ?>" data-action="ap_subscribe" data-args="<?php echo $post->ID.'-'.$nonce; ?>"><?php echo $title ?></a>
 		</div>
 	<?php
 }
-
 
 
 /* ------------close button----------------- */
@@ -559,6 +563,9 @@ function ap_close_vote_html(){
 
 /* ---------------Flag btn-------------------
 ------------------------------------------- */
+/**
+ * @param integer $actionid
+ */
 function ap_add_flag($userid, $actionid, $value =NULL, $param =NULL){	
 	return ap_add_meta($userid, 'flag', $actionid, $value, $param );
 }
@@ -598,7 +605,7 @@ function ap_flag_btn_html($echo = false){
 	$nonce 		= wp_create_nonce( 'flag_'.$post->ID );
 	$title 		= (!$flagged) ? (__('Flag this post', 'ap')) : (__('You have flagged this post', 'ap'));
 	
-	$output ='<a id="flag_'.$post->ID.'" data-action="flag-modal" class="flag-btn'. (!$flagged ? ' can-flagged' :'') .'" data-args="'.$post->ID.'-'.$nonce.'" href="#flag_modal_'.$post->ID.'" title="'.$title.'">'.ap_icon('flag', true). __('Flag ', 'ap') . ($total_flag > 0 ? ' <span>('.$total_flag.')</span>':'').'</a>';
+	$output ='<a id="flag_'.$post->ID.'" data-query="ap_ajax_action=flag_post&post_id='.$post->ID .'&__nonce='.$nonce.'" data-action="ap_subscribe" class="ap-tip flag-btn'. (!$flagged ? ' can-flagged' :'') .'" href="#" title="'.$title.'">'. __('Flag ', 'ap') . '<span class="ap-data-view ap-view-count-'.$total_flag.'" data-view="'.$post->ID .'_flag_count">'.$total_flag.'</span></a>';
 
 	if($echo)
 		echo $output;
@@ -606,56 +613,6 @@ function ap_flag_btn_html($echo = false){
 		return $output;
 }
 
-// vote for closing, ajax request
-add_action( 'wp_ajax_ap_flag_note_modal', 'ap_flag_note_modal' );  
-function ap_flag_note_modal(){
-	$args = explode('-', sanitize_text_field($_POST['args']));
-	if(wp_verify_nonce( $args[1], 'flag_'.$args[0] )){
-		$nonce = wp_create_nonce( 'flag_submit_'.$args[0] );
-		?>
-		<div class="ap-modal flag-note" id="<?php echo 'flag_modal_'.$args[0]; ?>" tabindex="-1" role="dialog">
-			<div class="ap-modal-bg"></div>
-			<div class="ap-modal-content">
-				<div class="ap-modal-header">					
-					<h4 class="ap-modal-title"><?php _e('I am flagging this post because', 'ap'); ?><span class="ap-modal-close">&times;</span></h4>
-				</div>
-				<div class="ap-modal-body">
-				<?php 
-					if(ap_opt('flag_note'))
-					foreach( ap_opt('flag_note') as $k => $note){
-						echo '<div class="note clearfix">';
-						echo '<div class="note-radio pull-left"><input type="radio" name="note_id" value="'.$k.'" /></div>';
-						echo '<div class="note-desc">';
-						echo '<h4>'.$note['title'].'</h4>';
-						echo '<p>'.$note['description'].'</p>';
-						echo '</div>';
-						echo '</div>';
-					}
-				?>
-				<div class="note clearfix">
-					<div class="note-radio pull-left"><input type="radio" name="note_id" value="other" /></div>
-					<div class="note-desc">
-						<h4><?php _e('Other (needs moderator attention)', 'ap'); ?></h4>
-						<p><?php _e('This post needs a moderator\'s attention. Please describe exactly what\'s wrong. ', 'ap'); ?></p>
-						<textarea id="other-note" class="other-note" name="other_note"></textarea>
-					</div>
-				</div>
-				</div>
-				<div class="ap-modal-footer">
-					<input id="submit-flag-question" type="submit" data-update="<?php echo $args[0]; ?>" data-args="<?php echo $args[0].'-'.$nonce; ?>" class="btn btn-primary btn-sm" value="<?php _e('Flag post', 'ap'); ?>" />
-				</div>
-			</div>
-		  
-		  
-		</div>
-		<?php
-		
-	}else{
-		echo '0_'.__('Please try again', 'ap');	
-	}
-	
-	die();
-}
 
 function ap_follow_btn_html($userid, $small = false){
 	if(get_current_user_id() == $userid)
@@ -664,4 +621,27 @@ function ap_follow_btn_html($userid, $small = false){
 	$followed = ap_is_user_voted($userid, 'follow', get_current_user_id());
 	$text = $followed ? __('Unfollow', 'ap') : __('Follow', 'ap');
 	echo '<a class="btn ap-btn ap-follow-btn '.($followed ? 'ap-unfollow '.ap_icon('unfollow') : ap_icon('follow')).($small ? ' ap-tip' : '').'" href="#" data-action="ap-follow" data-args=\''.json_encode(array('user' => $userid, 'nonce' => wp_create_nonce( 'follow_'.$userid))).'\' title="'.$text.'">'.($small ? '' : $text).'</a>';
+}
+
+/**
+ * Return subscriber count in human readable format
+ * @return string
+ * @since 2.0.0-alpha2
+ */
+function ap_subscriber_count_html($post = false)
+{
+	if(!$post)
+		global $post;
+	
+	$subscribed = ap_is_user_subscribed($post->ID);
+	$total_subscribers = ap_post_subscribers_count($post->ID);
+
+	if( $total_subscribers =='1' && $subscribed)
+		return __('Only you are subscribed to this question.', 'ap'); 
+	elseif($subscribed)
+		return sprintf( __( 'You and <strong>%s people</strong> subscribed to this question.', 'ap' ), ($total_subscribers -1));
+	elseif($total_subscribers == 0)
+		return __( 'No one is subscribed to this question.', 'ap' );
+	else
+		return sprintf( __( '<strong>%d people</strong> subscribed to this question.', 'ap' ), $total_subscribers);	
 }

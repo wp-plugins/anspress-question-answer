@@ -12,26 +12,6 @@
 
 class AP_Roles{
 
-	public $roles_obj;
-	/**
-	 * init class
-	 *
-	 * @since 2.0.1
-	 */
-    public function __construct()
-    {
-		global $wp_roles;
-		$this->roles_obj = $wp_roles;
-		
-		if ( class_exists('WP_Roles') ) {
-			if ( ! isset( $wp_roles ) ) {
-				$this->roles_obj = new WP_Roles();
-			}
-		}
-	}
-	
-	
-	
 	/**
 	 * Add roles and cap, called on plugin activation
 	 *
@@ -75,15 +55,14 @@ class AP_Roles{
 	 * @global WP_Roles $wp_roles
 	 * @return void
 	 */
-	public function add_caps() {
+	public function add_capabilities() {
 		global $wp_roles;
-		
+
 		if ( class_exists('WP_Roles') ) {
 			if ( ! isset( $wp_roles ) ) {
 				$wp_roles = new WP_Roles();
 			}
 		}
-
 		if ( is_object( $wp_roles ) ) {
 			$base_caps = array(
 				'ap_read_question'         	=> true,
@@ -136,12 +115,12 @@ class AP_Roles{
 				
 				// add base cpas to all roles
 				foreach ($base_caps as $k => $grant){
-					$roles_obj->add_cap($role_name, $k ); 				
+					$wp_roles->add_cap($role_name, $k ); 				
 				}
 				
 				if($role_name == 'editor' || $role_name == 'ap_moderator'){
 					foreach ($mod_caps as $k => $grant){
-						$roles_obj->add_caps($role_name, $k ); 				
+						$wp_roles->add_cap($role_name, $k ); 				
 					}
 				}
 			}
@@ -152,20 +131,28 @@ class AP_Roles{
 	
 	
 	public function remove_roles(){
-		$this->roles_obj->remove_role( 'ap_participant' );
-		$this->roles_obj->remove_role( 'ap_editor' );
-		$this->roles_obj->remove_role( 'ap_moderator' );
+		global $wp_roles;
+
+		if ( class_exists('WP_Roles') ) {
+			if ( ! isset( $wp_roles ) ) {
+				$wp_roles = new WP_Roles();
+			}
+		}
+		$wp_roles->remove_role( 'ap_participant' );
+		$wp_roles->remove_role( 'ap_editor' );
+		$wp_roles->remove_role( 'ap_moderator' );
 
 	}
 }
 
-function ap_show_form_to_guest(){
-	return ap_opt('show_login_signup');
-}
 
 /* Check if a user can ask a question */
 function ap_user_can_ask(){
-	if(current_user_can('ap_new_question') || is_super_admin() || ap_show_form_to_guest() || ap_allow_anonymous())
+
+	if(is_super_admin())
+		return true;
+
+	if(current_user_can('ap_new_question') || ap_allow_anonymous())
 		return true;
 	
 	return false;
@@ -179,7 +166,7 @@ function ap_user_can_answer($question_id){
 	if(ap_opt('close_after_selecting') && ap_is_answer_selected($question_id) )
 		return false;
 		
-	if((current_user_can('ap_new_answer') || ap_show_form_to_guest())){
+	if((current_user_can('ap_new_answer'))){
 		if(!ap_opt('multiple_answers') && ap_is_user_answered($question_id, get_current_user_id()) && get_current_user_id() != '0')
 			return false;
 		else

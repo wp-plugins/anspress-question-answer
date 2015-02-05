@@ -10,10 +10,6 @@
 
 class AnsPress_Answer_Form
 {
-    public function __construct()
-    {
-       // add_filter('ap_ask_form_fields', array($this, 'ask_form_name_field'));
-    }
 
     public function ask_form_name_field($args){
         if(!is_user_logged_in() && ap_opt('allow_anonymous'))
@@ -38,8 +34,20 @@ new AnsPress_Answer_Form;
  * @return void
  */
 function ap_answer_form($question_id, $editing = false){
+
+    if(is_post_closed($question_id)){
+        echo '<div class="ap-notice yellow clearfix">
+                '.ap_icon('cross', true).'<span>'.__( 'Question is closed, new answer cannot be submitted.', 'ap' ).'</span>
+            </div>';
+        return;
+    }
+
+    if(!ap_user_can_answer($question_id))
+        return;
+
     global $editing_post;
 
+    $is_private = sanitize_text_field( @$_POST['is_private'] );
     if($editing){
         $is_private = $editing_post->post_status == 'private_post' ? true : false;
     }
@@ -56,17 +64,10 @@ function ap_answer_form($question_id, $editing = false){
                 'value' => ( $editing ? $editing_post->post_content : @$_POST['description']  ),
                 'settings' => array(
                     'textarea_rows' => 8,
+                    'tinymce' => ap_opt('answer_text_editor') ? false : true,
                 ),
+                'placeholder'  => __('Your answer..'),
             ),
-            array(
-                'name' => 'is_private',
-                'label' => __('Private', 'ap'),
-                'type'  => 'checkbox',
-                'desc'  => __('This answer ment to be private, only visible to admin and moderator.', 'ap'),
-                'value' => ( $editing ? $is_private : sanitize_text_field( @$_POST['is_private'] ) ),
-                'order' => 12,
-                'show_desc_tip' => false
-            ),            
             array(
                 'name' => 'form_question_id',
                 'type'  => 'hidden',
@@ -75,6 +76,16 @@ function ap_answer_form($question_id, $editing = false){
             ),
         ),
     );
+
+    if(ap_opt('allow_private_posts'))
+        $args['fields'][] = array(
+            'name' => 'is_private',
+            'type'  => 'checkbox',
+            'desc'  => __('Only visible to admin and moderator.', 'ap'),
+            'value' => $is_private,
+            'order' => 12,
+            'show_desc_tip' => false
+        );
     
     /**
      * FILTER: ap_ask_form_fields

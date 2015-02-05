@@ -1,6 +1,6 @@
 <?php
 /**
- * AnsPress.
+ * All function related to AnsPress meta
  *
  * @package   AnsPress
  * @author    Rahul Aryan <admin@rahularyan.com>
@@ -9,38 +9,12 @@
  * @copyright 2014 Rahul Aryan
  */
 
-class AP_Meta
-{
-    /**
-     * Instance of this class.
-     */
-    protected static $instance = null;
-    /**
-     * Return an instance of this class.
-     * @return    object    A single instance of this class.
-     */
-    public static function get_instance()
-    {
-        
-        // If the single instance hasn't been set, set it now.
-        if (null == self::$instance) {
-            self::$instance = new self;
-        }
-        
-        return self::$instance;
-    }
-    /**
-     * Initialize the plugin by setting localization and loading public scripts
-     * and styles.
-     */
-    public function __construct()
-    {
 
-    }
-
-}
 
 /* Add meta */
+/**
+ * @param string $type
+ */
 function ap_add_meta($userid=false, $type=NULL, $actionid =NULL, $value=NULL, $param = NULL, $date = false){
 	/* get current user id if not set */
 	if(!$userid)
@@ -92,6 +66,12 @@ function ap_update_meta($data, $where){
 	return $update;
 }
 
+/**
+ * Delete ap_meta row
+ * @param  false|array 	$where wp_db where clause
+ * @param  integer 	$id    if meta id is known then it can be passed
+ * @return boolean         
+ */
 function ap_delete_meta($where=false, $id=false){		
 	global $wpdb;
 	
@@ -156,6 +136,9 @@ function ap_get_meta($where){
 }
 
 /* get the total count by type and actionid */
+/**
+ * @param string $type
+ */
 function ap_meta_total_count($type, $actionid=false, $userid = false, $group = false){
 	global $wpdb;
 	$where_query = '';
@@ -185,6 +168,9 @@ function ap_meta_total_count($type, $actionid=false, $userid = false, $group = f
 	return $count;	
 }
 
+/**
+ * @param string $type
+ */
 function ap_meta_user_done($type, $userid, $actionid, $value = false){	
 	global $wpdb;
 	

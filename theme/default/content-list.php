@@ -17,27 +17,10 @@ $clearfix_class = array('list-question clearfix');
 ?>
 <article id="question-<?php the_ID(); ?>" <?php post_class($clearfix_class); ?>>
 	<?php if ( is_private_post()) : ?>
-		<div class="private-question-label">
+		<div class="private-question-label clearfix">
 			<span><?php _e( 'Private Question', 'ap' ); ?></span>
 		</div>
-	<?php endif; ?>
-	<div class="ap-list-history ap-pull-right">
-		<?php echo ap_get_latest_history_html(get_the_ID(), true) ?>
-	</div>
-	<div class="ap-count ap-pull-right">	
-		<a class="ap-answer-count ap-tip" href="<?php echo ap_answers_link(); ?>" title="<?php _e('Total answers', 'ap'); ?>">
-			<span><?php echo ap_count_answer_meta(); ?></span>
-			<?php _e('Answer', 'ap');?>
-		</a>						
-		<!-- <a class="ap-vote-count ap-tip" href="#" title="<?php _e('Total views', 'ap'); ?>">
-			<span><?php //echo ap_get_qa_views(); ?></span> 
-			<?php  //_e('Views', 'ap'); ?>
-		</a>
-		<a class="ap-vote-count ap-tip" href="#" title="<?php //_e('Total votes', 'ap'); ?>">
-			<span><?php //echo ap_net_vote(); ?></span> 
-			<?php  _e('Votes', 'ap'); ?>
-		</a> -->		
-	</div>	
+	<?php endif; ?>		
 	<div class="ap-list-inner">
 		<div class="ap-avatar ap-pull-left">
 			<a href="<?php echo ap_user_link(); ?>">
@@ -48,11 +31,18 @@ $clearfix_class = array('list-question clearfix');
 		<div class="summery no-overflow">
 			<span class="question-title entry-title" itemprop="title">
 				<a class="question-hyperlink" itemprop="url" href="<?php the_permalink(); ?>" rel="bookmark" title="<?php the_title(); ?>"><?php the_title(); ?></a>
-			</span>
-			<ul class="ap-display-question-meta ap-ul-inline">
+			</span>			
+			<ul class="ap-display-question-meta ap-ul-inline clearfix">
 				<?php echo ap_display_question_metas() ?>
-				<!-- TODOD: hook question labels ap_get_question_label(null, true);  -->
 			</ul>
+			<div class="ap-history">
+				<?php 
+					if(ap_is_answer_selected()){
+						echo '<span class="ap-best-answer-label ap-tip" title="'.__('answer accepted', 'ap').'">'.__('Selected', 'ap').'</span>';
+					}
+					echo ap_get_latest_history_html(get_the_ID());					
+				?>
+			</div>
 		</div>				
-	</div>
+	</div>	
 </article><!-- list item -->

@@ -25,16 +25,17 @@ function anspress_activate( $network_wide ) {
 	// add roles
 	$ap_roles = new AP_Roles;
 	$ap_roles->add_roles();
+	$ap_roles->add_capabilities();
 	
 	
 	global $wpdb;
-	
-	//TODO: EXTENSION - move category and tags page to extension
+
 	$page_to_create = array(
 		'questions' 			=> __('Questions', 'ap'), 
 		'user' 					=> __('User', 'ap'),			
 		'ask' 					=> __('Ask', 'ap'),			
 		'edit_page' 			=> __('Edit', 'ap'),			
+		'q_search' 				=> __('Search', 'ap'),			
 	);
 	
 	foreach($page_to_create as $k => $page_title){
@@ -46,15 +47,12 @@ function anspress_activate( $network_wide ) {
 		$post = get_post($page_id);
 		
 		if(!$post){
-			
+			$args = array();
 			$args['post_type']    		= "page";
 			$args['post_content'] 		= "[anspress_{$k}]";
 			$args['post_status']  		= "publish";
 			$args['post_title']   		= $page_title;
 			$args['comment_status']   	= 'closed';
-			
-			if($k != 'questions')
-				$args['post_parent']   = ap_opt('questions_page_id');
 			
 			// now create post
 			$new_page_id = wp_insert_post ($args);
@@ -79,8 +77,7 @@ function anspress_activate( $network_wide ) {
 	 */
 	if( ap_opt ('ap_db_version') != AP_DB_VERSION ) {	
 	
-		if ( !empty($wpdb->charset) )
-			$charset_collate = "DEFAULT CHARACTER SET ".$wpdb->charset;
+		$charset_collate = !empty($wpdb->charset) ? "DEFAULT CHARACTER SET ".$wpdb->charset : '';
 
 		$meta_table = "CREATE TABLE IF NOT EXISTS `".$wpdb->base_prefix."ap_meta` (
 				  `apmeta_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -117,6 +114,6 @@ function anspress_activate( $network_wide ) {
 		update_option('anspress_opt', get_option('anspress_opt') + ap_default_options());
 		
 	
-	ap_opt('ap_flush', true); 
+	ap_opt('ap_flush', 'true'); 
 	flush_rewrite_rules( false );
 }

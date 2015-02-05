@@ -36,6 +36,7 @@ class AnsPress_Theme {
 		add_shortcode( 'anspress_user', array( 'AnsPress_User_Shortcode', 'anspress_user' ) );
 		add_shortcode( 'anspress_ask', array( 'AnsPress_Ask_Shortcode', 'anspress_ask' ) );
 		add_shortcode( 'anspress_edit_page', array( 'AnsPress_Edit_Shortcode', 'anspress_edit' ) );
+		add_shortcode( 'anspress_q_search', array( 'AnsPress_Search_Shortcode', 'anspress_search' ) );
 
 		add_action('ap_before', array($this, 'ap_before_html_body'));
 
@@ -65,8 +66,10 @@ class AnsPress_Theme {
 
 			remove_filter( current_filter(), array($this, 'question_single_the_content') );
 
+			
 			//check if user have permission to see the question
 			if(ap_user_can_view_post()){
+				ob_start();
 				echo '<div class="anspress-container">';
 				/**
 				 * ACTION: ap_before
@@ -76,9 +79,11 @@ class AnsPress_Theme {
 
 				include ap_get_theme_location('question.php');
 				echo '</div>';
+				return ob_get_clean();
 			}
 			else
-				echo '<div class="ap-pending-notice ap-icon-clock">'.ap_responce_message('no_permission').'</div>';
+				return '<div class="ap-pending-notice ap-apicon-clock">'.ap_responce_message('no_permission_to_view_private', true).'</div>';
+			
 		}else{
 			return $content;
 		}	
@@ -444,17 +449,77 @@ function ap_get_current_page_template(){
 	return 'content-none.php';
 }
 
+/**
+ * @param string $page
+ */
 function ap_current_user_page_is($page){
 	if (get_query_var('user_page') == $page)
 		return true;
 	return false;
 }
 
-function is_private_post($post_id = false){
+/**
+ * Get post status
+ * @param  integer $post_id
+ * @return string
+ * @since 2.0.0-alpha2
+ */
+function ap_post_status($post_id = false){
 	if(!$post_id)
 		$post_id = get_the_ID();
 	
-	if(get_post_status( $post_id ) == 'private_post')
+	return get_post_status( $post_id );
+}
+
+/**
+ * Check if current post is private
+ * @return boolean
+ */
+function is_private_post($post_id = false){
+	
+	if(ap_post_status( $post_id ) == 'private_post')
+		return true;
+	
+	return false;
+}
+
+/**
+ * Check if post is waiting moderation
+ * @return boolean
+ */
+function is_post_waiting_moderation($post_id = false){
+	
+	if(get_post_status( $post_id ) == 'moderate')
+		return true;
+	
+	return false;
+}
+
+/**
+ * Check if question is closed
+ * @return boolean
+ * @since 2.0.0-alpha2
+ */
+function is_post_closed($post_id = false){
+	if(get_post_status( $post_id ) == 'closed')
+		return true;
+	
+	return false;
+}
+
+/**
+ * Check if question have a parent post
+ * @param  boolean|integer $post_id
+ * @return boolean
+ * @since   2.0.0-alpha2
+ */
+function ap_have_parent_post($post_id = false){
+	if(!$post_id)
+		$post_id = get_the_ID();
+	
+	$post = get_post($post_id);
+	
+	if($post->post_parent > 0 && 'question' == $post->post_type)
 		return true;
 	
 	return false;
@@ -463,8 +528,8 @@ function is_private_post($post_id = false){
 /**
  * Anspress pagination
  * Uses paginate_links
- * @param  mixed $current Current paged, if not set then get_query_var('paged') is used
- * @param  mixed $total   Total number of pages, if not set then global $questions is used
+ * @param  double $current Current paged, if not set then get_query_var('paged') is used
+ * @param  integer $total   Total number of pages, if not set then global $questions is used
  * @param  string  $format 
  * @return string
  */
@@ -510,25 +575,19 @@ function ap_display_question_metas($question_id =  false){
 	}
 
 	$metas = array();
-
-	if(ap_is_answer_selected($question_id) && !is_singular('question')){
-		$metas['selected'] = '<span class="ap-tip" title="'.__('answer accepted', 'ap').'">'.ap_icon('select', true).__('Selected', 'ap').'</span>';
-
-		//$metas['history'] = ap_last_active_time($question_id);
-	}
-
-	if(is_singular('question')){
-		$last_active = ap_last_active($question_id);
-		$metas['active'] = sprintf( __( '<span>Active</span> <a class="ap-tip" title="Show all histories of this question" href="#ap-question-preview" data-action="ap-toggle-history"><time class="updated" itemprop="dateUpdated" datetime="%s">%s Ago</time></a>', 'ap' ), mysql2date('c', $last_active),  ap_human_time( mysql2date('U', $last_active)));
-
+	if(is_singular('question')){		
 		$metas['created'] = sprintf( __( '<span>Created</span> <i><time itemprop="datePublished" datetime="%s">%s Ago</time></i>', 'ap' ), get_the_time('c', $question_id), ap_human_time( get_the_time('U')));
+		
+	}else{
+		$ans_count = ap_count_answer_meta();
+		$net_vote = ap_net_vote();
 
+		$metas['answers'] = sprintf( _n('<span>1 answer</span>', '<span>%d answers</span>', $ans_count, 'ap'), $ans_count) ;
+		$metas['vote'] = sprintf( _n('<span>1 vote</span>', '<span>%d votes</span>', $net_vote, 'ap'), $net_vote) ;
+		
 		$view_count = ap_get_qa_views();
-		$metas['views'] = sprintf( __('<span>Viewed</span> <i>%d Times</i>', 'ap'), $view_count) ;
-	}
-	
-	
-
+		$metas['views'] = sprintf( __('<i>%d views</i>', 'ap'), $view_count) ;
+	}	
 
 	/**
 	 * FILTER: ap_display_question_meta
@@ -555,41 +614,44 @@ function ap_display_question_metas($question_id =  false){
  */
 function ap_icon($name, $html = false){
 	$icons = array(
-		'follow' 			=> 'icon-plus',
-		'unfollow' 			=> 'icon-minus',
-		'upload' 			=> 'icon-upload',
-		'unchecked' 		=> 'icon-checkbox-unchecked',
-		'checked' 			=> 'icon-checkbox-checked',
-		'check' 			=> 'icon-check',
-		'select' 			=> 'icon-check',
-		'new_question' 		=> 'icon-question',
-		'new_answer' 		=> 'icon-answer',
-		'new_comment' 		=> 'icon-talk-chat',
-		'new_comment_answer'=> 'icon-mail-reply',
-		'edit_question' 	=> 'icon-pencil',
-		'edit_answer' 		=> 'icon-pencil',
-		'edit_comment' 		=> 'icon-pencil',
-		'vote_up'			=> 'icon-triangle-up',
-		'vote_down'			=> 'icon-triangle-down',
-		'favorite'			=> 'icon-heart',
-		'delete'			=> 'icon-trashcan',
-		'flag'				=> 'icon-flag',
-		'edit'				=> 'icon-pencil',
-		'comment'			=> 'icon-mail-reply',
-		'answer'			=> 'icon-comment',
-		'view'				=> 'icon-eye',
-		'vote'				=> 'icon-triangle-up',
-		'cross'				=> 'icon-x',
-		'more'				=> 'icon-ellipsis',
-		'category'			=> 'icon-file-directory',
-		'home'				=> 'icon-home',
-		'question'			=> 'icon-comment-discussion',
-		'upload'			=> 'icon-cloud-upload',
-		'link'				=> 'icon-link',
-		'help'				=> 'icon-question',
-		'error'				=> 'icon-x',
-		'warning'			=> 'icon-alert',
-		'success'			=> 'icon-check',
+		'follow' 			=> 'apicon-plus',
+		'unfollow' 			=> 'apicon-minus',
+		'upload' 			=> 'apicon-upload',
+		'unchecked' 		=> 'apicon-checkbox-unchecked',
+		'checked' 			=> 'apicon-checkbox-checked',
+		'check' 			=> 'apicon-check',
+		'select' 			=> 'apicon-check',
+		'new_question' 		=> 'apicon-question',
+		'new_answer' 		=> 'apicon-answer',
+		'new_comment' 		=> 'apicon-talk-chat',
+		'new_comment_answer'=> 'apicon-mail-reply',
+		'edit_question' 	=> 'apicon-pencil',
+		'edit_answer' 		=> 'apicon-pencil',
+		'edit_comment' 		=> 'apicon-pencil',
+		'vote_up'			=> 'apicon-thumb-up',
+		'vote_down'			=> 'apicon-thumb-down',
+		'favorite'			=> 'apicon-heart',
+		'delete'			=> 'apicon-trashcan',
+		'flag'				=> 'apicon-flag',
+		'edit'				=> 'apicon-pencil',
+		'comment'			=> 'apicon-mail-reply',
+		'answer'			=> 'apicon-comment',
+		'view'				=> 'apicon-eye',
+		'vote'				=> 'apicon-triangle-up',
+		'cross'				=> 'apicon-x',
+		'more'				=> 'apicon-ellipsis',
+		'category'			=> 'apicon-file-directory',
+		'home'				=> 'apicon-home',
+		'question'			=> 'apicon-comment-discussion',
+		'upload'			=> 'apicon-cloud-upload',
+		'link'				=> 'apicon-link',
+		'help'				=> 'apicon-question',
+		'error'				=> 'apicon-x',
+		'warning'			=> 'apicon-alert',
+		'success'			=> 'apicon-check',
+		'history'			=> 'apicon-history',
+		'mail'				=> 'apicon-mail',
+		'link'				=> 'apicon-link',
 	);
 	
 	$icons = apply_filters('ap_icon', $icons);
@@ -619,6 +681,15 @@ function ap_post_actions_buttons()
 		return;
 
 	$actions = array();
+
+	$actions['vote'] = '<div class="ap-single-vote ap-pull-left">'.ap_vote_btn($post, false).'</div>';
+
+	/**
+	 * Select answer button
+	 * @var string
+	 */
+	if($post->post_type == 'answer')
+		$actions['select_answer'] = ap_select_answer_btn_html(get_the_ID());
 
 	/**
 	 * Comment button
@@ -652,7 +723,8 @@ function ap_post_actions_buttons()
 	if (!empty($actions) && count($actions) > 0) {
 		echo '<ul class="ap-user-actions ap-ul-inline clearfix">';
 		foreach($actions as $k => $action){
-			echo '<li class="ap-post-action ap-action-'.$k.'">'.$action.'</li>';
+			if(!empty($action))
+				echo '<li class="ap-post-action ap-action-'.$k.'">'.$action.'</li>';
 		}
 		echo '</ul>';
 	}
@@ -665,29 +737,25 @@ function ap_post_actions_buttons()
 function ap_questions_tab($current_url){
 	$param = array();
 
-	$sort = get_query_var('sort');
+	$sort = isset($_GET['ap_sort']) ? $_GET['ap_sort'] : 'active';
+
 	$label = sanitize_text_field(get_query_var('label'));
 	$search_q = sanitize_text_field(get_query_var('ap_s'));
-	
-	if(empty($sort ))
-		$sort = 'active';//ap_opt('answers_sort');
-	
+
 	//$param['sort'] = $sort;
 
-	if(!empty( $search ))
-		$param['ap_s'] =  $search;
+	if(!empty( $search_q ))
+		$param['ap_s'] =  $search_q;
 
 	$link = add_query_arg($param, $current_url);
-	//TODO: hook this from labels extension
-	//$label_link = '?'.$search.'sort='.$order.'&label=';
 	
 	$navs = array(
-		'active' => array('link' => add_query_arg(array('sort' => 'active'), $link), 'title' => __('Active', 'ap')), 
-		'newest' => array('link' => add_query_arg(array('sort' => 'newest'), $link), 'title' => __('Newest', 'ap')), 
-		'voted' => array('link' => add_query_arg(array('sort' => 'voted'), $link), 'title' => __('Voted', 'ap')), 
-		'answers' => array('link' => add_query_arg(array('sort' => 'answers'), $link), 'title' => __('Answers', 'ap')), 
-		'unanswered' => array('link' => add_query_arg(array('sort' => 'unanswered'), $link), 'title' => __('Unanswered', 'ap')), 
-		'unsolved' => array('link' => add_query_arg(array('sort' => 'unsolved'), $link), 'title' => __('Unsolved', 'ap')), 
+		'active' => array('link' => add_query_arg(array('ap_sort' => 'active'), $link), 'title' => __('Active', 'ap')), 
+		'newest' => array('link' => add_query_arg(array('ap_sort' => 'newest'), $link), 'title' => __('Newest', 'ap')), 
+		'voted' => array('link' => add_query_arg(array('ap_sort' => 'voted'), $link), 'title' => __('Voted', 'ap')), 
+		'answers' => array('link' => add_query_arg(array('ap_sort' => 'answers'), $link), 'title' => __('Answers', 'ap')), 
+		'unanswered' => array('link' => add_query_arg(array('ap_sort' => 'unanswered'), $link), 'title' => __('Unanswered', 'ap')), 
+		'unsolved' => array('link' => add_query_arg(array('ap_sort' => 'unsolved'), $link), 'title' => __('Unsolved', 'ap')), 
 		//'oldest' => array('link' => $link.'oldest', 'title' => __('Oldest', 'ap')), 
 		);
 	
@@ -699,7 +767,7 @@ function ap_questions_tab($current_url){
 	 */
 	$navs = apply_filters('ap_questions_tab', $navs );
 
-	echo '<ul class="ap-questions-tab ap-tab ap-ul-inline clearfix">';
+	echo '<ul class="ap-questions-tab ap-ul-inline clearfix">';
 	foreach ($navs as $k => $nav) {
 		echo '<li'.( $sort == $k ? ' class="active"' : '') .'><a href="'. $nav['link'] .'">'. $nav['title'] .'</a></li>';
 	}
@@ -734,25 +802,23 @@ function ap_questions_tab($current_url){
  * @since 2.0.1
  */
 function ap_answers_tab($base = false){
-	$sort = get_query_var('sort');
-	if(empty($sort ))
-		$sort = ap_opt('answers_sort');
+	$sort = isset($_GET['ap_sort']) ? $_GET['ap_sort'] : ap_opt('answers_sort');
 		
-		if(!$base)
-			$base = get_permalink();
-		
-		$navs = array(
-			'active' => array('link' => add_query_arg(  array('sort' => 'active'), $base), 'title' => __('Active', 'ap')),
-			'voted' => array('link' => add_query_arg(  array('sort' => 'voted'), $base), 'title' => __('Voted', 'ap')), 
-			'newest' => array('link' =>add_query_arg(  array('sort' => 'newest'), $base), 'title' => __('Newest', 'ap')), 
-			'oldest' => array('link' => add_query_arg(  array('sort' => 'oldest'), $base), 'title' => __('Oldest', 'ap')),			
-			);
+	if(!$base)
+		$base = get_permalink();
+	
+	$navs = array(
+		'active' => array('link' => add_query_arg(  array('ap_sort' => 'active'), $base), 'title' => __('Active', 'ap')),
+		'voted' => array('link' => add_query_arg(  array('ap_sort' => 'voted'), $base), 'title' => __('Voted', 'ap')), 
+		'newest' => array('link' =>add_query_arg(  array('ap_sort' => 'newest'), $base), 'title' => __('Newest', 'ap')), 
+		'oldest' => array('link' => add_query_arg(  array('ap_sort' => 'oldest'), $base), 'title' => __('Oldest', 'ap')),			
+		);
 
-		echo '<ul class="ap-answers-tab ap-tab ap-ul-inline clearfix">';
-		foreach ($navs as $k => $nav) {
-			echo '<li'.( $sort == $k ? ' class="active"' : '') .'><a href="'. $nav['link'] .'">'. $nav['title'] .'</a></li>';
-		}
-		echo '</ul>';
+	echo '<ul class="ap-answers-tab ap-ul-inline ap-pull-right clearfix">';
+	foreach ($navs as $k => $nav) {
+		echo '<li'.( $sort == $k ? ' class="active"' : '') .'><a href="'. $nav['link'] .'">'. $nav['title'] .'</a></li>';
+	}
+	echo '</ul>';
 }
 
 /**
@@ -805,12 +871,12 @@ function ap_comment_actions_buttons()
 
 	if(ap_user_can_edit_comment(get_comment_ID())){
 		$nonce = wp_create_nonce( 'edit_comment_'. get_comment_ID() );
-		$actions['edit'] = '<a class="comment-edit-btn" href="#" data-toggle="#li-comment-'.get_comment_ID().'" data-action="load_comment_form" data-query="ap_ajax_action=load_comment_form&comment_ID='.get_comment_ID().'&__nonce='.$nonce.'">'.ap_icon('edit', true).__('Edit', 'ap').'</a>';
+		$actions['edit'] = '<a class="comment-edit-btn" href="#" data-toggle="#li-comment-'.get_comment_ID().'" data-action="load_comment_form" data-query="ap_ajax_action=load_comment_form&comment_ID='.get_comment_ID().'&__nonce='.$nonce.'">'.__('Edit', 'ap').'</a>';
 	}
 
 	if(ap_user_can_delete_comment(get_comment_ID())){
 		$nonce = wp_create_nonce( 'delete_comment' );
-		$actions['delete'] = '<a class="comment-delete-btn" href="#" data-toggle="#li-comment-'.get_comment_ID().'" data-action="delete_comment" data-query="ap_ajax_action=delete_comment&comment_ID='.get_comment_ID().'&__nonce='.$nonce.'">'.ap_icon('delete', true).__('Delete', 'ap').'</a>';
+		$actions['delete'] = '<a class="comment-delete-btn" href="#" data-toggle="#li-comment-'.get_comment_ID().'" data-action="delete_comment" data-query="ap_ajax_action=delete_comment&comment_ID='.get_comment_ID().'&__nonce='.$nonce.'">'.__('Delete', 'ap').'</a>';
 	}
 
 	/**

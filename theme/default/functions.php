@@ -19,22 +19,16 @@ add_action('wp_enqueue_scripts', 'init_scripts_front', 11);
 function init_scripts_front(){
 	//if(is_anspress()){
 		wp_enqueue_script( 'jquery');				
-		wp_enqueue_script( 'tagsinput', ap_get_theme_url('js/bootstrap-tagsinput.min.js'), 'jquery', AP_VERSION);
-		wp_enqueue_script( 'jquery-form', array('jquery'), false, true );
-			
+		wp_enqueue_script( 'jquery-form', array('jquery'), false, true );			
 		wp_enqueue_script( 'ap-functions-js', ANSPRESS_URL.'assets/ap-functions.js', 'jquery');		
-		wp_enqueue_script( 'ap-site-js', ANSPRESS_URL.'assets/ap-site.js', 'jquery', AP_VERSION);		
 		wp_enqueue_script( 'anspress_acript', ANSPRESS_URL.'assets/anspress_site.js', 'jquery', AP_VERSION);		
 		wp_enqueue_script( 'tooltipster', ap_get_theme_url('js/jquery.tooltipster.min.js'), 'jquery', AP_VERSION);
-		wp_enqueue_script( 'jstorage', ap_get_theme_url('js/jstorage.js'), 'jquery', AP_VERSION);
-		//wp_enqueue_script( 'perfect-scrollbar', ap_get_theme_url('js/perfect-scrollbar.min.js'), 'jquery', AP_VERSION);
 		wp_enqueue_script( 'ap-js', ap_get_theme_url('js/ap.js'), 'jquery', AP_VERSION);
-		wp_enqueue_style( 'tagsinput', ap_get_theme_url('css/bootstrap-tagsinput.css'), array(), AP_VERSION);
 		wp_enqueue_style( 'tooltipster', ap_get_theme_url('css/tooltipster.css'), array(), AP_VERSION);
 		//wp_enqueue_style( 'perfect-scrollbar', ap_get_theme_url('css/perfect-scrollbar.min.css'), array(), AP_VERSION);
 		wp_enqueue_style( 'ap-style', ap_get_theme_url('css/main.min.css'), array(), AP_VERSION);	
 		
-		wp_enqueue_style( 'ap-fonts', ap_get_theme_url('fonts/styles.css'), array(), AP_VERSION);
+		wp_enqueue_style( 'ap-fonts', ap_get_theme_url('fonts/style.css'), array(), AP_VERSION);
 		
 		
 		do_action('ap_enqueue');
@@ -48,7 +42,7 @@ function init_scripts_front(){
 			</script>
 		<?php
 
-		wp_localize_script( 'ap-site-js', 'aplang', array(
+		wp_localize_script( 'anspress_acript', 'aplang', array(
 			'password_field_not_macthing' 	=> __( 'Password not matching', 'ap' ),
 			'password_length_less' 			=> __( 'Password length must be 6 or higher', 'ap' ),
 			'not_valid_email' 				=> __( 'Not a valid email', 'ap' ),
@@ -99,7 +93,7 @@ if ( ! function_exists( 'ap_comment' ) ) :
 		?>
 		<li <?php comment_class('clearfix'); ?> id="li-comment-<?php comment_ID(); ?>">
 			<!-- comment #<?php comment_ID(); ?> -->
-			<article id="comment-<?php comment_ID(); ?>">
+			<article id="comment-<?php comment_ID(); ?>" class="clearfix">
 				<div class="ap-avatar ap-pull-left">
 					<a href="<?php echo ap_user_link($comment->user_id); ?>">
 					<!-- TODO: OPTION - Avatar size -->
@@ -184,12 +178,12 @@ function ap_widgets_positions(){
 }
 
 /* for overriding icon in social login plugin */
-function ap_social_login_icons( $provider_id, $provider_name, $authenticate_url )
+/*function ap_social_login_icons( $provider_id, $provider_name, $authenticate_url )
 {
 	?>
 	<a rel = "nofollow" href = "<?php echo $authenticate_url; ?>" data-provider = "<?php echo  $provider_id ?>" class = "wp-social-login-provider wp-social-login-provider-<?php echo strtolower( $provider_id ); ?> btn btn-<?php echo strtolower( $provider_id ); ?>">
-		<i class="ap-icon-<?php echo strtolower( $provider_id ); ?>"></i> <span><?php echo $provider_name; ?></span>
+		<i class="ap-apicon-<?php echo strtolower( $provider_id ); ?>"></i> <span><?php echo $provider_name; ?></span>
 	</a>
 	<?php
 }
-add_filter( 'wsl_render_login_form_alter_provider_icon_markup', 'ap_social_login_icons', 10, 3 );
+add_filter( 'wsl_render_login_form_alter_provider_icon_markup', 'ap_social_login_icons', 10, 3 );*/

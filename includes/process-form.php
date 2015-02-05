@@ -23,7 +23,7 @@ class AnsPress_Process_Form
 	{
 
 		add_action('init', array($this, 'non_ajax_form'));
-		add_action( 'save_post', array($this, 'action_on_new_post'), 10, 2 );
+		add_action( 'save_post', array($this, 'action_on_new_post'), 10, 3 );
 		add_action('wp_ajax_ap_ajax', array($this, 'ap_ajax'));
 		add_action('wp_ajax_nopriv_ap_ajax', array($this, 'ap_ajax'));
 	}
@@ -283,13 +283,6 @@ class AnsPress_Process_Form
 		$post_id = wp_update_post($question_array);
 
 		if($post_id){				
-
-			/**
-			 * TODO: EXTENSION - move this to tags
-			 */
-			wp_set_post_terms( $post_id, $this->fields['tags'], 'question_tags' );
-
-			
 			
 			$this->redirect = get_permalink($post_id);
 
@@ -309,18 +302,18 @@ class AnsPress_Process_Form
 	 * @return void          
 	 * @since  2.0
 	 */
-	public function action_on_new_post( $post_id, $post ) {
-		
+	public function action_on_new_post( $post_id, $post, $update ) {
+
 		// return on autosave
 		if(defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) { return; }
 		
-		if ( wp_is_post_revision( $post_id ) || $post->post_status == 'trash')
+		if ( wp_is_post_revision( $post_id ) || $post->post_status == 'trash'|| $post->post_status == 'auto-draft')
 			return;
 		
 		if ( $post->post_type == 'question' ) {
 			//check if post have updated meta, if not this is a new post :D
 			$updated = get_post_meta($post_id, ANSPRESS_UPDATED_META, true);
-			if($updated == ''){
+			if($updated == '' ){
 				/**
 				 * ACTION: ap_after_new_question
 				 * action triggered after inserting a question
@@ -336,9 +329,8 @@ class AnsPress_Process_Form
 				do_action('ap_after_update_question', $post_id, $post);
 			}
 		}elseif ( $post->post_type == 'answer' ) {
-			$updated = get_post_meta($post_id, ANSPRESS_UPDATED_META, true);
 			
-			if($updated == ''){
+			if( $updated == ''){
 				/**
 				 * ACTION: ap_after_new_answer
 				 * action triggered after inserting an answer
@@ -352,6 +344,7 @@ class AnsPress_Process_Form
 				 * @since 0.9
 				 */
 				do_action('ap_after_update_answer', $post_id, $post);
+
 			}
 		}
 	}
@@ -539,17 +532,18 @@ class AnsPress_Process_Form
 	public function comment_form()
 	{		
 
-		if(!isset($_REQUEST['comment_ID']) )
+		if(!isset($_REQUEST['comment_ID']) ){
 			// Do security check
 			if(!ap_user_can_comment() || !isset($_POST['__nonce']) || !wp_verify_nonce($_POST['__nonce'], 'comment_' . (int)$_POST['comment_post_ID'])){
 				$this->result = ap_ajax_responce( 'no_permission');
 				return;
 			}
-		else
-			if(!isset($_REQUEST['comment_ID']) && !ap_user_can_edit_comment((int)$_REQUEST['comment_ID'] ) && !wp_verify_nonce( $_REQUEST['__nonce'], 'comment_'.(int)$_REQUEST['comment_ID'] )){
+		}else{
+			if(!ap_user_can_edit_comment((int)$_REQUEST['comment_ID'] ) || !wp_verify_nonce( $_REQUEST['__nonce'], 'comment_'.(int)$_REQUEST['comment_ID'] )){
 				$this->result = ap_ajax_responce( 'no_permission');
 				return;
 			}
+		}
 
 		$comment_post_ID = (int) $_POST['comment_post_ID'];
 		$post = get_post( $comment_post_ID );
@@ -580,7 +574,7 @@ class AnsPress_Process_Form
 				$comment_author_email = wp_slash( $user->user_email );
 				$comment_author_url = wp_slash( $user->user_url );
 				$comment_content = trim( $_POST['comment'] );
-				$comment_type = isset( $_POST['comment_type'] ) ? trim( $_POST['comment_type'] ) : '';
+				$comment_type = 'anspress';
 
 			} else {
 				$this->result = ap_ajax_responce('no_permission');

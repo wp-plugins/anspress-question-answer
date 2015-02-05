@@ -45,7 +45,7 @@ class Question_Query extends WP_Query {
         if(isset($args['orderby']))
             $orderby = $args['orderby'];
         else
-            $orderby = (get_query_var('sort')) ? get_query_var('sort') : 'active';
+            $orderby = (isset($_GET['ap_sort'])) ? $_GET['ap_sort'] : 'active';
 
         $defaults = array(
            // 'ap_query'      => 'main_questions',
@@ -58,7 +58,10 @@ class Question_Query extends WP_Query {
         if($post_parent)
             $this->args['post_parent'] = $post_parent;
 
-        $this->args = wp_parse_args( $args, $defaults );        
+        $this->args = wp_parse_args( $args, $defaults );
+
+        if(get_query_var('ap_s') != '')
+            $this->args['s'] = sanitize_text_field(get_query_var('ap_s'));
 
         $this->pre_questions();
 
@@ -100,10 +103,10 @@ class Question_Query extends WP_Query {
                 $this->args['meta_key'] = ANSPRESS_VOTE_META;
             break;
             case 'unsolved' :
-                $this->args['orderby'] = 'meta_value';
+                $this->args['orderby'] = 'meta_value_num';
                 $this->args['meta_key'] = ANSPRESS_SELECTED_META;
                 $this->args['meta_compare'] = '!=';
-                $this->args['meta_value'] = '1';
+                $this->args['meta_value'] = 1;
 
  
             break;

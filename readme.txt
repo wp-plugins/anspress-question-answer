@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_
 Tags: question, answer, q&a, forum, community, profile, stackoverflow, quora
 Requires at least: 3.5.1
 Tested up to: 4.1
-Stable tag: 2.0.0-alpha2
+Stable tag: 1.4.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,10 +13,9 @@ AnsPress - Best question and answer plugin for WordPress. Made with developers i
 == Description ==
 Demo & support forum: http://wp3.in/questions/
 
-= Extensions = 
 
- * Categories for AnsPress : https://wordpress.org/plugins/categories-for-anspress/
- * Tags for AnsPress : https://wordpress.org/plugins/tags-for-anspress/
+= Looking for someone to customize AnsPress ? Hire us. =
+Contact us at support@open-wp.com
 
 Easily add question and answer section like stackoverflow.com or quora.com in your WordPress.
 AnsPress is a most complete question and answer system for WordPress. AnsPress is made with developers in mind, highly customizable. AnsPress provide an easy to use override system for theme. List of features:
@@ -31,6 +30,8 @@ AnsPress is a most complete question and answer system for WordPress. AnsPress i
   * Select best answer
   * Tags suggestions
   * Comment on question and answer
+  * Private messaging system
+  * Point based permission (under development)
   * reCaptcha
   * User level : Participant, Editor, Moderator (in future it can be customised and you can add your own levels)
   * Email notification
@@ -38,7 +39,10 @@ AnsPress is a most complete question and answer system for WordPress. AnsPress i
   * User can edit profile
   * User can upload cover photo
   * Friends and followers system
-
+  * User points system (reputation)
+  * User ranking
+  * User badge
+  * User profile
   * Pages : Tags, categories, users etc.
   * SOCIAL LOGIN (see FAQ)
   * SYNTAX HIGHLIGHTER (see FAQ)
@@ -52,6 +56,12 @@ GooglePlus: [@openwp](https://plus.google.com/+rahularyannerdaryan?rel=author)
 
 = Help & Support =
 For fast help and support, please post on our forum http://wp3.in/questions/
+
+
+**Page Shortcodes**
+
+Use this shortcode in base to AnsPress work properly
+`[anspress]`
 
 
 == Installation ==

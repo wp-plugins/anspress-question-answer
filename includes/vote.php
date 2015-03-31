@@ -40,7 +40,7 @@ class AnsPress_Vote_Ajax extends AnsPress_Ajax
 
 			if($is_subscribed){
 				// if already subscribed then remove	
-				$row = ap_remove_vote('subscriber', $userid, $question_id);
+				ap_remove_vote('subscriber', $userid, $question_id);
 				
 				$counts = ap_post_subscribers_count($question_id);
 				
@@ -48,22 +48,21 @@ class AnsPress_Vote_Ajax extends AnsPress_Ajax
 				update_post_meta($question_id, ANSPRESS_SUBSCRIBER_META, $counts);
 				
 				//register an action
-				do_action('ap_removed_subscribe', $question_id, $counts);
+				do_action('ap_removed_subscriber', $question_id, $counts);
 
-				ap_send_json(ap_ajax_responce(array('message' => 'unsubscribed', 'action' => 'unsubscribed')));
+				ap_send_json(ap_ajax_responce(array('message' => 'unsubscribed', 'action' => 'unsubscribed', 'container' => '#subscribe_'.$question_id, 'do' => 'updateHtml', 'html' => ap_icon('unmute', true).__('subscribe', 'ap'))));
 				return;
-
 			}else{
-				$row = ap_add_vote($userid, 'subscriber', $question_id);
+				ap_add_vote($userid, 'subscriber', $question_id);
 				$counts = ap_post_subscribers_count($question_id);
 				
 				//update post meta
 				update_post_meta($question_id, ANSPRESS_SUBSCRIBER_META, $counts);
 				
 				//register an action
-				do_action('ap_added_subscribe', $question_id, $counts);
+				do_action('ap_added_subscriber', $question_id, $counts);
 				
-				ap_send_json(ap_ajax_responce(array('message' => 'subscribed', 'action' => 'subscribed')));
+				ap_send_json(ap_ajax_responce(array('message' => 'subscribed', 'action' => 'subscribed', 'container' => '#subscribe_'.$question_id, 'do' => 'updateHtml', 'html' => ap_icon('mute', true).__('unsubscribe', 'ap'))));
 			}
 			
 		}
@@ -96,7 +95,7 @@ class AnsPress_Vote_Ajax extends AnsPress_Ajax
 
 		$type = sanitize_text_field( $_POST['type'] );
 
-		$type 	= $type == 'up' ? 'vote_up' : 'vote_down' ;
+		$type 	= ($type == 'up' ? 'vote_up' : 'vote_down') ;
 		$userid = get_current_user_id();
 		
 		$is_voted = ap_is_user_voted($post_id, 'vote', $userid) ;
@@ -104,9 +103,9 @@ class AnsPress_Vote_Ajax extends AnsPress_Ajax
 		if(is_object($is_voted) && $is_voted->count > 0){
 			// if user already voted and click that again then reverse
 			if($is_voted->type == $type){
-				$row = ap_remove_vote($type, $userid, $post_id);
+				ap_remove_vote($type, $userid, $post_id);
 				$counts = ap_post_votes($post_id);
-				
+	
 				//update post meta
 				update_post_meta($post_id, ANSPRESS_VOTE_META, $counts['net_vote']);
 				
@@ -114,30 +113,24 @@ class AnsPress_Vote_Ajax extends AnsPress_Ajax
 				
 				$action = 'undo';
 				$count = $counts['net_vote'] ;
-				$message = __('Your vote has been removed', 'ap');
-				
-				ap_do_event('undo_'.$type, $post_id, $counts);
+				do_action('ap_undo_'.$type, $post_id, $counts);
 
 				ap_send_json(ap_ajax_responce(array('action' => $action, 'type' => $type, 'count' => $count, 'message' => 'undo_vote')));
 			}else{
-				$result = ap_send_json(ap_ajax_responce('undo_vote_your_vote'));
+				ap_send_json(ap_ajax_responce('undo_vote_your_vote'));
 			}				
 				
 		}else{
-			
-			$row = ap_add_vote($userid, $type, $post_id);				
+
+			ap_add_vote($userid, $type, $post_id);				
 			$counts = ap_post_votes($post_id);
 			
 			//update post meta
 			update_post_meta($post_id, ANSPRESS_VOTE_META, $counts['net_vote']);				
-			do_action('ap_voted_'.$type, $post_id, $counts);
-			
+			do_action('ap_'.$type, $post_id, $counts);			
 				
 			$action = 'voted';
 			$count = $counts['net_vote'] ;
-
-			ap_do_event($type, $post_id, $counts);
-
 			ap_send_json(ap_ajax_responce(array('action' => $action, 'type' => $type, 'count' => $count, 'message' => 'voted')));
 		}			
 
@@ -164,7 +157,7 @@ class AnsPress_Vote_Ajax extends AnsPress_Ajax
 			echo json_encode(array('action' => false, 'message' => __('You already flagged this post', 'ap')));			
 		}else{
 
-			$row = ap_add_flag($userid, $post_id);
+			ap_add_flag($userid, $post_id);
 				
 			$count = ap_post_flag_count( $post_id );
 			
@@ -206,17 +199,9 @@ class anspress_vote
     public function __construct()
     {
 		add_action( 'the_post', array($this, 'ap_append_vote_count') );
-
-
-		
 		// vote for closing, ajax request
 		add_action( 'wp_ajax_ap_vote_for_close', array($this, 'ap_vote_for_close') ); 
 		add_action( 'wp_ajax_nopriv_ap_vote_for_close', array($this, 'ap_nopriv_vote_for_close') ); 
-		
-		// Follow user
-		add_action( 'wp_ajax_ap_follow', array($this, 'ap_follow') ); 
-		add_action( 'wp_ajax_nopriv_ap_follow', array($this, 'ap_follow') ); 
-		
 		
     }
 
@@ -226,7 +211,7 @@ class anspress_vote
 	 * @return object
 	 * @since unknown
 	 */
-	function ap_append_vote_count($post){
+	public function ap_append_vote_count($post){
 		if($post->post_type == 'question' || $post->post_type == 'answer'){
              if(is_object($post)){
 
@@ -239,18 +224,13 @@ class anspress_vote
         }
 	}
 
-
-		
-	// add to subscribe ajax action	 
 	
-
-	
-	function ap_add_to_subscribe_nopriv(){
+	public function ap_add_to_subscribe_nopriv(){
 		echo json_encode(array('action'=> false, 'message' =>__('Please login for adding question to your subscribe', 'ap')));
 		die();
 	}
 	
-	function ap_vote_for_close(){
+	public function ap_vote_for_close(){
 		$args = explode('-', sanitize_text_field($_POST['args']));
 		if(wp_verify_nonce( $args[1], 'close_'.$args[0] )){
 
@@ -286,58 +266,10 @@ class anspress_vote
 		die(json_encode($result));
 	}
 	
-	function ap_nopriv_vote_for_close(){
+	public function ap_nopriv_vote_for_close(){
 		echo json_encode(array('action'=> false, 'message' =>__('Please login for requesting closing this question.', 'ap')));
 		die();
-	}
-	
-	public function ap_follow(){
-		$args = $_POST['args'];
-		if(wp_verify_nonce( $args['nonce'], 'follow_'.$args['user'] )){
-			$userid = (int)sanitize_text_field($args['user']);
-			
-			$user_following = ap_is_user_voted($userid, 'follow', get_current_user_id());
-			
-			$user 			= get_userdata( $userid );
-			$user_name 		= $user->data->display_name;
-			if (!is_user_logged_in()){
-				$action = 'pleazelogin';
-				$message = sprintf(__('Register or log in to follow %s', 'ap'), $user_name);
-			}	
-			elseif(!$user_following){
-				$row 	= ap_add_vote(get_current_user_id(), 'follow', $userid);
-				$action = 'follow';
-				$text 	= __('Unfollow','ap');
-				$title 	= sprintf(__('Unfollow %s', 'ap'), $user_name);
-				$message = sprintf(__('You are now following %s', 'ap'), $user_name);
-			}else{
-				$row = ap_remove_vote('follow', get_current_user_id(), $userid);
-				$action = 'unfollow';
-				$text 	= __('Follow','ap');
-				$title 	= sprintf(__('Follow %s', 'ap'), $user_name);
-				$message = sprintf(__('You unfollowed %s', 'ap'), $user_name);
-			}
-				
-			if($row !== FALSE){
-				$followers = ap_count_vote(false, 'follow', $userid);
-				$following = ap_count_vote(get_current_user_id(), 'follow');
-				update_user_meta( $userid, AP_FOLLOWERS_META, $followers);
-				update_user_meta( get_current_user_id(), AP_FOLLOWING_META, $following);
-				
-				
-				
-				$result = apply_filters('ap_follow_result', array('row' => $row, 'action' => $action, 'text' => $text, 'id' => $userid, 'title' => $title, 'message' => $message, 'following_count' => $following, 'followers_count' => $followers ));
-				
-				echo json_encode($result);
-			}else{
-				echo json_encode(array('action' => false, 'message' => _('Unable to process your request, please try again.', 'ap')));
-			}
-
-		}else{
-			echo json_encode(array('action' => false, 'message' => _('Something went wrong', 'ap')));
-		}
-		die();
-	}
+	}	
 
 }
 
@@ -414,14 +346,14 @@ function ap_post_votes($postid){
 
 /**
  * Check if user voted on given post.
- * @param  	int $actionid
+ * @param  	integer $actionid
  * @param  	string $type     
  * @param  	int $userid   
  * @return 	boolean           
  * @since 	2.0
  */
 function ap_is_user_voted($actionid, $type, $userid = false){
-	if(!$userid)
+	if(false === $userid)
 		$userid = get_current_user_id();
 
 	if($type == 'vote' && is_user_logged_in()){
@@ -458,10 +390,7 @@ function ap_is_user_subscribed($postid){
 }
 
 function ap_post_subscribers_count($postid = false){
-	//subscribe count
-	global $post;
-
-	$postid = $postid ? $postid : $post->ID;
+	$postid = $postid ? $postid : get_question_id();
 	return ap_meta_total_count('subscriber', $postid);
 }
 
@@ -472,8 +401,14 @@ function ap_post_subscribers_count($postid = false){
  * @since 0.1
  */
 function ap_vote_btn($post = false, $echo = true){
-	if(!$post)
+	if(false === $post)
 		global $post;
+
+	if('answer' == $post->post_type && ap_opt('disable_voting_on_answer'))
+		return;
+
+	if('question' == $post->post_type && ap_opt('disable_voting_on_question'))
+		return;
 		
 	$nonce 	= wp_create_nonce( 'vote_'.$post->ID );
 	$vote 	= ap_is_user_voted( $post->ID , 'vote');
@@ -505,19 +440,19 @@ function ap_vote_btn($post = false, $echo = true){
  * @return string
  * @since 2.0.1
  */
-function ap_subscribe_btn_html($post = false){
-	if(!$post)
-		global $post;
+function ap_subscribe_btn_html($question_id = false){
+	if(!$question_id)
+		$question_id = get_question_id();
 	
-	$total_favs = ap_post_subscribers_count($post->ID);
-	$subscribed = ap_is_user_subscribed($post->ID);
+	//$total_favs = ap_post_subscribers_count($question_id);
+	$subscribed = ap_is_user_subscribed($question_id);
 
-	$nonce = wp_create_nonce( 'subscribe_'.$post->ID );
-	$title = (!$subscribed) ? (__('Subscribe', 'ap')) : (__('Subscribed', 'ap'));
+	$nonce = wp_create_nonce( 'subscribe_'.$question_id );
+	$title = (!$subscribed) ? ap_icon('unmute', true).(__('subscribe', 'ap')) : ap_icon('mute', true).(__('unsubscribe', 'ap'));
 
 	?>
 		<div class="ap-subscribe<?php echo ($subscribed) ? ' active' :''; ?> clearfix">
-			<a id="<?php echo 'subscribe_'.$post->ID; ?>" href="#" class="ap-btn subscribe-btn <?php echo ($subscribed) ? ' active' :''; ?>" data-query="ap_ajax_action=subscribe_question&question_id=<?php echo $post->ID ?>&__nonce=<?php echo $nonce ?>" data-action="ap_subscribe" data-args="<?php echo $post->ID.'-'.$nonce; ?>"><?php echo $title ?></a>
+			<a id="<?php echo 'subscribe_'.$question_id; ?>" href="#" class="ap-btn subscribe-btn <?php echo ($subscribed) ? ' active' :''; ?>" data-query="ap_ajax_action=subscribe_question&question_id=<?php echo $question_id ?>&__nonce=<?php echo $nonce ?>" data-action="ap_subscribe" data-args="<?php echo $question_id.'-'.$nonce; ?>"><?php echo $title ?></a>
 		</div>
 	<?php
 }
@@ -605,7 +540,7 @@ function ap_flag_btn_html($echo = false){
 	$nonce 		= wp_create_nonce( 'flag_'.$post->ID );
 	$title 		= (!$flagged) ? (__('Flag this post', 'ap')) : (__('You have flagged this post', 'ap'));
 	
-	$output ='<a id="flag_'.$post->ID.'" data-query="ap_ajax_action=flag_post&post_id='.$post->ID .'&__nonce='.$nonce.'" data-action="ap_subscribe" class="ap-tip flag-btn'. (!$flagged ? ' can-flagged' :'') .'" href="#" title="'.$title.'">'. __('Flag ', 'ap') . '<span class="ap-data-view ap-view-count-'.$total_flag.'" data-view="'.$post->ID .'_flag_count">'.$total_flag.'</span></a>';
+	$output ='<a id="flag_'.$post->ID.'" data-query="ap_ajax_action=flag_post&post_id='.$post->ID .'&__nonce='.$nonce.'" data-action="ap_subscribe" class="flag-btn'. (!$flagged ? ' can-flagged' :'') .'" href="#" title="'.$title.'">'. __('Flag ', 'ap') . '<span class="ap-data-view ap-view-count-'.$total_flag.'" data-view="'.$post->ID .'_flag_count">'.$total_flag.'</span></a>';
 
 	if($echo)
 		echo $output;
@@ -613,15 +548,6 @@ function ap_flag_btn_html($echo = false){
 		return $output;
 }
 
-
-function ap_follow_btn_html($userid, $small = false){
-	if(get_current_user_id() == $userid)
-		return;
-		
-	$followed = ap_is_user_voted($userid, 'follow', get_current_user_id());
-	$text = $followed ? __('Unfollow', 'ap') : __('Follow', 'ap');
-	echo '<a class="btn ap-btn ap-follow-btn '.($followed ? 'ap-unfollow '.ap_icon('unfollow') : ap_icon('follow')).($small ? ' ap-tip' : '').'" href="#" data-action="ap-follow" data-args=\''.json_encode(array('user' => $userid, 'nonce' => wp_create_nonce( 'follow_'.$userid))).'\' title="'.$text.'">'.($small ? '' : $text).'</a>';
-}
 
 /**
  * Return subscriber count in human readable format

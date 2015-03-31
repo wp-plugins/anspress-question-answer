@@ -1,10 +1,10 @@
 === AnsPress - Question and answer plugin ===
 Contributors: nerdaryan
 Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
-Tags: question, answer, q&a, forum, community, profile, stackoverflow, quora
-Requires at least: 3.5.1
-Tested up to: 4.1
-Stable tag: 1.4.3
+Tags: question, answer, q&a, forum, profile, stackoverflow, quora, buddypress
+Requires at least: 4.1.1
+Tested up to: 4.1.1
+Stable tag: 2.0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,9 +13,6 @@ AnsPress - Best question and answer plugin for WordPress. Made with developers i
 == Description ==
 Demo & support forum: http://wp3.in/questions/
 
-
-= Looking for someone to customize AnsPress ? Hire us. =
-Contact us at support@open-wp.com
 
 Easily add question and answer section like stackoverflow.com or quora.com in your WordPress.
 AnsPress is a most complete question and answer system for WordPress. AnsPress is made with developers in mind, highly customizable. AnsPress provide an easy to use override system for theme. List of features:

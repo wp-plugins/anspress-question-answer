@@ -35,12 +35,8 @@ new AnsPress_Answer_Form;
  */
 function ap_answer_form($question_id, $editing = false){
 
-    if(is_post_closed($question_id)){
-        echo '<div class="ap-notice yellow clearfix">
-                '.ap_icon('cross', true).'<span>'.__( 'Question is closed, new answer cannot be submitted.', 'ap' ).'</span>
-            </div>';
-        return;
-    }
+    if(is_post_closed($question_id) && !$editing)
+        return;    
 
     if(!ap_user_can_answer($question_id))
         return;
@@ -65,6 +61,7 @@ function ap_answer_form($question_id, $editing = false){
                 'settings' => array(
                     'textarea_rows' => 8,
                     'tinymce' => ap_opt('answer_text_editor') ? false : true,
+                    'quicktags' => false,
                 ),
                 'placeholder'  => __('Your answer..'),
             ),
@@ -85,6 +82,19 @@ function ap_answer_form($question_id, $editing = false){
             'value' => $is_private,
             'order' => 12,
             'show_desc_tip' => false
+        );
+
+    if(ap_opt('enable_recaptcha'))
+        $args['fields'][] = array(
+            'name' => 'captcha',
+            'type'  => 'custom',
+            'order' => 100,
+            'html' => '<div class="g-recaptcha" id="recaptcha" data-sitekey="'.ap_opt('recaptcha_site_key').'"></div><script type="text/javascript"
+src="https://www.google.com/recaptcha/api.js?hl='.get_locale().'&onload=onloadCallback&render=explicit"  async defer></script><script type="text/javascript">var onloadCallback = function() {
+        widgetId1 = grecaptcha.render("recaptcha", {
+          "sitekey" : "'.ap_opt('recaptcha_site_key').'"
+        });
+      };</script>'
         );
     
     /**

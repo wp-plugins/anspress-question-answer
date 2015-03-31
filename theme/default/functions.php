@@ -26,7 +26,7 @@ function init_scripts_front(){
 		wp_enqueue_script( 'ap-js', ap_get_theme_url('js/ap.js'), 'jquery', AP_VERSION);
 		wp_enqueue_style( 'tooltipster', ap_get_theme_url('css/tooltipster.css'), array(), AP_VERSION);
 		//wp_enqueue_style( 'perfect-scrollbar', ap_get_theme_url('css/perfect-scrollbar.min.css'), array(), AP_VERSION);
-		wp_enqueue_style( 'ap-style', ap_get_theme_url('css/main.min.css'), array(), AP_VERSION);	
+		wp_enqueue_style( 'ap-style', ap_get_theme_url('css/main.css'), array(), AP_VERSION);	
 		
 		wp_enqueue_style( 'ap-fonts', ap_get_theme_url('fonts/style.css'), array(), AP_VERSION);
 		
@@ -93,11 +93,11 @@ if ( ! function_exists( 'ap_comment' ) ) :
 		?>
 		<li <?php comment_class('clearfix'); ?> id="li-comment-<?php comment_ID(); ?>">
 			<!-- comment #<?php comment_ID(); ?> -->
-			<article id="comment-<?php comment_ID(); ?>" class="clearfix">
+			<div id="comment-<?php comment_ID(); ?>" class="clearfix">
 				<div class="ap-avatar ap-pull-left">
 					<a href="<?php echo ap_user_link($comment->user_id); ?>">
 					<!-- TODO: OPTION - Avatar size -->
-					<?php echo get_avatar( $comment, 30 ); ?>
+					<?php echo get_avatar( $comment->user_id, 30 ); ?>
 					</a>
 				</div>
 				<div class="ap-comment-content no-overflow">
@@ -129,7 +129,7 @@ if ( ! function_exists( 'ap_comment' ) ) :
 						do_action('ap_after_comment_content', $comment );
 					?>
 				</div>
-			</article>
+			</div>
 		<?php
 	}
 endif;

@@ -12,6 +12,8 @@ class AnsPress_Process_Form
 	private $fields;
 
 	private $result;
+	
+	private $request;
 
 	private $redirect ;
 
@@ -111,7 +113,16 @@ class AnsPress_Process_Form
 
 	}
 
-	
+	public function check_recaptcha()
+	{
+		$recaptcha = new \ReCaptcha\ReCaptcha(ap_opt('recaptcha_secret_key'));
+		$resp = $recaptcha->verify($_POST['g-recaptcha-response'], $_SERVER['REMOTE_ADDR']);
+		
+		if ($resp->isSuccess())
+			return true;
+
+		return false;
+	}
 
 	/**
 	 * Process ask form
@@ -121,6 +132,15 @@ class AnsPress_Process_Form
 	public function process_ask_form()
 	{
 		global $ap_errors, $validate;
+
+		if(ap_opt('enable_recaptcha') && !$this->check_recaptcha()){
+			$this->result = array(
+				'form' 			=> $_POST['ap_form_action'],
+				'message'		=> 'captcha_error',
+				'errors'		=> array('captcha' => __('Bot verification failed.', 'ap'))
+			);
+			return;
+		}
 
 		// Do security check, if fails then return
 		if(!ap_user_can_ask() || !isset($_POST['__nonce']) || !wp_verify_nonce($_POST['__nonce'], 'ask_form'))
@@ -185,7 +205,7 @@ class AnsPress_Process_Form
 
 		$status = 'publish';
 		
-		if(ap_opt('moderate_new_question') == 'pending' || (ap_opt('moderate_new_question') == 'point' && ap_get_points($user_id) < ap_opt('mod_question_point')))
+		if(ap_opt('moderate_new_question') == 'pending' || (ap_opt('moderate_new_question') == 'reputation' && ap_get_points($user_id) < ap_opt('mod_question_point')))
 			$status = 'moderate';
 		
 		if(isset($fields['is_private']) && $fields['is_private'])
@@ -220,8 +240,8 @@ class AnsPress_Process_Form
 			/**
 			 * TODO: EXTENSTION - move to tags extension
 			 */
-			if(isset($fields['tags']))
-				wp_set_post_terms( $post_id, $fields['tags'], 'question_tags' );
+			//if(isset($fields['tags']))
+				//wp_set_post_terms( $post_id, $fields['tags'], 'question_tags' );
 				
 			if (!is_user_logged_in() && ap_opt('allow_anonymous') && !empty($fields['name']))
 				update_post_meta($post_id, 'anonymous_name', $fields['name']);
@@ -230,10 +250,10 @@ class AnsPress_Process_Form
 			$this->redirect =  get_permalink($post_id);
 
 			$this->result = array(
-					'action' 		=> 'new_question',
-					'message'		=> 'question_submitted',
-					'redirect_to'	=> get_permalink($post_id),
-					'do'			=> 'redirect'
+				'action' 		=> 'new_question',
+				'message'		=> 'question_submitted',
+				'redirect_to'	=> get_permalink($post_id),
+				'do'			=> 'redirect'
 			);
 		}
 
@@ -310,9 +330,11 @@ class AnsPress_Process_Form
 		if ( wp_is_post_revision( $post_id ) || $post->post_status == 'trash'|| $post->post_status == 'auto-draft')
 			return;
 		
+		$updated = get_post_meta($post_id, ANSPRESS_UPDATED_META, true);
+		
 		if ( $post->post_type == 'question' ) {
 			//check if post have updated meta, if not this is a new post :D
-			$updated = get_post_meta($post_id, ANSPRESS_UPDATED_META, true);
+			
 			if($updated == '' ){
 				/**
 				 * ACTION: ap_after_new_question
@@ -352,6 +374,15 @@ class AnsPress_Process_Form
 	public function process_answer_form()
 	{
 		global $ap_errors, $validate;
+
+		if(ap_opt('enable_recaptcha') && !$this->check_recaptcha()){
+			$this->result = array(
+				'form' 			=> $_POST['ap_form_action'],
+				'message'		=> 'captcha_error',
+				'errors'		=> array('captcha' => __('Bot verification failed.', 'ap'))
+			);
+			return;
+		}
 
 		$question = get_post((int)$_POST['form_question_id']);
 
@@ -421,6 +452,7 @@ class AnsPress_Process_Form
 			$status = 'private_post';
 			
 		$answer_array = array(
+			'post_title'	=> $question->post_title,
 			'post_author'	=> $user_id,
 			'post_content' 	=>  $fields['description'],
 			'post_parent' 	=>  $question->ID,
@@ -462,7 +494,7 @@ class AnsPress_Process_Form
 				
 				ob_start();
 				if($current_ans == 1)								
-					ap_get_answers();
+					ap_get_answers(array('question_id' => $question->ID));
 				else
 					include(ap_get_theme_location('answer.php'));
 				
@@ -477,6 +509,7 @@ class AnsPress_Process_Form
 					'can_answer' 	=> ap_user_can_answer($post->ID),
 					'html' 			=> $html,
 					'message' 		=> 'answer_submitted',
+					'do' 			=> 'clearForm',
 					'view'			=> array('answer_count' => $current_ans, 'answer_count_label' => $count_label)
 				);
 				
@@ -495,10 +528,6 @@ class AnsPress_Process_Form
 			return;
 		
 		$answer = get_post($this->fields['edit_post_id']);
-
-		global $current_user;
-
-		$user_id		= $current_user->ID;
 		
 		$status = 'publish';
 
@@ -559,7 +588,7 @@ class AnsPress_Process_Form
 
 		if ( isset( $_POST['comment_ID'] ) ){
 			$comment_id = wp_update_comment( array('comment_ID' => (int)$_POST['comment_ID'], 'comment_content' => trim( $_POST['comment'] )) );
-			$comment = get_comment($_POST['comment_ID']);
+			$comment = get_comment($comment_id);
 			ob_start();
 			ap_comment($comment);		
 			$html = ob_get_clean();
@@ -581,14 +610,10 @@ class AnsPress_Process_Form
 				return;
 			}
 
-
-
 			$comment_parent = 0;
 
 			if ( isset( $_POST['comment_ID'] ) )
 				$comment_parent = absint( $_POST['comment_ID'] );
-			
-			$comment_auto_approved = false;
 
 			$commentdata = compact('comment_post_ID', 'comment_author', 'comment_author_email', 'comment_author_url', 'comment_content', 'comment_type', 'comment_parent', 'user_ID');
 
@@ -605,22 +630,16 @@ class AnsPress_Process_Form
 
 			if($comment_id > 0){
 				$comment = get_comment($comment_id);
+				do_action( 'ap_after_new_comment', $comment );
 				ob_start();
 				ap_comment($comment);		
 				$html = ob_get_clean();
-				$this->result = ap_ajax_responce(  array( 'action' => 'new_comment', 'status' => true, 'comment_ID' => $comment->comment_ID, 'comment_post_ID' => $comment->comment_post_ID, 'comment_content' => $comment->comment_content, 'html' => $html, 'message' => 'comment_success'));
+				$count = get_comment_count( $comment->comment_post_ID );
+				$this->result = ap_ajax_responce(  array( 'action' => 'new_comment', 'status' => true, 'comment_ID' => $comment->comment_ID, 'comment_post_ID' => $comment->comment_post_ID, 'comment_content' => $comment->comment_content, 'html' => $html, 'message' => 'comment_success', 'view' => array('comments_count_'.$comment->comment_post_ID => $count['approved'], 'comment_count_label_'.$comment->comment_post_ID => sprintf(_n('One comment', '%d comments', $count['approved'], 'ap'), $count['approved']) )));
 			}else{
 				$this->result = ap_ajax_responce('something_wrong');
 			}
 
 		}
-
-				
-		
-		
-
-		
 	}
 }
-    
-?>

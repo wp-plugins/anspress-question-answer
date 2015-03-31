@@ -5,15 +5,19 @@
  * @package   AnsPress
  * @author    Rahul Aryan <admin@rahularyan.com>
  * @license   GPL-2.0+
- * @link      http://rahularyan.com
+ * @link      http:/wp3.in
  * @copyright 2014 Rahul Aryan
  */
 
-
-
-/* Add meta */
 /**
- * @param string $type
+ * Add data to ap_meta table
+ * @param  boolean 			$userid   wp user id
+ * @param  null|string  	$type
+ * @param  null|string  	$actionid
+ * @param  null|string  	$value
+ * @param  null|string  	$param
+ * @param  false|timestamp
+ * @return integer
  */
 function ap_add_meta($userid=false, $type=NULL, $actionid =NULL, $value=NULL, $param = NULL, $date = false){
 	/* get current user id if not set */
@@ -51,6 +55,12 @@ function ap_add_meta($userid=false, $type=NULL, $actionid =NULL, $value=NULL, $p
 	return  $wpdb->insert_id;
 }
 
+/**
+ * Update anspress meta values
+ * @param  array $data
+ * @param  array $where
+ * @return false|integer
+ */
 function ap_update_meta($data, $where){
 	global $wpdb;
 	
@@ -69,20 +79,23 @@ function ap_update_meta($data, $where){
 /**
  * Delete ap_meta row
  * @param  false|array 	$where wp_db where clause
- * @param  integer 	$id    if meta id is known then it can be passed
+ * @param  false|integer 	$id    if meta id is known then it can be passed
  * @return boolean         
  */
 function ap_delete_meta($where=false, $id=false){		
 	global $wpdb;
-	
-	if($id)
+
+	if(false !== $id)
 		$where = array('apmeta_id' => $id);
 	
 	$meta_key = ap_meta_key($where);
 	
-	$delete = $wpdb->delete( 
-		$wpdb->prefix . 'ap_meta', $where		
-	);
+	if(is_array($where))
+		$delete = $wpdb->delete( 
+			$wpdb->prefix . 'ap_meta', $where		
+		);
+	else
+		return false;
 	
 	if($delete)
 		wp_cache_delete($meta_key, 'ap_meta');
@@ -90,6 +103,11 @@ function ap_delete_meta($where=false, $id=false){
 	return $delete;
 }
 
+/**
+ * Return meta key for caching purpose
+ * @param  array $where
+ * @return string
+ */
 function ap_meta_key($where){
 	$meta_key = '';
 	if(isset($where['apmeta_type']))
@@ -104,6 +122,8 @@ function ap_meta_key($where){
 		$meta_key .= '_'.$where['apmeta_actionid'];
 	else
 		$meta_key .= '_null';
+
+	return $meta_key;
 }
 
 function ap_get_meta($where){
@@ -155,7 +175,7 @@ function ap_meta_total_count($type, $actionid=false, $userid = false, $group = f
 	}
 		
 	$query = "SELECT IFNULL(count(*), 0) FROM " .$wpdb->prefix ."ap_meta where apmeta_type = '$type' and $where_query $group_query";
-	
+
 	$key = md5($query);
 	
 	$cache = wp_cache_get($key, 'count');

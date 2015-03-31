@@ -126,9 +126,46 @@
     .ap-btn{
         margin: 0 auto;
         display: block;
+        i{
+            font-size: 16px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
     }
     .ap-btn.active{
-        background: #ddd;
+        .box-shadow(0 0 1px rgba(0, 0, 0, 0.2) inset);
     }
 
+}
+.ap-dropdown{
+    position: relative;
+
+    .ap-dropdown-menu{
+        background: none repeat scroll 0 0 #fff;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        display: none;
+        position: absolute;
+        right: 0;
+        width: 160px;
+        z-index: 99;
+
+        > li{
+            margin: 0;
+            float: none;
+
+            > a{
+                border-bottom: 1px solid #f9f9f9;
+                display: block;
+                padding: 5px 15px;
+            }
+            > a:hover{
+                background: #fcfcfc;
+            }
+        }
+    }
+    &.open .ap-dropdown-menu{
+        display: block;
+    }
 }

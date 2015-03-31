@@ -209,6 +209,9 @@ class AnsPress_Form {
 
         $placeholder = $this->placeholder();
         $autocomplete = isset($field['autocomplete'])  ? ' autocomplete="off"' : '';
+
+        $this->output .= '<div class="ap-form-fields-in">';
+
         if(!isset($field['repeatable']) || !$field['repeatable'] ){
             
             $this->output .= '<input id="'. @$field['name'] .'" type="text" class="ap-form-control" value="'. @$field['value'] .'" name="'. @$field['name'] .'"'.$placeholder.' '. @$field['attr'] .$autocomplete.' />';
@@ -231,6 +234,11 @@ class AnsPress_Form {
         }
 
         $this->error_messages();
+
+        if(!$this->field['show_desc_tip'])
+            $this->desc();
+
+        $this->output .= '</div>';
     }
 
     /**
@@ -246,8 +254,14 @@ class AnsPress_Form {
 
         $placeholder = $this->placeholder();
         $autocomplete = isset($field['autocomplete'])  ? ' autocomplete="off"' : '';
+        $this->output .= '<div class="ap-form-fields-in">';
         $this->output .= '<input id="'. @$field['name'] .'" type="number" class="ap-form-control" value="'. @$field['value'] .'" name="'. @$field['name'] .'"'.$placeholder.' '. @$field['attr'] .$autocomplete.' />';
         $this->error_messages();
+
+        if(!$this->field['show_desc_tip'])
+            $this->desc();
+
+        $this->output .= '</div>';
     }
 
     /**
@@ -261,15 +275,22 @@ class AnsPress_Form {
         if(isset($field['label']))
             $this->label();
         
+        $this->output .= '<div class="ap-form-fields-in">';
+
         if(!empty($field['desc']))
-            $this->output .= '<div class="ap-checkbox-withdesc clearfix">';
+            $this->output .= '<label for="'. @$field['name'] .'">';
 
         $this->output .= '<input id="'. @$field['name'] .'" type="checkbox" class="ap-form-control" value="1" name="'. @$field['name'] .'" '.checked( (bool)$field['value'], true, false ).' '. @$field['attr'] .' />';
-        $this->desc();
-        $this->error_messages();
 
         if(!empty($field['desc']))
-            $this->output .= '</div>';
+            $this->output .= @$field['desc'].'</label>';
+
+        $this->error_messages();
+
+        //if(!$this->field['show_desc_tip'])
+            //$this->desc();
+
+        $this->output .= '</div>';
     }
 
     /**
@@ -294,12 +315,15 @@ class AnsPress_Form {
     {
         if(isset($field['label']))
             $this->label();
-        
+        $this->output .= '<div class="ap-form-fields-in">';
         $this->output .= '<select id="'. @$field['name'] .'" class="ap-form-control" value="'. @$field['value'] .'" name="'. @$field['name'] .'" '. @$field['attr'] .'>';
         $this->output .= '<option value=""></option>';
         $this->select_options($field);
         $this->output .= '</select>';
         $this->error_messages();
+        if(!$this->field['show_desc_tip'])
+            $this->desc();
+        $this->output .= '</div>';
     }
 
     /**
@@ -328,12 +352,15 @@ class AnsPress_Form {
     {
         if(isset($field['label']))
             $this->label();
-        
+        $this->output .= '<div class="ap-form-fields-in">';
         $this->output .= '<select id="'. @$field['name'] .'" class="ap-form-control" value="'. @$field['value'] .'" name="'. @$field['name'] .'" '. @$field['attr'] .'>';
         $this->output .= '<option value=""></option>';
         $this->taxonomy_select_options($field);
         $this->output .= '</select>';
         $this->error_messages();
+        if(!$this->field['show_desc_tip'])
+            $this->desc();
+        $this->output .= '</div>';
     }
 
     /**
@@ -346,9 +373,12 @@ class AnsPress_Form {
     {
         if(isset($field['label']))
             $this->label();
-
+        $this->output .= '<div class="ap-form-fields-in">';
         $this->output .= wp_dropdown_pages( array('selected'=> @$field['value'],'name'=> @$field['name'],'post_type'=> 'page', 'echo' => false) );
         $this->error_messages();
+        if(!$this->field['show_desc_tip'])
+            $this->desc();
+        $this->output .= '</div>';
     }
 
     /**
@@ -361,10 +391,13 @@ class AnsPress_Form {
     {
         if(isset($field['label']))
             $this->label();
-
+        $this->output .= '<div class="ap-form-fields-in">';
         $placeholder = $this->placeholder();
         $this->output .= '<textarea id="'. @$field['name'] .'" rows="'. @$field['rows'] .'" class="ap-form-control" name="'. @$field['name'] .'"'.$placeholder.' '. @$field['attr'] .'>'. @$field['value'] .'</textarea>';
         $this->error_messages();
+        if(!$this->field['show_desc_tip'])
+            $this->desc();
+        $this->output .= '</div>';
     }
 
     /**
@@ -388,14 +421,17 @@ class AnsPress_Form {
             'content_css' => ap_get_theme_url('css/editor.css') 
        );
         $settings = apply_filters('ap_pre_editor_settings', $field['settings'] );
-
+        $this->output .= '<div class="ap-form-fields-in">';
         // Turn on the output buffer
         ob_start();
         echo '<div class="ap-editor">';
-        wp_editor( $field['value'], $field['name'], $field['settings'] );
+        wp_editor( $field['value'], $field['name'], $settings );
         echo '</div>';
         $this->output .= ob_get_clean();
         $this->error_messages();
+        if(!$this->field['show_desc_tip'])
+            $this->desc();
+        $this->output .= '</div>';
     }
     /**
      * For creating hidden input fields

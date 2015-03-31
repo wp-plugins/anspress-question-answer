@@ -9,7 +9,32 @@
  * @copyright 2014 Rahul Aryan
  */
 
+/**
+ * Get slug of base page
+ * @return string
+ * @since 2.0.0-beta
+ */
+function ap_base_page_slug(){
+	$base_page = get_post(ap_opt('base_page'));
 
+	$slug = $base_page->post_name;
+
+	if( $base_page->post_parent > 0 ){
+		$parent_page = get_post($base_page->post_parent);
+		$slug = $parent_page->post_name . '/'.$slug;
+	}
+
+	return apply_filters('ap_base_page_slug', $slug) ;
+}
+
+/**
+ * Retrive permalink to base page
+ * @return string URL to AnsPress base page
+ * @since 2.0.0-beta
+ */
+function ap_base_page_link(){
+	return get_permalink(ap_opt('base_page'));
+}
 
 
 function ap_theme_list(){
@@ -24,7 +49,7 @@ function ap_get_theme(){
 	$option = ap_opt('theme');
 	if(!$option)
 		return 'default';
-		
+	
 	return ap_opt('theme');
 }
 
@@ -60,7 +85,7 @@ function ap_get_theme_location($file, $plugin = false){
 function ap_get_theme_url($file, $plugin = false){
 	// checks if the file exists in the theme first,
 	// otherwise serve the file from the plugin
-	if ( $theme_file = locate_template( array( 'anspress/'.$file ) ) ) {
+	if ( locate_template( array( 'anspress/'.$file ) ) ) {
 		$template_url = get_template_directory_uri().'/anspress/'.$file;
 	} elseif($plugin !== false) {
 		$template_url = $plugin .'theme/'.$file;
@@ -85,11 +110,64 @@ function ap_question_content(){
 }
 
 
+function is_anspress(){
+	$queried_object = get_queried_object();
+
+	// if buddypress installed
+	if(function_exists('bp_current_component')){
+		$bp_com = bp_current_component();
+		if('questions' == $bp_com || 'answers' == $bp_com)
+			return true;
+	}
+	
+	if(!isset($queried_object->ID)) 
+		return false;
+
+	if( $queried_object->ID ==  ap_opt('base_page'))
+		return true;
+		
+	return false;
+}
+
+function is_question(){
+	if(is_anspress() && (get_query_var('question_id') || get_query_var('question') || get_query_var('question_name')))
+		return true;
+		
+	return false;
+}
+
+function is_ask(){
+	if(is_anspress() && get_query_var('ap_page')=='ask')
+		return true;
+		
+	return false;
+}
+function is_ap_users(){
+	if(is_anspress() && get_query_var('ap_page')=='users')
+		return true;
+		
+	return false;
+}
+
+function get_question_id(){
+	if(is_question() && get_query_var('question_id')){
+		return (int)get_query_var('question_id');
+	}elseif(is_question() && get_query_var('question')){
+		return get_query_var('question');
+	}elseif(is_question() && get_query_var('question_name')){
+		$post = get_page_by_path(get_query_var('question_name'), OBJECT, 'question');
+		return $post->ID;
+	}elseif(get_query_var('edit_q')){
+		return get_query_var('edit_q');
+	}
+	
+	return false;
+}
 
 function ap_human_time($time, $unix = true){
 	if(!$unix)
 		$time = strtotime($time);
-		
+	
 	return human_time_diff( $time, current_time('timestamp') );
 }
 
@@ -120,7 +198,7 @@ function ap_is_user_answered($question_id, $user_id){
  * @since 2.0.1.1
  */
 function ap_count_all_answers($id){
-		
+	
 	global $wpdb;
 	$count = $wpdb->get_var( $wpdb->prepare("SELECT COUNT(*) FROM $wpdb->posts where post_parent = %d AND post_type = %s", $id, 'answer'));
 
@@ -128,7 +206,7 @@ function ap_count_all_answers($id){
 }
 
 function ap_count_published_answers($id){
-		
+	
 	global $wpdb;
 	$count = $wpdb->get_var( $wpdb->prepare("SELECT COUNT(*) FROM $wpdb->posts where post_parent = %d AND post_status = %s AND post_type = %s", $id, 'publish', 'answer'));
 
@@ -138,7 +216,7 @@ function ap_count_published_answers($id){
 function ap_count_answer_meta($post_id =false){
 	if(!$post_id) $post_id = get_the_ID();
 	$count = get_post_meta($post_id, ANSPRESS_ANS_META, true);
-	 return $count ? $count : 0;
+	return $count ? $count : 0;
 }
 
 /**
@@ -151,9 +229,9 @@ function ap_count_other_answer($question_id =false){
 	$count = ap_count_answer_meta($question_id);
 	
 	if(ap_is_answer_selected($question_id))
-		return ($count - 1);
+		return (int)($count - 1);
 
-	return $count;
+	return (int)$count;
 	
 }
 
@@ -172,8 +250,11 @@ function ap_have_ans($id){
 }
 
 // link to asnwers
-function ap_answers_link(){
-	return get_permalink().'#answers';
+function ap_answers_link($question_id = false){
+	if(!$question_id)
+		return get_permalink().'#answers';
+	
+	return get_permalink($question_id).'#answers';
 }
 
 
@@ -185,9 +266,17 @@ function ap_answers_link(){
  */
 function ap_comment_btn_html($echo = false){
 	if(ap_user_can_comment()){
+		global $post;
+		
+		if($post->post_type == 'question' && ap_opt('disable_comments_on_question'))
+			return;
+
+		if($post->post_type == 'answer' && ap_opt('disable_comments_on_answer'))
+			return;
+
 		$nonce = wp_create_nonce( 'comment_form_nonce' );
 		$comment_count = get_comments_number( get_the_ID() );
-		$output = '<a href="#comments-'.get_the_ID().'" class="comment-btn ap-tip" data-action="load_comment_form" data-query="ap_ajax_action=load_comment_form&post='.get_the_ID().'&__nonce='.$nonce.'" title="'.__('Comments', 'ap').'">'.__('Comment', 'ap').'<span class="ap-data-view ap-view-count-'.$comment_count.'">'.$comment_count.'</span></a>';
+		$output = '<a href="#comments-'.get_the_ID().'" class="comment-btn ap-tip" data-action="load_comment_form" data-query="ap_ajax_action=load_comment_form&post='.get_the_ID().'&__nonce='.$nonce.'" title="'.__('Comments', 'ap').'">'.__('Comment', 'ap').'<span class="ap-data-view ap-view-count-'.$comment_count.'"><b data-view="comments_count_'.get_the_ID().'">'.$comment_count.'</b></span></a>';
 
 		if($echo)
 			echo $output;
@@ -210,7 +299,7 @@ function ap_post_edit_link($post_id_or_object){
 
 	$nonce = wp_create_nonce( 'nonce_edit_post_'.$post->ID );
 
-	$edit_link = add_query_arg( array('edit_post_id' => $post->ID,  '__nonce' => $nonce), get_permalink( ap_opt('edit_page')) );
+	$edit_link = add_query_arg( array('ap_page' => 'edit', 'edit_post_id' => $post->ID,  '__nonce' => $nonce), ap_base_page_link() );
 
 	return apply_filters( 'ap_post_edit_link', $edit_link );
 }
@@ -233,15 +322,15 @@ function ap_edit_post_link_html($echo = false, $post_id_or_object = false){
 	$output = '';
 
 	if($post->post_type == 'question' && ap_user_can_edit_question($post->ID)){		
-		$output = "<a href='$edit_link' data-button='ap-edit-post' title='".__('Edit this question', 'ap')."' class='apEditBtn ap-tip'>".__('Edit', 'ap')."</a>";	
+		$output = "<a href='$edit_link' data-button='ap-edit-post' title='".__('Edit this question', 'ap')."' class='apEditBtn'>".__('Edit', 'ap')."</a>";	
 	}elseif($post->post_type == 'answer' && ap_user_can_edit_ans($post->ID)){
-		$output = "<a href='$edit_link' data-button='ap-edit-post' title='".__('Edit this answer', 'ap')."' class='apEditBtn ap-tip'>".__('Edit', 'ap')."</a>";
+		$output = "<a href='$edit_link' data-button='ap-edit-post' title='".__('Edit this answer', 'ap')."' class='apEditBtn'>".__('Edit', 'ap')."</a>";
 	}
 
 	if($echo)
-			echo $output;
-		else
-			return $output;
+		echo $output;
+	else
+		return $output;
 }
 
 function ap_edit_a_btn_html( $echo = false ){
@@ -251,10 +340,10 @@ function ap_edit_a_btn_html( $echo = false ){
 	$post_id = get_edit_answer_id();
 	if(ap_user_can_edit_ans($post_id)){		
 		$edit_link = ap_answer_edit_link();
-		$output .= "<a href='$edit_link.' class='edit-btn ap-tip' data-button='ap-edit-post' title='".__('Edit Answer', 'ap')."'>".__('Edit', 'ap')."</a>";
+		$output .= "<a href='$edit_link.' class='edit-btn ' data-button='ap-edit-post' title='".__('Edit Answer', 'ap')."'>".__('Edit', 'ap')."</a>";
 	}
 	if($echo)
-			echo $output;
+		echo $output;
 	else
 		return $output;
 }
@@ -262,10 +351,10 @@ function ap_edit_a_btn_html( $echo = false ){
 function ap_post_edited_time() {
 	if (get_the_time('s') != get_the_modified_time('s')){
 		printf('<span class="edited-text">%1$s</span> <span class="edited-time">%2$s</span>',
-		__('Edited on','ap'),
-		get_the_modified_time()
-		);
-	
+			__('Edited on','ap'),
+			get_the_modified_time()
+			);
+		
 	}
 	return;
 }
@@ -286,12 +375,12 @@ function ap_answer_edit_link(){
  * @param integer $limit
  */
 function ap_truncate_chars($text, $limit, $ellipsis = '...') {
-    if( strlen($text) > $limit ) {
-        $endpos = strpos(str_replace(array("\r\n", "\r", "\n", "\t"), ' ', $text), ' ', $limit);
-        if($endpos !== FALSE)
-            $text = trim(substr($text, 0, $endpos)) . $ellipsis;
-    }
-    return $text;
+	if( strlen($text) > $limit ) {
+		$endpos = strpos(str_replace(array("\r\n", "\r", "\n", "\t"), ' ', $text), ' ', $limit);
+		if($endpos !== FALSE)
+			$text = trim(substr($text, 0, $endpos)) . $ellipsis;
+	}
+	return $text;
 }
 
 
@@ -304,18 +393,18 @@ function ap_get_all_users(){
 	$args = array(
 		'number'		=> $per_page,
 		'offset'       	=> $offset
-	);
+		);
 	
 	$users = get_users( $args); 
-		
+	
 	echo '<ul class="ap-tags-list">';
-		foreach($users as $key => $user) :
+	foreach($users as $key => $user) :
 
-			echo '<li>';
-			echo $user->display_name;			
-			echo '</li>';
+		echo '<li>';
+	echo $user->display_name;			
+	echo '</li>';
 
-		endforeach;
+	endforeach;
 	echo'</ul>';
 	
 	ap_pagination(ceil( $total_terms / $per_page ), $range = 1, $paged);
@@ -323,15 +412,14 @@ function ap_get_all_users(){
 
 function ap_ans_list_tab(){
 	$order = isset($_GET['ap_sort']) ? $_GET['ap_sort'] : ap_opt('answers_sort');
-		
-		$link = '?ap_sort=';
-		$ans_count = ap_count_all_answers(get_the_ID());
+	
+	$link = '?ap_sort=';
 	?>
-		<ul class="ap-ans-tab ap-tabs clearfix" role="tablist">
-			<li class="<?php echo $order == 'newest' ? ' active' : ''; ?>"><a href="<?php echo $link.'newest'; ?>"><?php _e('Newest', 'ap'); ?></a></li>
-			<li class="<?php echo $order == 'oldest' ? ' active' : ''; ?>"><a href="<?php echo $link.'oldest'; ?>"><?php _e('Oldest', 'ap'); ?></a></li>
-			<li class="<?php echo $order == 'voted' ? ' active' : ''; ?>"><a href="<?php echo $link.'voted'; ?>"><?php _e('Voted', 'ap'); ?></a></li>
-		</ul>
+	<ul class="ap-ans-tab ap-tabs clearfix" role="tablist">
+		<li class="<?php echo $order == 'newest' ? ' active' : ''; ?>"><a href="<?php echo $link.'newest'; ?>"><?php _e('Newest', 'ap'); ?></a></li>
+		<li class="<?php echo $order == 'oldest' ? ' active' : ''; ?>"><a href="<?php echo $link.'oldest'; ?>"><?php _e('Oldest', 'ap'); ?></a></li>
+		<li class="<?php echo $order == 'voted' ? ' active' : ''; ?>"><a href="<?php echo $link.'voted'; ?>"><?php _e('Voted', 'ap'); ?></a></li>
+	</ul>
 	<?php
 }
 
@@ -339,35 +427,39 @@ function ap_ans_list_tab(){
 
 function ap_untrash_post( $post_id ) {
     // no post?
-    if( !$post_id || !is_numeric( $post_id ) ) {
-        return false;
-    }
-    $_wpnonce = wp_create_nonce( 'untrash-post_' . $post_id );
-    $url = admin_url( 'post.php?post=' . $post_id . '&action=untrash&_wpnonce=' . $_wpnonce );
-    return $url; 
+	if( !$post_id || !is_numeric( $post_id ) ) {
+		return false;
+	}
+	$_wpnonce = wp_create_nonce( 'untrash-post_' . $post_id );
+	$url = admin_url( 'post.php?post=' . $post_id . '&action=untrash&_wpnonce=' . $_wpnonce );
+	return $url; 
 }
 
 function ap_user_can($id){
 	get_user_meta( $id, 'ap_role', true );
 }
 
-
+/**
+ * Return the ID of selected answer of a question
+ * @param  false|integer $post_id
+ * @return integer
+ */
 function ap_selected_answer($post_id = false){
-	if(!$post_id)
+	if(false === $post_id)
 		$post_id = get_the_ID();
-		
+	
 	return get_post_meta($post_id, ANSPRESS_SELECTED_META, true);
 }
 
 /**
  * Check if answer is selected for given question
- * @param  int $question_id
+ * @param  false|integer $question_id
  * @return boolean
  */
 function ap_is_answer_selected($question_id = false){
-	if(!$question_id)
+	if($question_id === false)
 		$question_id = get_the_ID();
-		
+	
 	$meta = get_post_meta($question_id, ANSPRESS_SELECTED_META, true);
 
 	if(!$meta)
@@ -377,23 +469,25 @@ function ap_is_answer_selected($question_id = false){
 }
 
 /**
- * Check if given post is selected answer
- * @param  int $post_id 
+ * Check if given anser/post is selected as a best answer
+ * @param  false|integer $post_id 
  * @return boolean
  * @since unknown
  */
 function ap_is_best_answer($post_id = false){
-	if(!$post_id){
+	if($post_id === false)
 		$post_id = get_the_ID();
-	}
+	
 	$meta = get_post_meta($post_id, ANSPRESS_BEST_META, true);
 	if($meta) return true;
-		
+	
 	return false;
 }
 
 /**
+ * Print select anser HTML button
  * @param integer $post_id
+ * @return  null|string
  */
 function ap_select_answer_btn_html($post_id){
 	if(!ap_user_can_select_answer($post_id))
@@ -420,7 +514,7 @@ function ap_post_delete_btn_html($post_id = false, $echo = false){
 		$action = 'delete_post_'.$post_id;
 		$nonce = wp_create_nonce( $action );
 		
-		$output = '<a href="#" class="delete-btn ap-tip" data-action="ap_delete_post" data-query="post_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=delete_post" title="'.__('Delete', 'ap').'">'.__('Delete', 'ap').'</a>';
+		$output = '<a href="#" class="delete-btn" data-action="ap_delete_post" data-query="post_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=delete_post" title="'.__('Delete', 'ap').'">'.__('Delete', 'ap').'</a>';
 
 		if($echo)
 			echo $output;
@@ -442,7 +536,7 @@ function ap_get_child_answers_comm($post_id){
 		$cols = $wpdb->get_results( $query, ARRAY_A);
 		wp_cache_set($key, $cols, 'count');
 	}else
-		$cols = $cache;
+	$cols = $cache;
 	
 	
 	if($cols){
@@ -494,13 +588,13 @@ function ap_pagi($base, $total_pages, $paged, $end_size = 1, $mid_size = 5){
 		'end_size' => 1,
 		'mid_size' => 5,
 		'type' => 'array'
-	));
+		));
 	if($pagi_a){
 		echo '<ul class="ap-pagination clearfix">';
-			echo '<li><span class="page-count">'. sprintf(__('Page %d of %d', 'ap'), $paged, $total_pages) .'</span></li>';
-			foreach($pagi_a as $pagi){
-				echo '<li>'. $pagi .'</li>';
-			}
+		echo '<li><span class="page-count">'. sprintf(__('Page %d of %d', 'ap'), $paged, $total_pages) .'</span></li>';
+		foreach($pagi_a as $pagi){
+			echo '<li>'. $pagi .'</li>';
+		}
 		echo '</ul>';
 	}
 }
@@ -508,15 +602,15 @@ function ap_pagi($base, $total_pages, $paged, $end_size = 1, $mid_size = 5){
 function ap_question_side_tab(){
 	$links = array (
 		'discussion' => array('icon' => 'ap-apicon-flow-tree', 'title' => __('Discussion', 'ap'), 'url' => '#discussion')
-	);
+		);
 	$links = apply_filters('ap_question_tab', $links);
 	$i = 1;
 	if(count($links) > 1){
 		echo '<ul class="ap-question-extra-nav" data-action="ap-tab">';
-			foreach($links as $link){
-				echo '<li'.($i == 1 ? ' class="active"' : '').'><a class="'.$link['icon'].'" href="'.$link['url'].'">'.$link['title'].'</a></li>';
-				$i++;
-			}
+		foreach($links as $link){
+			echo '<li'.($i == 1 ? ' class="active"' : '').'><a class="'.$link['icon'].'" href="'.$link['url'].'">'.$link['title'].'</a></li>';
+			$i++;
+		}
 		echo '</ul>';
 	}
 }
@@ -527,7 +621,7 @@ function ap_read_features($type = 'addon'){
 	
 	if($cache !== FALSE)
 		return $cache;
-		
+	
 	$features = array();
 	//load files from addons folder
 	$files=glob(ANSPRESS_DIR.'/'.$type.'s/*/'.$type.'.php');
@@ -567,7 +661,7 @@ function ap_get_file_data( $file) {
 		'author' 			=> 'Author',
 		'author_uri' 		=> 'Author URI',
 		'addon_uri' 		=> 'Addon URI'
-	));
+		));
 
 	return $metadata;
 }
@@ -581,60 +675,60 @@ function ap_features_metadata($contents, $fields){
 	foreach ($fields as $key => $field)
 		if (preg_match('/'.str_replace(' ', '[ \t]*', preg_quote($field, '/')).':[ \t]*([^\n\f]*)[\n\f]/i', $contents, $matches))
 			$metadata[$key]=trim($matches[1]);
-	
-	return $metadata;
-}
+		
+		return $metadata;
+	}
 
-function ap_users_tab(){
-	$order = isset($_GET['ap_sort']) ? $_GET['ap_sort'] : 'points';
-	
-	$link = '?ap_sort=';
+	function ap_users_tab(){
+		$order = isset($_GET['ap_sort']) ? $_GET['ap_sort'] : 'points';
+		
+		$link = '?ap_sort=';
 
-	
-	?>
-	<div class="ap-lists-tab clearfix">
-		<ul class="ap-tabs clearfix" role="tablist">			
-			<li class="<?php echo $order == 'points' ? ' active' : ''; ?>"><a href="<?php echo $link.'points'; ?>"><?php _e('Points', 'ap'); ?></a></li>
-			<li class="<?php echo $order == 'newest' ? ' active' : ''; ?>"><a href="<?php echo $link.'newest'; ?>"><?php _e('Newest', 'ap'); ?></a></li>			
-		</ul>
-	</div>
-	<?php
-}
+		
+		?>
+		<div class="ap-lists-tab clearfix">
+			<ul class="ap-tabs clearfix" role="tablist">			
+				<li class="<?php echo $order == 'points' ? ' active' : ''; ?>"><a href="<?php echo $link.'points'; ?>"><?php _e('Points', 'ap'); ?></a></li>
+				<li class="<?php echo $order == 'newest' ? ' active' : ''; ?>"><a href="<?php echo $link.'newest'; ?>"><?php _e('Newest', 'ap'); ?></a></li>			
+			</ul>
+		</div>
+		<?php
+	}
 
 
-function ap_qa_on_post($post_id = false){
-	
-	if(!$post_id)
-		$post_id = get_the_ID();
+	function ap_qa_on_post($post_id = false){
+		
+		if(!$post_id)
+			$post_id = get_the_ID();
 
-	$post = get_post($post_id);
+		$post = get_post($post_id);
 
-	if('question' == $post->post_type || 'answer' == $post->post_type)
-		return;
+		if('question' == $post->post_type || 'answer' == $post->post_type)
+			return;
 
-	wp_enqueue_style( 'ap-style', ap_get_theme_url('css/ap.css'), array(), AP_VERSION);
-	
-	$questions = new Question_Query( array('post_parent' => $post_id) );
+		wp_enqueue_style( 'ap-style', ap_get_theme_url('css/ap.css'), array(), AP_VERSION);
+		
+		$questions = new Question_Query( array('post_parent' => $post_id) );
 
-	echo '<div class="anspress-container">';
-	include ap_get_theme_location('on-post.php');
-	wp_reset_postdata();
-	echo '<a href="'. add_query_arg(array('parent' => get_the_ID()), get_permalink(ap_opt('questions_page_id'))) .'" class="ap-view-all">'.__( 'View All', 'ap' ).'</a>';
-	echo '</div>';
+		echo '<div class="anspress-container">';
+		include ap_get_theme_location('on-post.php');
+		wp_reset_postdata();
+		echo '<a href="'. add_query_arg(array('parent' => get_the_ID()), ap_base_page_link()) .'" class="ap-view-all">'.__( 'View All', 'ap' ).'</a>';
+		echo '</div>';
 
-}
+	}
 
-function ap_ask_btn($parent_id = false){
-	$args = array();
-	
-	if($parent_id !== false)
-		$args['parent'] = $parent_id;
-	
-	if(get_query_var('parent') != '')
-		$args['parent'] = get_query_var('parent');
-	
-	echo '<a class="ap-ask-btn" href="'.add_query_arg(array($args), get_permalink(ap_opt('ask_page_id'))).'">'.__('Ask Question', 'ap').'</a>';
-}
+	function ap_ask_btn($parent_id = false){
+		$args = array('ap_page' => 'ask');
+		
+		if($parent_id !== false)
+			$args['parent'] = $parent_id;
+		
+		if(get_query_var('parent') != '')
+			$args['parent'] = get_query_var('parent');
+
+		echo '<a class="ap-ask-btn" href="'.add_query_arg(array($args), ap_base_page_link()).'">'.__('Ask Question', 'ap').'</a>';
+	}
 
 /**
  * Check if doing ajax request
@@ -658,7 +752,7 @@ function ap_form_allowed_tags(){
 		'a' => array(
 			'href' => array(),
 			'title' => array()
-		),
+			),
 		'br' => array(),
 		'em' => array(),
 		'strong' => array(),
@@ -667,8 +761,8 @@ function ap_form_allowed_tags(){
 		'blockquote' => array(),
 		'img' => array(
 			'src' => array(),
-		),
-	);
+			),
+		);
 	
 	/**
 	 * FILTER: ap_allowed_tags
@@ -693,15 +787,15 @@ function ap_send_json($result = array()){
 function ap_highlight_words($text, $words) {
 	$words = explode(' ', $words);
 	foreach ($words as $word)
-    {
+	{
         //quote the text for regex
-        $word = preg_quote($word);
-        
+		$word = preg_quote($word);
+		
         //highlight the words
-        $text = preg_replace("/\b($word)\b/i", '<span class="highlight_word">\1</span>', $text);
-    }
+		$text = preg_replace("/\b($word)\b/i", '<span class="highlight_word">\1</span>', $text);
+	}
 
-    return $text;
+	return $text;
 }
 
 /**
@@ -714,6 +808,7 @@ function ap_highlight_words($text, $words) {
 function ap_responce_message($id, $only_message = false)
 {
 	$msg =array(
+		'success' => array('type' => 'success', 'message' => __('Success', 'ap')),
 		'please_login' => array('type' => 'warning', 'message' => __('You need to login before doing this action.', 'ap')),
 		'something_wrong' => array('type' => 'error', 'message' => __('Something went wrong, last action failed.', 'ap')),
 		'no_permission' => array('type' => 'warning', 'message' => __('You do not have permission to do this action.', 'ap')),
@@ -738,7 +833,8 @@ function ap_responce_message($id, $only_message = false)
 		'no_permission_to_view_private' => array('type' => 'warning', 'message' => __('You dont have permission to view private posts.', 'ap')),
 		'flagged' => array('type' => 'success', 'message' => __('Thank you for reporting this post.', 'ap')),
 		'already_flagged' => array('type' => 'warning', 'message' => __('You have already reported this post.', 'ap')),
-	);
+		'captcha_error' => array('type' => 'error', 'message' => __('Please check captcha field and resubmit it again.', 'ap')),
+		);
 
 	/**
 	 * FILTER: ap_responce_message
@@ -808,13 +904,13 @@ function ap_current_page_url($args){
 		if(!empty($args))
 			foreach($args as $k => $s)
 				$link .= $k.'/'.$s.'/';
-	
-	}else{
-		
-		$link = add_query_arg($args, $base);
+			
+		}else{
+			
+			$link = add_query_arg($args, $base);
+		}
+		return $link ;
 	}
-	return $link ;
-}
 
 /**
  * Sort array by order value. Group array which have same order number and then sort them.
@@ -833,14 +929,14 @@ function ap_sort_array_by_order($array){
 		}
 		
 		usort($group, function($a, $b) {
-            return $a['order'] - $b['order'];
-        });
+			return $a['order'] - $b['order'];
+		});
 
-        foreach($group as $a){
-        	foreach($a as $k => $newa){
-        		if($k !== 'order')
+		foreach($group as $a){
+			foreach($a as $k => $newa){
+				if($k !== 'order')
 					$new_array[] = $newa;
-        	}
+			}
 		}
 
 		return $new_array;
@@ -850,8 +946,8 @@ function ap_sort_array_by_order($array){
 /**
  * Append array to global var
  * @param  string 	$key
- * @param  array 			$args
- * @param string $var
+ * @param  array 	$args
+ * @param string 	$var
  * @return void
  * @since 2.0.0-alpha2
  */
@@ -885,52 +981,50 @@ function ap_do_event(){
  */
 function ap_user_display_name($args = array())
 {
-    global $post;
-    $defaults = array(
-            'user_id'            => get_the_author_meta('ID'),
-            'html'                => false,
-            'echo'                => false,
-            'anonymous_label'    => __('Anonymous', 'ap'),
-        );
+	global $post;
+	$defaults = array(
+		'user_id'            => get_the_author_meta('ID'),
+		'html'                => false,
+		'echo'                => false,
+		'anonymous_label'    => __('Anonymous', 'ap'),
+		);
 
-    if (!is_array($args)) {
-        $defaults['user_id'] = $args;
-        $args = $defaults;
-    } else {
-        $args = wp_parse_args($args, $defaults);
-    }
+	if (!is_array($args)) {
+		$defaults['user_id'] = $args;
+		$args = $defaults;
+	} else {
+		$args = wp_parse_args($args, $defaults);
+	}
 
-    extract($args);
+	extract($args);
 
-    $return = '';
+	if ($user_id > 0) {
+		$user = get_userdata($user_id);
 
-    if ($user_id > 0) {
-        $user = get_userdata($user_id);
+		if (!$html) {
+			$return = $user->display_name;
+		} else {
+			$return = '<span class="who"><a href="'.ap_user_link($user_id).'">'.$user->display_name.'</a></span>';
+		}
+	} elseif ($post->post_type == 'question' || $post->post_type == 'answer') {
+		$name = get_post_meta($post->ID, 'anonymous_name', true);
 
-        if (!$html) {
-            $return = $user->display_name;
-        } else {
-            $return = '<span class="who"><a href="'.ap_user_link($user_id).'">'.$user->display_name.'</a></span>';
-        }
-    } elseif ($post->post_type == 'question' || $post->post_type == 'answer') {
-        $name = get_post_meta($post->ID, 'anonymous_name', true);
-
-        if (!$html) {
-            if ($name != '') {
-                $return = $name;
-            } else {
-                $return = $anonymous_label;
-            }
-        } else {
-            if ($name != '') {
-                $return = '<span class="who">'.$name.__(' (anonymous)', 'ap').'</span>';
-            } else {
-                $return = '<span class="who">'.$anonymous_label.'</span>';
-            }
-        }
-    } else {
-        $return = '<span class="who">'.$anonymous_label.'</span>';
-    }
+		if (!$html) {
+			if ($name != '') {
+				$return = $name;
+			} else {
+				$return = $anonymous_label;
+			}
+		} else {
+			if ($name != '') {
+				$return = '<span class="who">'.$name.__(' (anonymous)', 'ap').'</span>';
+			} else {
+				$return = '<span class="who">'.$anonymous_label.'</span>';
+			}
+		}
+	} else {
+		$return = '<span class="who">'.$anonymous_label.'</span>';
+	}
 
     /**
      * FILTER: ap_user_display_name
@@ -941,117 +1035,54 @@ function ap_user_display_name($args = array())
     $return = apply_filters('ap_user_display_name', $return);
 
     if ($echo) {
-        echo $return;
+    	echo $return;
     } else {
-        return $return;
+    	return $return;
     }
 }
 
 /**
- * Link to user user pages
- * @param  integer $user_id 	user id
+ * Return Link to user profile pages if profile plugin is installed else return user posts link
+ * @param  false|integer $user_id 	user id
  * @param  string $sub 		page slug
  * @return string
  * @since  unknown
  */
 function ap_user_link($user_id = false, $sub = false)
 {
-    if (!$user_id) {
-        $user_id = get_the_author_meta('ID');
-    }
+	if ($user_id === false) {
+		$user_id = get_the_author_meta('ID');
+	}
 
-    $is_enabled = apply_filters('ap_user_profile_active', false);
+	if(function_exists('pp_get_link_to')) {
+		return pp_get_link_to($sub, $user_id);
+	}elseif(function_exists('bp_core_get_userlink')){
+		return bp_core_get_userlink($user_id, false, true);
+	}
 
-    if (!$is_enabled) {
-        return get_author_posts_url($user_id);
-    }
-
-    if ($user_id == 0) {
-        return false;
-    }
-
-    $user = get_userdata($user_id);
-    $base = add_query_arg(array('user' => $user->user_login), get_permalink(ap_opt('user_page_id')));
-    $args = $base;
-
-    /* TODO: REWRITE - fix when rewrite is active */
-    if (get_option('permalink_structure') != '') {
-        if ($sub !== false) {
-            $args = add_query_arg(array('user_page' => $sub), $base);
-        }
-    } else {
-        if ($sub !== false) {
-            $args = add_query_arg(array('user_page' => $sub), $base);
-        }
-    }
-
-    return $args;
+	return get_author_posts_url($user_id);	
 }
 
-/**
- * Resize image and save it in upload dir
- * @param  integer|string  $id_or_email 
- * @param  integer $size
- * @param  boolean $default
- * @return string
- * @since  0.9
- */
-function ap_get_resized_avatar($id_or_email, $size = 32, $default = false)
-{
-    $upload_dir = wp_upload_dir();
-    $file_url = $upload_dir['baseurl'].'/avatar/'.$size;
-
-    if ($default) {
-        $image_meta =  wp_get_attachment_metadata(ap_opt('default_avatar'), 'thumbnail');
-    } else {
-        $image_meta =  wp_get_attachment_metadata(get_user_meta($id_or_email, '_ap_avatar', true), 'thumbnail');
-    }
-
-    if ($image_meta === false || empty($image_meta)) {
-        return false;
-    }
-
-    $path =  get_attached_file(get_user_meta($id_or_email, '_ap_avatar', true));
-
-    $orig_file_name = basename($path);
-
-    $orig_dir = str_replace('/'.$orig_file_name, '', $orig_file_name);
-
-    $avatar_dir = $upload_dir['basedir'].'/avatar/'.$size;
-    $avatar_dir = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $avatar_dir);
-
-    if (!file_exists($upload_dir['basedir'].'/avatar')) {
-        mkdir($upload_dir['basedir'].'/avatar', 0777);
-    }
-
-    if (!file_exists($avatar_dir)) {
-        mkdir($avatar_dir, 0777);
-    }
-
-    if (!file_exists($avatar_dir.'/'.$orig_file_name)) {
-        $image_new = $avatar_dir.'/'.$orig_file_name;
-        ap_smart_resize_image($path, null, $size, $size, false, $image_new, false, false, 100);
-    }
-
-    return $file_url.'/'.$orig_file_name;
-}
 
 /**
  * Display user meta
- * @param  	boolean 	$html    	for html output
- * @param  	int 		$user_id 	User id, if empty then post author witll be user
- * @param 	boolen 		$echo
+ * @param  	boolean 		$html  for html output
+ * @param  	false|integer 	$user_id  User id, if empty then post author witll be user
+ * @param 	boolen 			$echo
  * @return 	string
  */
 function ap_user_display_meta($html = false, $user_id = false, $echo = false)
 {
-    if (!$user_id) {
-        $user_id = get_the_author_meta('ID');
-    }
+	if (false === $user_id) 
+		$user_id = get_the_author_meta('ID');
+	
 
-    $metas = array();
+	$metas = array();
 
-    $metas['display_name'] = '<span class="ap-user-meta ap-user-meta-display_name">'.ap_user_display_name(array('html' => true)).'</span>';
+	$metas['display_name'] = '<span class="ap-user-meta ap-user-meta-display_name">'. ap_user_display_name(array('html' => true)) .'</span>';
+	
+	if($user_id > 0)
+		$metas['reputation'] = '<span class="ap-user-meta ap-user-meta-reputation">'. sprintf(__('%d Reputation', 'ap'), ap_get_reputation($user_id, true)) .'</span>';
 
     /**
      * FILTER: ap_user_display_meta_array
@@ -1063,16 +1094,58 @@ function ap_user_display_meta($html = false, $user_id = false, $echo = false)
     $output = '';
 
     if (!empty($metas) && is_array($metas) && count($metas) > 0) {
-        $output .= '<div class="ap-user-meta">';
-        foreach ($metas as $meta) {
-            $output .= $meta.' ';
-        }
-        $output .= '</div>';
+    	$output .= '<div class="ap-user-meta">';
+    	foreach ($metas as $meta) {
+    		$output .= $meta.' ';
+    	}
+    	$output .= '</div>';
     }
 
     if ($echo) {
-        echo $output;
+    	echo $output;
     } else {
-        return $output;
+    	return $output;
     }
 }
+
+/**
+ * Return link to AnsPress pages
+ * @param string $sub
+ */
+function ap_get_link_to($sub){
+	
+	$base = rtrim(get_permalink(ap_opt('base_page')), '/');
+	$args = '';
+
+	if(get_option('permalink_structure') != ''){		
+		if(!is_array($sub))
+			$args = $sub ? '/'.$sub : '';
+
+		elseif(is_array($sub)){
+			$args = '/';
+
+			if(!empty($sub))
+				foreach($sub as $s)
+					$args .= $s.'/';
+			}
+			$link = $base;
+
+	}else{
+
+		if(!is_array($sub))
+			$args = $sub ? '&ap_page='.$sub : '';
+		elseif(is_array($sub)){
+			$args = '';
+			
+			if(!empty($sub))
+				foreach($sub as $k => $s)
+					$args .= '&'.$k .'='.$s;
+			}
+
+			$link = $base;
+
+	}
+
+	return $link. $args ;
+}
+

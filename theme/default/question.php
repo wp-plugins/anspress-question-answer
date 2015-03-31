@@ -10,9 +10,9 @@
 
 global $post;
 ?>
-<div id="ap-single" class="clearfix" itemtype="http://schema.org/Question" itemscope="">	
+<div id="ap-single" class="ap-q clearfix" itemtype="http://schema.org/Question" itemscope="">	
 	<div class="ap-question-lr row">		
-		<div class="ap-question-left <?php echo is_active_sidebar( 'ap-qsidebar' ) ? 'col-md-9' : 'col-md-12' ?>">
+		<div class="ap-q-left <?php echo is_active_sidebar( 'ap-qsidebar' ) ? 'col-md-8' : 'col-md-12' ?>">
 			<div id="question" role="main" class="ap-content question" data-id="<?php echo get_the_ID(); ?>">
 				<header class="ap-q-head">
 					<?php 
@@ -39,26 +39,25 @@ global $post;
 						do_action('ap_after_question_title', $post);
 					?>
 				</header>
-				<div class="ap-question-cells clearfix">
-					<div class="ap-question-metas clearfix">
-						<div class="ap-avatar ap-pull-left">
-							<a href="<?php echo ap_user_link(get_the_author_meta('ID'))?>">
-								<?php echo get_avatar( get_the_author_meta( 'user_email' ), ap_opt('avatar_size_qquestion') ); ?>
-							</a>						
-						</div>
-						<div class="no-overflow">
-							<?php ap_user_display_meta(true, false, true); ?>
+				<div class="ap-avatar ap-pull-left">
+					<a href="<?php echo ap_user_link(get_the_author_meta('ID'))?>">
+						<?php echo get_avatar( get_the_author_meta( 'user_email' ), ap_opt('avatar_size_qquestion') ); ?>
+					</a>						
+				</div>
+				<div class="ap-q-cells clearfix">
+					<div class="ap-q-metas clearfix">
+						<div class="ap-single-vote ap-pull-right"><?php ap_vote_btn($post) ?></div>
+						<?php ap_user_display_meta(true, false, true); ?>
 
-							<!-- TODO: Show all questions history on toggle -->
-							<ul class="ap-display-question-meta ap-ul-inline">
-								<?php echo ap_display_question_metas() ?>
-							</ul>
-						</div>
+						<!-- TODO: Show all questions history on toggle -->
+						<ul class="ap-display-question-meta ap-ul-inline clearfix">
+							<?php echo ap_display_question_metas() ?>
+						</ul>
 					</div>
 					
 					<!-- Start ap-content-inner -->
-					<div class="ap-content-inner">
-						<div class="question-content ap-post-content" itemprop="text">
+					<div class="ap-q-inner">
+						<div class="question-content ap-q-content" itemprop="text">
 							<?php the_content(); ?>									
 						</div>
 						<?php 
@@ -112,18 +111,13 @@ global $post;
 							<?php echo ap_icon('cross', true) ?><span><?php _e( 'Question is closed, new answer are not accepted.', 'ap' ); ?></span>
 						</div>
 					<?php endif; ?>
-					<?php if(ap_opt('show_comments_by_default')) comments_template(); ?>
+					<?php if(ap_opt('show_comments_by_default') && !ap_opt('disable_comments_on_question')) comments_template(); ?>
 				</div>		
 			</div>
 			
 			<?php
 
-				if(ap_have_ans(get_the_ID())){
-					$ans_count = ap_count_answer_meta();
-					echo '<div class="ap-sorting-tab clearfix">';
-						echo '<h3 class="ap-widget-title ap-pull-left">'. sprintf(__('%s answers', 'ap'), '<span data-view="answer_count">'.$ans_count.'</span>') .'</h3>';
-						ap_answers_tab();
-					echo '</div>';
+				if(ap_have_ans(get_question_id())){					
 					include(ap_get_theme_location('best_answer.php'));
 					ap_get_answers();
 				} 
@@ -134,7 +128,7 @@ global $post;
 			?>
 		</div>
 		<?php if ( is_active_sidebar( 'ap-qsidebar' ) ){ ?>
-			<div class="ap-question-right col-md-3">
+			<div class="ap-question-right col-md-4">
 				<div class="ap-question-info">
 					<?php dynamic_sidebar( 'ap-qsidebar' ); ?>
 				</div>

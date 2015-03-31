@@ -1,6 +1,6 @@
 <?php
 /**
- * AnsPresss
+ * AnsPresss admin class
  *
  * @package   AnsPress
  * @author    Rahul Aryan <admin@rahularyan.com>
@@ -9,19 +9,19 @@
  * @copyright 2014 Rahul Aryan
  */
 
-/**
- * anspress_admin class. This class should ideally be used to work with the
- * administrative side of the WordPress site.
- *
- * @package AnsPress
- * @author  Rahul Aryan <admin@rahularyan.com>
- */
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
- 
-class anspress_admin {
+
+/**
+ * This class should ideally be used to work with the
+ * administrative side of the WordPress site.
+ *
+ * @package AnsPress
+ * @author  Rahul Aryan <rah12@live.com>
+ */
+class AnsPress_Admin {
 
 	/**
 	 * Instance of this class.	 
@@ -49,7 +49,9 @@ class anspress_admin {
 	private function __construct() {
 		
 		$this->includes();
-		AnsPress_Options_Page::add_option_groups();
+		new AnsPress_Options_Page;
+
+		add_action( 'save_post', array($this, 'ans_parent_post'), 10, 2 ); 
 
 		// Load admin style sheet and JavaScript.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_styles' ) );
@@ -57,36 +59,31 @@ class anspress_admin {
 
 		// Add the options page and menu item.
 		add_action( 'admin_menu', array( $this, 'add_plugin_admin_menu' ) );
-
-		// Add an action link pointing to the options page.
 		$plugin_basename = plugin_basename( plugin_dir_path( __DIR__ ) . $this->plugin_slug . '.php' );
 		add_filter( 'plugin_action_links_' . $plugin_basename, array( $this, 'add_action_links' ) );
 		
-		add_action('admin_init', array($this, 'register_setting'));
-		
+		add_action('admin_init', array($this, 'register_setting'));		
 		// flush rewrite rule if option updated
-		add_action('admin_init', array($this, 'init_actions'));
-		
-		add_action('parent_file', array($this, 'tax_menu_correction'));
-		
+		add_action('admin_init', array($this, 'init_actions'));		
+		add_action('parent_file', array($this, 'tax_menu_correction'));		
 		add_action( 'load-post.php', array($this, 'question_meta_box_class') );
 		add_action( 'load-post-new.php', array($this, 'question_meta_box_class') );		
 		add_action( 'wp_ajax_ap_save_options', array($this, 'ap_save_options') );
-		add_action( 'wp_ajax_ap_edit_points', array($this, 'ap_edit_points') );
-		add_action( 'wp_ajax_ap_save_points', array($this, 'ap_save_points') );
-		add_action( 'wp_ajax_ap_new_point_form', array($this, 'ap_new_point_form') );
-		add_action( 'wp_ajax_ap_delete_point', array($this, 'ap_delete_point') );
-		add_action( 'admin_menu', array($this, 'change_post_menu_label') );
-		
+		add_action( 'wp_ajax_ap_edit_reputation', array($this, 'ap_edit_reputation') );
+		add_action( 'wp_ajax_ap_save_reputation', array($this, 'ap_save_reputation') );
+		add_action( 'wp_ajax_ap_new_reputation_form', array($this, 'ap_new_reputation_form') );
+		add_action( 'wp_ajax_ap_delete_reputation', array($this, 'ap_delete_reputation') );
+		add_action( 'admin_menu', array($this, 'change_post_menu_label') );		
 		add_action( 'wp_ajax_ap_edit_badges', array($this, 'ap_edit_badges') );
 		add_action( 'wp_ajax_ap_save_badges', array($this, 'ap_save_badges') );
 		add_action( 'wp_ajax_ap_new_badge_form', array($this, 'ap_new_badge_form') );
-		add_action( 'wp_ajax_ap_delete_badge', array($this, 'ap_delete_badge') );
+		add_action( 'wp_ajax_ap_taxo_rename', array($this, 'ap_taxo_rename') );
 		add_action( 'wp_ajax_ap_delete_flag', array($this, 'ap_delete_flag') );		
-		add_action( 'edit_form_after_title', array($this, 'edit_form_after_title') );
-		add_action( 'save_post', array($this, 'ans_parent_post'), 0, 2 );        
+		add_action( 'edit_form_after_title', array($this, 'edit_form_after_title') );		       
         add_filter('wp_insert_post_data', array($this, 'post_data_check'), 99);
         add_filter('post_updated_messages', array($this,'post_custom_message'));
+        add_action( 'admin_head-nav-menus.php', array($this, 'ap_menu_metaboxes') );
+        add_action( 'admin_notices', array($this, 'taxonomy_rename') );
 	}
 
 	/**
@@ -106,7 +103,7 @@ class anspress_admin {
 	{
 		require_once('functions.php'); 
 		require_once('options-page.php'); 
-		require_once('extensions.php'); 
+		require_once('extensions.php');
 	}
 
 	/**
@@ -135,6 +132,10 @@ class anspress_admin {
 	 * Register the administration menu for this plugin into the WordPress Dashboard menu.
 	 */
 	public function add_plugin_admin_menu() {
+
+		if(!current_user_can('delete_pages'))
+			return;
+		
 		$flagged_count = ap_flagged_posts_count();
 		$flagged_count = $flagged_count->total > 0 ? $flagged_count->total : 0;
 		
@@ -159,26 +160,28 @@ class anspress_admin {
 		if($mod_count > 0)
 			$Modcount = ' <span class="update-plugins count"><span class="plugin-count">'.number_format_i18n($mod_count).'</span></span>';
 		
-		$pos = $this->get_free_menu_position(50, 0.3);
+		$pos = $this->get_free_menu_position(15);
+
+		add_menu_page( 'AnsPress', 'AnsPress'.$Totalcount, 'delete_pages', 'anspress', array($this, 'dashboard_page'), ANSPRESS_URL . '/assets/answer.png', $pos );
 		
-		add_menu_page( 'AnsPress', 'AnsPress'.$Totalcount, 'manage_options', 'anspress', array($this, 'dashboard_page'), ANSPRESS_URL . '/assets/answer.png', $pos );
+		add_submenu_page('anspress', __( 'All Questions', 'ap' ), __( 'All Questions', 'ap' ),	'delete_pages', 'edit.php?post_type=question', '');
 		
-		add_submenu_page('anspress', __( 'All Questions', 'ap' ), __( 'All Questions', 'ap' ),	'manage_options', 'edit.php?post_type=question', '');
+		add_submenu_page('anspress', __( 'New Question', 'ap' ), __( 'New Question', 'ap' ),	'delete_pages', 'post-new.php?post_type=question', '');
 		
-		add_submenu_page('anspress', __( 'New Question', 'ap' ), __( 'New Question', 'ap' ),	'manage_options', 'post-new.php?post_type=question', '');
-		
-		add_submenu_page('anspress', __( 'All Answers', 'ap' ), __( 'All Answers', 'ap' ),	'manage_options', 'edit.php?post_type=answer', '');
+		add_submenu_page('anspress', __( 'All Answers', 'ap' ), __( 'All Answers', 'ap' ),	'delete_pages', 'edit.php?post_type=answer', '');
 		
 		add_submenu_page('anspress', __( 'Moderate question & answer', 'ap' ), __( 'Moderate', 'ap' ).$Modcount,	'manage_options', 'anspress_moderate', array( $this, 'display_moderate_page' ));
 		
-		add_submenu_page('anspress', __( 'Flagged question & answer', 'ap' ), __( 'Flagged', 'ap' ).$Flagcount,	'manage_options', 'anspress_flagged', array( $this, 'display_flagged_page' ));		
+		add_submenu_page('anspress', __( 'Flagged question & answer', 'ap' ), __( 'Flagged', 'ap' ).$Flagcount,	'delete_pages', 'anspress_flagged', array( $this, 'display_flagged_page' ));		
 		
+		add_submenu_page('anspress', __( 'Reputation', 'ap' ), __( 'Reputation', 'ap' ),	'manage_options', 'anspress_reputation', array( $this, 'display_reputation_page' ));
+
 		add_submenu_page('anspress', __( 'AnsPress Options', 'ap' ), __( 'Options', 'ap' ),	'manage_options', 'anspress_options', array( $this, 'display_plugin_admin_page' ));
 		
 		add_submenu_page('anspress', __( 'Extensions', 'ap' ), __( 'Extensions', 'ap' ),	'manage_options', 'anspress_ext', array( $this, 'display_plugin_addons_page' ));
 
-		 add_submenu_page('ap_post_flag', __( 'Post flag', 'ap' ), __( 'Post flag', 'ap' ), 'manage_options', 'ap_post_flag', array( $this, 'display_post_flag' ));
-		 add_submenu_page('ap_select_question', __( 'Select question', 'ap' ), __( 'Select question', 'ap' ), 'manage_options', 'ap_select_question', array( $this, 'display_select_question' ));
+		 add_submenu_page('ap_post_flag', __( 'Post flag', 'ap' ), __( 'Post flag', 'ap' ), 'delete_pages', 'ap_post_flag', array( $this, 'display_post_flag' ));
+		 add_submenu_page('ap_select_question', __( 'Select question', 'ap' ), __( 'Select question', 'ap' ), 'delete_pages', 'ap_select_question', array( $this, 'display_select_question' ));
 
 		/**
 		 * ACTION: ap_admin_menu
@@ -191,7 +194,7 @@ class anspress_admin {
 	/**
 	 * @param integer $start
 	 */
-	public function get_free_menu_position($start, $increment = 0.3){
+	public function get_free_menu_position($start, $increment = 0.99){
 		$menus_positions = array();
         foreach ($GLOBALS['menu'] as $key => $menu) {
             $menus_positions[] = $key;
@@ -226,20 +229,20 @@ class anspress_admin {
 		include_once( 'views/addons.php' );
 	}
 	
-	public function display_points_page() {
-		include_once('points.php');
-		$points_table = new AP_Points_Table();
-		$points_table->prepare_items();
+	public function display_reputation_page() {
+		include_once('reputation.php');
+		$reputation_table = new AnsPress_Reputation_Table();
+		$reputation_table->prepare_items();
 		?>
 		<div class="wrap">        
 			<div id="apicon-users" class="icon32"><br/></div>
 			<h2>
 				<?php _e('AnsPress Points', 'ap'); ?>
-				<a class="add-new-h2" href="#" data-button="ap-new-point"><?php _e('New point', 'ap'); ?></a>
+				<a class="add-new-h2" href="#" data-button="ap-new-reputation"><?php _e('New reputation', 'ap'); ?></a>
 			</h2>
-			<form id="anspress-points-table" method="get">
+			<form id="anspress-reputation-table" method="get">
 				<input type="hidden" name="page" value="<?php echo $_REQUEST['page'] ?>" />
-				<?php $points_table->display() ?>
+				<?php $reputation_table->display() ?>
 			</form>
 		</div>
 		<?php
@@ -340,7 +343,7 @@ class anspress_admin {
 	}
 	//register settings
 	public function register_setting(){
-		register_setting( 'ap_points', 'ap_points', array($this, 'validate_options') );
+		register_setting( 'ap_reputation', 'ap_reputation', array($this, 'validate_options') );
 	}
 	public function validate_options( $input ) {
 		return $input;
@@ -422,72 +425,72 @@ class anspress_admin {
 		
 	}
 	
-	public function ap_edit_points(){
+	public function ap_edit_reputation(){
 		if(current_user_can('manage_options')){
 			$id = sanitize_text_field($_POST['id']);
-			$point = ap_point_by_id($id);
+			$reputation = ap_reputation_by_id($id);
 			
 			$html = '
-				<div id="ap-point-edit">
-					<form method="POST" data-action="ap-save-point">
+				<div id="ap-reputation-edit">
+					<form method="POST" data-action="ap-save-reputation">
 						<table class="form-table">
 							<tr valign="top">
 								<th scope="row"><label for="title">'. __('Title', 'ap').'</label></th>
 								<td>
-									<input id="title" type="text" name="title" value="'.$point['title'].'" />
+									<input id="title" type="text" name="title" value="'.$reputation['title'].'" />
 								</td>
 							</tr>
 							<tr valign="top">
 								<th scope="row"><label for="description">'. __('Description', 'ap').'</label></th>
 								<td>
-									<textarea cols="50" id="description" name="description">'.$point['description'].'</textarea>
+									<textarea cols="50" id="description" name="description">'.$reputation['description'].'</textarea>
 								</td>
 							</tr>
 							<tr valign="top">
-								<th scope="row"><label for="points">'. __('Points', 'ap').'</label></th>
+								<th scope="row"><label for="reputation">'. __('Points', 'ap').'</label></th>
 								<td>
-									<input id="points" type="text" name="points" value="'.$point['points'].'" />
+									<input id="reputation" type="text" name="reputation" value="'.$reputation['reputation'].'" />
 								</td>
 							</tr>
 							<tr valign="top">
 								<th scope="row"><label for="event">'. __('Event', 'ap').'</label></th>
 								<td>
-									<input type="text" name="event" value="'.$point['event'].'" />
+									<input type="text" name="event" value="'.$reputation['event'].'" />
 								</td>
 							</tr>
 						</table>
 						<input class="button-primary" type="submit" value="'.__('Save Point', 'ap').'">
-						<input type="hidden" name="id" value="'.$point['id'].'">
-						<input type="hidden" name="action" value="ap_save_points">
-						<input type="hidden" name="nonce" value="'.wp_create_nonce('ap_save_point').'">
+						<input type="hidden" name="id" value="'.$reputation['id'].'">
+						<input type="hidden" name="action" value="ap_save_reputation">
+						<input type="hidden" name="nonce" value="'.wp_create_nonce('ap_save_reputation').'">
 					</form>
 				</div>
 			';
 			
 			$result = array('status' => true, 'html' => $html);
-			$result = apply_filters('ap_edit_points_result', $result);
+			$result = apply_filters('ap_edit_reputation_result', $result);
 			echo json_encode( $result );
 		}
 		die();
 	}
 	
-	public function ap_save_points(){
+	public function ap_save_reputation(){
 		if(current_user_can('manage_options')){
 			$nonce 	= sanitize_text_field($_POST['nonce']);
 			$title 	= sanitize_text_field($_POST['title']);
 			$desc 	= sanitize_text_field($_POST['description']);
-			$points = sanitize_text_field($_POST['points']);
+			$reputation = sanitize_text_field($_POST['reputation']);
 			$event 	= sanitize_text_field($_POST['event']);
-			if(wp_verify_nonce($nonce, 'ap_save_point')){
+			if(wp_verify_nonce($nonce, 'ap_save_reputation')){
 				if(isset($_POST['id'])){
 					$id 	= sanitize_text_field($_POST['id']);				
-					ap_point_option_update($id, $title, $desc, $points, $event);
+					ap_reputation_option_update($id, $title, $desc, $reputation, $event);
 				}else{
-					ap_point_option_new($title, $desc, $points, $event);
+					ap_reputation_option_new($title, $desc, $reputation, $event);
 				}
 				
 				ob_start();
-				$this->display_points_page();
+				$this->display_reputation_page();
 				$html = ob_get_clean();
 				
 				$result =  array(
@@ -500,11 +503,11 @@ class anspress_admin {
 		
 		die();
 	}	
-	public function ap_new_point_form(){
+	public function ap_new_reputation_form(){
 		if(current_user_can('manage_options')){
 			$html = '
-				<div id="ap-point-edit">
-					<form method="POST" data-action="ap-save-point">
+				<div id="ap-reputation-edit">
+					<form method="POST" data-action="ap-save-reputation">
 						<table class="form-table">
 							<tr valign="top">
 								<th scope="row"><label for="title">'. __('Title', 'ap').'</label></th>
@@ -519,9 +522,9 @@ class anspress_admin {
 								</td>
 							</tr>
 							<tr valign="top">
-								<th scope="row"><label for="points">'. __('Points', 'ap').'</label></th>
+								<th scope="row"><label for="reputation">'. __('Points', 'ap').'</label></th>
 								<td>
-									<input id="points" type="text" name="points" value="" />
+									<input id="reputation" type="text" name="reputation" value="" />
 								</td>
 							</tr>
 							<tr valign="top">
@@ -532,26 +535,26 @@ class anspress_admin {
 							</tr>
 						</table>
 						<input class="button-primary" type="submit" value="'.__('Save Point', 'ap').'">
-						<input type="hidden" name="action" value="ap_save_points">
-						<input type="hidden" name="nonce" value="'.wp_create_nonce('ap_save_point').'">
+						<input type="hidden" name="action" value="ap_save_reputation">
+						<input type="hidden" name="nonce" value="'.wp_create_nonce('ap_save_reputation').'">
 					</form>
 				</div>
 			';
 			
 			$result = array('status' => true, 'html' => $html);
-			$result = apply_filters('ap_new_point_form_result', $result);
+			$result = apply_filters('ap_new_reputation_form_result', $result);
 			echo json_encode( $result );
 		}
 		die();
 	}
 	
-	public function ap_delete_point(){
+	public function ap_delete_reputation(){
 		if(current_user_can('manage_options')){
 			$args = explode('-', sanitize_text_field($_POST['args']));
-			if(wp_verify_nonce($args[1], 'delete_point')){
-				ap_point_option_delete($args[0]);
+			if(wp_verify_nonce($args[1], 'delete_reputation')){
+				ap_reputation_option_delete($args[0]);
 				$result = array('status' => true);
-				$result = apply_filters('ap_delete_point_form_result', $result);
+				$result = apply_filters('ap_delete_reputation_form_result', $result);
 				echo json_encode( $result );
 			}
 		}
@@ -592,9 +595,9 @@ class anspress_admin {
 								</td>
 							</tr>
 							<tr valign="top">
-								<th scope="row"><label for="min_points">'. __('Min. Points', 'ap').'</label></th>
+								<th scope="row"><label for="min_reputation">'. __('Min. Points', 'ap').'</label></th>
 								<td>
-									<input id="min_points" type="text" name="min_points" value="'.$badge['min_points'].'" />
+									<input id="min_reputation" type="text" name="min_reputation" value="'.$badge['min_reputation'].'" />
 								</td>
 							</tr>
 							<tr valign="top">
@@ -631,15 +634,15 @@ class anspress_admin {
 			$title 		= sanitize_text_field($_POST['title']);
 			$desc 		= sanitize_text_field($_POST['description']);
 			$type 		= sanitize_text_field($_POST['type']);
-			$min_points = sanitize_text_field($_POST['min_points']);
+			$min_reputation = sanitize_text_field($_POST['min_reputation']);
 			$event 		= sanitize_text_field($_POST['event']);
 			$multiple 	= (int)$_POST['multiple'];
 			if(wp_verify_nonce($nonce, 'ap_save_badge')){
 				if(isset($_POST['id'])){
 					$id 	= sanitize_text_field($_POST['id']);				
-					ap_badge_option_update($id, $title, $desc, $type, $min_points, $event, $multiple);
+					ap_badge_option_update($id, $title, $desc, $type, $min_reputation, $event, $multiple);
 				}else{
-					ap_badge_option_new($id, $title, $desc, $type, $min_points, $event, $multiple);
+					ap_badge_option_new($id, $title, $desc, $type, $min_reputation, $event, $multiple);
 				}
 				
 				ob_start();
@@ -687,9 +690,9 @@ class anspress_admin {
 								</td>
 							</tr>
 							<tr valign="top">
-								<th scope="row"><label for="min_points">'. __('Min. Points', 'ap').'</label></th>
+								<th scope="row"><label for="min_reputation">'. __('Min. Points', 'ap').'</label></th>
 								<td>
-									<input id="min_points" type="text" name="min_points" value="" />
+									<input id="min_reputation" type="text" name="min_reputation" value="" />
 								</td>
 							</tr>
 							<tr valign="top">
@@ -719,15 +722,14 @@ class anspress_admin {
 		die();
 	}
 		
-	public function ap_delete_badge(){
+	public function ap_taxo_rename(){
+
 		if(current_user_can('manage_options')){
-			$args = explode('-', sanitize_text_field($_POST['args']));
-			if(wp_verify_nonce($args[1], 'delete_badge')){
-				ap_badge_option_delete($args[0]);
-				$result = array('status' => true);
-				$result = apply_filters('ap_delete_badge_form_result', $result);
-				echo json_encode( $result );
-			}
+			global $wpdb;
+
+			$wpdb->query("UPDATE ".$wpdb->prefix."term_taxonomy SET taxonomy = 'question_tag' WHERE  taxonomy = 'question_tags'");
+
+			ap_opt('tags_taxo_renamed', 'true');
 		}
 		
 		die();
@@ -758,7 +760,7 @@ class anspress_admin {
 	{
 		global $typenow, $pagenow, $post;
 
-		if (in_array( $pagenow, array( 'post-new.php', 'post.php' ) ) && ($typenow == 'answer'|| (isset($_GET['action']) && $_GET['action'] == 'edit') )){
+		if (in_array( $pagenow, array( 'post-new.php', 'post.php' ) ) && $post->post_type == 'answer' && ( (isset($_GET['action']) && $_GET['action'] == 'edit') )){
 			
 			$post_parent = isset($_GET['action']) ? $post->post_parent : (int)$_GET['post_parent'];
 			
@@ -784,6 +786,11 @@ class anspress_admin {
 	 * @since 2.0.0-alpha2
 	 */
 	public function ans_parent_post( $post_id, $post ) {
+
+		global $pagenow;
+
+		if (!in_array( $pagenow, array( 'post.php', 'post-new.php' ) ) )
+		   return $post->ID;
 
 		if ( !current_user_can( 'edit_post', $post->ID ))
 			return $post->ID;
@@ -829,4 +836,63 @@ class anspress_admin {
         
         return $messages;
     }
+
+    public function ap_menu_metaboxes(){
+		/* $anspress_menu = array(
+			'id' => 'add-anspress',
+			'title' => 'AnsPress',
+			'callback' => 'wp_nav_menu_item_link_meta_box',
+			'args' => null		
+		);
+		$GLOBALS['wp_meta_boxes']['nav-menus']['side']['default']['add-anspress'] = $anspress_menu;
+		var_dump ( $GLOBALS['wp_meta_boxes']['nav-menus']['side']['default']['add-custom-links']); */
+		add_meta_box( 'add-anspress', __( 'AnsPress' ), array($this, 'wp_nav_menu_item_anspress_meta_box'), 'nav-menus', 'side', 'default' );
+			//and $GLOBALS['wp_meta_boxes']['nav-menus'] = array ();
+	}
+
+    public function wp_nav_menu_item_anspress_meta_box(){
+		global $ap_menu, $_nav_menu_placeholder, $nav_menu_selected_id;
+
+		$_nav_menu_placeholder = 0 > $_nav_menu_placeholder ? $_nav_menu_placeholder - 1 : -1;
+		$base_page = ap_opt('base_page');
+
+		//$ap_menu = apply_filters( 'ap_admin_nav_menus', $ap_menu );
+
+		echo '<div class="aplinks" id="aplinks">';
+		echo '<input type="hidden" value="custom" name="menu-item['.$_nav_menu_placeholder.'][menu-item-type]" />';
+		echo '<ul>';
+		foreach($ap_menu as $k => $args){
+			echo '<li>';
+				echo '<label class="menu-item-title">';
+					echo '<input type="radio" value="" name="menu-item['.$_nav_menu_placeholder.'][menu-item-url]" class="menu-item-checkbox" data-url="'. $k .'" data-title="'.$args['title'].'"> '.$args['title'].'
+				</label>';
+			echo '</li>';
+		}
+		echo '</ul><p class="button-controls">
+<span class="add-to-menu">
+<input type="submit"'.wp_nav_menu_disabled_check( $nav_menu_selected_id ).' class="button-secondary submit-add-to-menu right" value="'.__('Add to Menu', 'ap').'" name="add-custom-menu-item" id="submit-aplinks" />
+<span class="spinner"></span>
+</span>
+</p>';
+		echo '</div>';
+
+	}
+
+	public function taxonomy_rename()
+	{
+
+		global $pagenow;
+
+		if(ap_opt('tags_taxo_renamed') == 'true' || !taxonomy_exists('question_tag'))
+			return;
+
+		if('edit-tags.php' != $pagenow)
+			return;
+		?>
+	    <div class="error">
+	        <p><strong><?php printf(__( 'Is your existing question tags are not appearing ? click here to fix it %s', 'ap' ), '<a class="ap-rename-taxo" href="#">'.__('Fix question tags', 'ap').'</a>'); ?></strong></p>
+	        <p><?php printf(__( 'Hide message %s', 'ap' ), '<a class="ap-rename-taxo" href="#">'.__('dismiss', 'ap').'</a>'); ?></p>
+	    </div>
+	    <?php
+	}
 }

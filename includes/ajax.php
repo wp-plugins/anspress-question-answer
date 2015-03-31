@@ -64,10 +64,10 @@ class AnsPress_Ajax
 				$p->post_title = ap_highlight_words($p->post_title, $keyword);
 				
 				if(!isset($_POST['is_admin']))
-					$items .= '<a class="ap-sqitem" href="'.get_permalink($p->ID).'">'.$p->post_title.'<span class="acount">'. sprintf(_n('1 Answer', '%d Answers', $count, 'ap' ), $count) .'</span></a>';
+					$items .= '<a class="ap-sqitem clearfix" href="'.get_permalink($p->ID).'"><span class="acount">'. sprintf(_n('1 Answer', '%d Answers', $count, 'ap' ), $count) .'</span><span class="ap-title">'.$p->post_title.'</span></a>';
 
 				else
-					$items .= '<div class="ap-q-suggestion-item"><a class="select-question-button button button-primary button-small" href="'.add_query_arg(array('post_type' => 'answer', 'post_parent' => $p->ID), admin_url( 'post-new.php' )).'">'.__('Select', 'ap').'</a><span class="question-title">'.$p->post_title.'</span><span class="acount">'. sprintf(_n('1 Answer', '%d Answers', $count, 'ap' ), $count) .'</span></div>';
+					$items .= '<div class="ap-q-suggestion-item clearfix"><a class="select-question-button button button-primary button-small" href="'.add_query_arg(array('post_type' => 'answer', 'post_parent' => $p->ID), admin_url( 'post-new.php' )).'">'.__('Select', 'ap').'</a><span class="question-title">'.$p->post_title.'</span><span class="acount">'. sprintf(_n('1 Answer', '%d Answers', $count, 'ap' ), $count) .'</span></div>';
 			}
 			$items .= '</div>';
 			$result = array('status' => true, 'html' => $items);
@@ -111,7 +111,7 @@ class AnsPress_Ajax
 				'id_form' => 'ap-commentform',
 				'title_reply' => '',
 				'logged_in_as' => '',
-				'comment_field' => '<div class="ap-comment-submit"><input type="submit" value="'.__('Post Comment', 'ap').'" name="submit"></div><div class="ap-comment-textarea"><textarea name="comment" rows="3" aria-required="true" id="ap-comment-textarea" class="ap-form-control autogrow" placeholder="'.__('Respond to the post.', 'ap').'">'.$content.'</textarea></div><input type="hidden" name="ap_form_action" value="comment_form"/><input type="hidden" name="ap_ajax_action" value="comment_form"/><input type="hidden" name="__nonce" value="'.$nonce.'"/>'.$commentid,
+				'comment_field' => '<div class="ap-comment-submit"><input type="submit" value="'.__('Comment', 'ap').'" name="submit"></div><div class="ap-comment-textarea"><textarea name="comment" rows="3" aria-required="true" id="ap-comment-textarea" class="ap-form-control autogrow" placeholder="'.__('Respond to the post.', 'ap').'">'.$content.'</textarea></div><input type="hidden" name="ap_form_action" value="comment_form"/><input type="hidden" name="ap_ajax_action" value="comment_form"/><input type="hidden" name="__nonce" value="'.$nonce.'"/>'.$commentid,
 				'comment_notes_after' => ''
 			);
 			
@@ -122,7 +122,8 @@ class AnsPress_Ajax
 			global $withcomments;
 			$withcomments = true;
 
-			$question = new Question_Query('p='.$comment_post_ID);
+			$post = new WP_Query(array('p' => $comment_post_ID, 'post_type' => array('question', 'answer')));
+			$count = get_comment_count( $comment_post_ID );
 			ob_start();
 				echo '<div class="ap-comment-block clearfix">';
 					//if(ap_user_can_comment() || (isset($_REQUEST['comment_ID']) && ap_user_can_edit_comment((int)$_REQUEST['comment_ID'] ))){
@@ -132,20 +133,21 @@ class AnsPress_Ajax
 							echo '</div>';
 						echo '</div>';
 					//}
-					while( $question->have_posts() ) : $question->the_post();
+					while( $post->have_posts() ) : $post->the_post();					
 					comments_template();
 					endwhile;
 					wp_reset_postdata();
 				echo '</div>';
 			$result['html'] = ob_get_clean();
 			$result['container'] = '#comments-'.$comment_post_ID;
+			$result['message'] = 'success';
+			$result['view'] = array('comments_count_'.$comment_post_ID => $count['approved'], 'comment_count_label_'.$comment_post_ID => sprintf(_n('One comment', '%d comments', $count['approved'], 'ap'), $count['approved']) );
 
 		}else{
-			$result['message'] = __('You do not have permission to comment', 'ap');
-			$result['message_type'] = 'warning';
+			$result['message'] = 'no_permission';
 		}
 
-		ap_send_json($result);
+		ap_send_json(ap_ajax_responce($result));
     }
 
     /**
@@ -155,10 +157,19 @@ class AnsPress_Ajax
      */
     public function delete_comment(){
     	if(isset($_POST['comment_ID']) && ap_user_can_delete_comment((int)$_POST['comment_ID'] ) && wp_verify_nonce( $_POST['__nonce'], 'delete_comment' )){
+
+    		$comment = get_comment( $_POST['comment_ID'] );
+    		if (time() > (get_comment_date( 'U', (int)$_POST['comment_ID'] ) + (int)ap_opt('disable_delete_after')) && !is_super_admin()) {
+				ap_send_json( ap_ajax_responce(array('message_type' => 'warning', 'message' => sprintf(__('This post was created %s ago, its locked hence you cannot delete it.', 'ap'), ap_human_time( get_comment_date( 'U', (int)$_POST['comment_ID'] )) ))));
+				return;
+			}
+
     		$delete = wp_delete_comment( (int)$_POST['comment_ID'], true );
     		
     		if($delete){
-    			ap_send_json(ap_ajax_responce(  array( 'action' => 'delete_comment', 'comment_ID' => (int)$_POST['comment_ID'], 'message' => 'comment_delete_success')));
+    			do_action( 'ap_after_deleting_comment', $comment );
+    			$count = get_comment_count( $comment->comment_post_ID );
+    			ap_send_json(ap_ajax_responce(  array( 'action' => 'delete_comment', 'comment_ID' => (int)$_POST['comment_ID'], 'message' => 'comment_delete_success', 'view' => array('comments_count_'.$comment->comment_post_ID => $count['approved'], 'comment_count_label_'.$comment->comment_post_ID => sprintf(_n('One comment', '%d comments', $count['approved'], 'ap'), $count['approved']) ))));
     		}else{
     			ap_send_json( ap_ajax_responce('something_wrong'));
     		}
@@ -189,19 +200,19 @@ class AnsPress_Ajax
 		$user_id = get_current_user_id();
 		
 		if(ap_is_answer_selected($post->post_parent)){
-			ap_do_event('unselect_answer', $user_id, $post->post_parent, $post->ID);
+			do_action('ap_unselect_answer', $user_id, $post->post_parent, $post->ID);
 			update_post_meta($post->ID, ANSPRESS_BEST_META, 0);
 			update_post_meta($post->post_parent, ANSPRESS_SELECTED_META, false);
 			update_post_meta($post->post_parent, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
-			ap_send_json( ap_ajax_responce(array('message' => 'unselected_the_answer', 'action' => 'unselected_answer', 'do' => 'redirect', 'redirect_to' => get_permalink($post->ID))));
+			ap_send_json( ap_ajax_responce(array('message' => 'unselected_the_answer', 'action' => 'unselected_answer', 'do' => 'reload')));
 
 		}else{
-			ap_do_event('select_answer', $user_id, $post->post_parent, $post->ID);
+			do_action('ap_select_answer', $user_id, $post->post_parent, $post->ID);
 			update_post_meta($post->ID, ANSPRESS_BEST_META, 1);
 			update_post_meta($post->post_parent, ANSPRESS_SELECTED_META, $post->ID);
 			update_post_meta($post->post_parent, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
 			$html = ap_select_answer_btn_html($answer_id);
-			ap_send_json( ap_ajax_responce(array('message' => 'selected_the_answer', 'action' => 'selected_answer', 'do' => 'redirect', 'html' => $html, 'redirect_to' => get_permalink($post->ID))));
+			ap_send_json( ap_ajax_responce(array('message' => 'selected_the_answer', 'action' => 'selected_answer', 'do' => 'reload', 'html' => $html)));
 		}
 	}
 
@@ -211,21 +222,24 @@ class AnsPress_Ajax
 
 		$action = 'delete_post_'.$post_id;	
 		
-		if(!wp_verify_nonce( $_POST['__nonce'], $action )){
+		if(!wp_verify_nonce( $_POST['__nonce'], $action ) || !ap_user_can_delete($post_id)){
 			ap_send_json( ap_ajax_responce('something_wrong'));
-			return;
-		}
-
-		if(!ap_user_can_delete($post_id)){
-			ap_send_json( ap_ajax_responce('no_permission'));
 			return;
 		}
 		
 		$post = get_post( $post_id );
+
+		if( (time() > (get_the_time('U', $post->ID) + (int)ap_opt('disable_delete_after'))) && !is_super_admin( ) ){
+			ap_send_json( ap_ajax_responce(array('message_type' => 'warning', 'message' => sprintf(__('This post was created %s ago, its locked hence you cannot delete it.', 'ap'), ap_human_time( get_the_time('U', $post->ID)) ))));
+			return;
+		}
+
 		wp_trash_post($post_id);
 		if($post->post_type == 'question'){
+			do_action('ap_wp_trash_question', $post_id);
 			ap_send_json( ap_ajax_responce( array('action' => 'delete_question', 'do' => 'redirect', 'redirect_to' => get_permalink(ap_opt('questions_page_id')), 'message' => 'question_moved_to_trash')));
 		}else{
+			do_action('ap_wp_trash_answer', $post_id);
 			$current_ans = ap_count_published_answers($post->post_parent);
 			$count_label = sprintf( _n('1 Answer', '%d Answers', $current_ans, 'ap'), $current_ans);
 			$remove = (!$current_ans ? true : false);

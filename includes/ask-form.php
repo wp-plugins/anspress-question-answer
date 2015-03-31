@@ -54,7 +54,7 @@ function ap_ask_form($editing = false){
                 'name' => 'title',
                 'label' => __('Title', 'ap'),
                 'type'  => 'text',
-                'placeholder'  => __('Question in once sentence', 'ap'),
+                'placeholder'  => __('Question in one sentence', 'ap'),
                 'desc'  => __('Write a meaningful title for the question.', 'ap'),
                 'value' => ( $editing ? $editing_post->post_title : sanitize_text_field( @$_POST['title'] ) ),
                 'order' => 5,
@@ -76,6 +76,7 @@ function ap_ask_form($editing = false){
                 'settings' => array(
                     'textarea_rows' => 8,
                     'tinymce' => ap_opt('question_text_editor') ? false : true,
+                    'quicktags' => false,
                 ),
             ),
             array(
@@ -95,6 +96,19 @@ function ap_ask_form($editing = false){
             'value' => $is_private,
             'order' => 12,
             'show_desc_tip' => false
+        );
+
+    if(ap_opt('enable_recaptcha'))
+        $args['fields'][] = array(
+            'name' => 'captcha',
+            'type'  => 'custom',
+            'order' => 100,
+            'html' => '<div class="g-recaptcha" id="recaptcha" data-sitekey="'.ap_opt('recaptcha_site_key').'"></div><script type="text/javascript"
+src="https://www.google.com/recaptcha/api.js?hl='.get_locale().'&onload=onloadCallback&render=explicit"  async defer></script><script type="text/javascript">var onloadCallback = function() {
+        widgetId1 = grecaptcha.render("recaptcha", {
+          "sitekey" : "'.ap_opt('recaptcha_site_key').'"
+        });
+      };</script>'
         );
     
     /**

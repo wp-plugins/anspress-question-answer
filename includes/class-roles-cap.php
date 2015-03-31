@@ -163,9 +163,14 @@ function ap_user_can_answer($question_id){
 	if(is_super_admin())
 		return true;
 	
+	$question = get_post($question_id);
+
+	if(!ap_opt('disallow_op_to_answer') && $question->post_author == get_current_user_id())
+		return false;
+
 	if(ap_opt('close_after_selecting') && ap_is_answer_selected($question_id) )
 		return false;
-		
+
 	if((current_user_can('ap_new_answer'))){
 		if(!ap_opt('multiple_answers') && ap_is_user_answered($question_id, get_current_user_id()) && get_current_user_id() != '0')
 			return false;

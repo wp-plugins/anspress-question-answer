@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
  * @return string         
  * @since 0.1
  */
-function ap_opt($key = false, $value = false){
+function ap_opt($key = false, $value = null){
 	$settings = wp_cache_get('ap_opt', 'options');
 	
 	if($settings === false){
@@ -34,7 +34,7 @@ function ap_opt($key = false, $value = false){
 		
 		wp_cache_set('ap_opt', $settings, 'options');
 	}	
-	if($value){
+	if(!is_null($value)){
 
 		$settings[$key] = $value;		
 		update_option( 'anspress_opt', $settings);
@@ -45,7 +45,7 @@ function ap_opt($key = false, $value = false){
 		return;
 	}
 
-	if(!$key)
+	if(false === $key)
 		return $settings;
 		
 	if(isset($settings[$key]))
@@ -63,8 +63,6 @@ function ap_opt($key = false, $value = false){
  */
 function ap_default_options(){
 	$defaults =  array(
-		'custom_signup_url'		=> '',
-		'custom_login_url'		=> '',
 		'show_login_signup' 	=> true,
 		'show_login' 			=> true,
 		'show_signup' 			=> true,
@@ -76,42 +74,43 @@ function ap_default_options(){
 		'minimum_qtitle_length'	=> 10,
 		'minimum_question_length'=> 10,
 		'multiple_answers' 		=> false,
+		'disallow_op_to_answer' => false,
 		'minimum_ans_length' 	=> 5,
 		'avatar_size_qquestion' => 50,
 		'allow_private_post'	=> true,
 		'avatar_size_qanswer' 	=> 50,
 		'avatar_size_qcomment' 	=> 25,
 		'avatar_size_list' 		=> 45,
-		'down_vote_points' 		=> -1,
-		'flag_note' 			=> array('spam' => 'This question is effectively an advertisement with no disclosure. It is not useful or relevant, but promotional.'),			
 		'question_per_page' 	=> '20',
 		'answers_per_page' 		=> '5',
 		'answers_sort' 			=> 'active',
 		'close_selected' 		=> true,
-		'cover_width'			=> '878',
-		'cover_height'			=> '200',
-		'default_rank'			=> '0',
-		'users_per_page'		=> 15,
-		'cover_width_small'		=> 275,
-		'cover_height_small'	=> 80,
-		'followers_limit'		=> 10,
-		'following_limit'		=> 10,
-		'captcha_ask'			=> true,
-		'captcha_answer'		=> true,
 		'moderate_new_question'	=> 'no_mod',
 		'mod_question_point'	=> 10,
 		'categories_per_page'	=> 20,
 		'question_prefix'		=> 'question',
 		'min_point_new_tag'		=> 100,
 		'allow_anonymous'		=> false,
-		'enable_captcha_skip'	=> false,
-		'captcha_skip_rpoints'	=> 40,
 		'only_admin_can_answer'	=> false,
 		'logged_in_can_see_ans'	=> false,
 		'logged_in_can_see_comment'	=> false,
 		'show_comments_by_default'	=> false,
 		'question_text_editor'	=> false,
 		'answer_text_editor'	=> false,
+		'base_page_title'		=> 'Questions',
+		'ask_page_title'		=> 'Ask question',
+		'search_page_title'		=> 'Search "%s"',
+		'disable_comments_on_question'=> false,
+		'disable_comments_on_answer'=> false,
+		'new_question_status'	=> 'publish',
+		'new_answer_status'		=> 'publish',
+		'disable_delete_after'	=> 86400,
+		'db_cleanup'			=> false,
+		'disable_voting_on_question' => false,
+		'disable_voting_on_answer' => false,
+		'enable_recaptcha' 		=> false,
+		'recaptcha_site_key' 	=> '',
+		'recaptcha_secret_key' 	=> '',
 	);
 	
 	/**

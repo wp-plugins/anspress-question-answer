@@ -46,10 +46,10 @@ AnsPress is a most complete question and answer system for WordPress. AnsPress i
 
 = Developers =
 
-Project site: [Open-WP](http://wp3.in)
+Project site: [WP3](http://wp3.in)
 GitHub repo: [Git AnsPress](https://github.com/wp3/anspress/)
-Twitter: [@openwp](http://twitter.com/wp3in)
-GooglePlus: [@openwp](https://plus.google.com/+rahularyannerdaryan?rel=author)
+Twitter: [@wp3in](http://twitter.com/wp3in)
+GooglePlus: [@wp3](https://plus.google.com/+rahularyannerdaryan?rel=author)
 
 = Help & Support =
 For fast help and support, please post on our forum http://wp3.in/questions/
@@ -133,6 +133,14 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 
 == Changelog ==
+
+= 2.0.3 =
+
+* Check empty comment before posting
+* refresh question suggestion on backspace
+* Include previous version point count
+* Remove unused options
+
 
 = 2.0.2 =
 

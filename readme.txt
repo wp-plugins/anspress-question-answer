@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_
 Tags: question, answer, q&a, forum, profile, stackoverflow, quora, buddypress
 Requires at least: 4.1.1
 Tested up to: 4.1.1
-Stable tag: 2.0.2
+Stable tag: 2.0.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,22 +27,15 @@ AnsPress is a most complete question and answer system for WordPress. AnsPress i
   * Select best answer
   * Tags suggestions
   * Comment on question and answer
-  * Private messaging system
-  * Point based permission (under development)
   * reCaptcha
-  * User level : Participant, Editor, Moderator (in future it can be customised and you can add your own levels)
+  * User level : Participant, Editor, Moderator
   * Email notification
   * User can add questions to his favorite
   * User can edit profile
   * User can upload cover photo
   * Friends and followers system
   * User points system (reputation)
-  * User ranking
-  * User badge
-  * User profile
-  * Pages : Tags, categories, users etc.
-  * SOCIAL LOGIN (see FAQ)
-  * SYNTAX HIGHLIGHTER (see FAQ)
+
 
 = Developers =
 
@@ -133,6 +126,17 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 
 == Changelog ==
+
+= 2.0.4 =
+
+* [fix] AnsPress options
+* [fix] hide any existing loding animation
+* [fix] Wrong redirect after deleting question
+* [added] ap_get_all_reputation
+* Updated admin menu position
+* Loading animation for select button
+* [added] loading animation and improved notification
+
 
 = 2.0.3 =
 

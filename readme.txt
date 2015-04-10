@@ -127,6 +127,20 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 == Changelog ==
 
+= 2.0.5 =
+
+* [fix] Removed anonymous function for older version compatibility
+* Improved user answers list
+* [Added] <?php do_action( 'wordpress_social_login' ); ?>
+* Removed history loading after plugin initiate
+* [fix] History
+* [disabled] ap_post_votes() for each post to decrease DB query
+* Added trailing slash in question url to prevent 301 redirect
+* [fix] Related questions was missing
+* Order reputation by date
+
+
+
 = 2.0.4 =
 
 * [fix] AnsPress options

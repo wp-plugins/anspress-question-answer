@@ -15,7 +15,7 @@
  * Plugin URI:        http://wp3.in
  * Description:       The most advance community question and answer system for WordPress
  * Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
- * Version:           2.0.4
+ * Version:           2.0.5
  * Author:            Rahul Aryan
  * Author URI:        http://wp3.in
  * Text Domain:       ap
@@ -38,7 +38,7 @@ if (!class_exists('AnsPress')) {
     class AnsPress
     {
 
-        private $_plugin_version = '2.0.4';
+        private $_plugin_version = '2.0.5';
 
         private $_plugin_path;
 
@@ -243,7 +243,7 @@ if (!class_exists('AnsPress')) {
             require_once ANSPRESS_DIR.'widgets/subscribe.php';
             require_once ANSPRESS_DIR.'widgets/participants.php';
             require_once ANSPRESS_DIR.'widgets/question_stats.php';
-            require_once ANSPRESS_DIR.'widgets/question_stats.php';
+            require_once ANSPRESS_DIR.'widgets/related_questions.php';
             require_once ANSPRESS_DIR.'widgets/categories.php';
             require_once ANSPRESS_DIR.'widgets/questions.php';
             require_once ANSPRESS_DIR.'includes/rewrite.php';            
@@ -322,7 +322,6 @@ function anspress_uninstall()
 add_action('plugins_loaded', array( 'anspress_vote', 'get_instance' ));
 add_action('plugins_loaded', array( 'anspress_view', 'get_instance' ));
 
-add_action('plugins_loaded', array( 'AP_History', 'get_instance' ));
 
 /*----------------------------------------------------------------------------*
  * Dashboard and Administrative Functionality

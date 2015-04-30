@@ -29,7 +29,7 @@
             this.appendMessageBox();
             this.ap_comment_form();
             this.afterPostingAnswer();
-            this.suggest_similar_questions();
+            //this.suggest_similar_questions();
             this.ap_ajax_form();
             this.load_comment_form();
             this.delete_comment();
@@ -38,6 +38,8 @@
             this.select_answer();
             this.ap_delete_post();
             this.ap_upload_field();
+            this.change_status();
+            this.load_profile_field();
         },
         doAjax: function(query, success, context, before, abort) {
             /** Shorthand method for calling ajax */
@@ -92,9 +94,20 @@
                             grecaptcha.reset(widgetId1);
                     }
                     $(document).trigger('ap_after_ajax', data);
-                    if (typeof data.do !=='undefined' &&
-                        typeof ApSite[data.do] === 'function') ApSite[data.do](data);
-                    if (typeof data.view !== 'undefined') {
+                    
+                    if (typeof data.do !=='undefined'){
+                        if($.isArray(data.do)){
+                            $.each(data.do, function(index, el) {
+                                if(typeof ApSite[data.do[index]] === 'function')
+                                    ApSite[data.do[index]](data);
+                            });
+                        }else{
+                            if(typeof ApSite[data.do] === 'function')
+                                ApSite[data.do](data);
+                        }
+                    }
+                   
+                   if (typeof data.view !== 'undefined') {
                         $.each(data.view, function(i, view) {
                             $('[data-view="' + i + '"]').text(view);
                             if (view !== 0) $('[data-view="' + i + '"]').removeClass('ap-view-count-0');
@@ -196,7 +209,6 @@
             }, 500).delay(5000).fadeOut(200);
         },
         redirect: function(data) {
-            console.log(typeof data.redirect_to !== 'undefined');
             if (typeof data.redirect_to !== 'undefined') window.location.replace(data.redirect_to);
         },
         reload: function(data) {
@@ -207,6 +219,20 @@
         },
         updateHtml: function(data) {
             if (typeof data.container !== 'undefined') $(data.container).html(data.html);
+        },
+        toggle_active_class: function(data) {
+            if (typeof data.toggle_active_class_container !== 'undefined'){
+                $(data.toggle_active_class_container).find('li').removeClass('active');
+                $(data.toggle_active_class_container).find(data.active).addClass('active');
+            } 
+        },
+        append_before: function(data) {
+            if (typeof data.append_before_container !== 'undefined')
+                $(data.append_before_container).before(data.html);
+        },
+        remove_if_exists: function(data) {
+            if (typeof data.remove_if_exists_container !== 'undefined' && $(data.remove_if_exists_container).length > 0)
+                $(data.remove_if_exists_container).remove();
         },
         clearForm: function(data) {
             if (typeof tinyMCE !== 'undefined') 
@@ -360,7 +386,28 @@
                 });
                 return false
             });
-        }
+        },
+        change_status: function() {
+            $('body').delegate('[data-action="ap_change_status"]', 'click', function(e) {
+                e.preventDefault();
+                var c = $(this).closest('ul').prev();
+                AnsPress.site.showLoading(c);
+                var q = $(this).attr('data-query');
+                ApSite.doAjax(apAjaxData(q), function(data) {
+                    AnsPress.site.hideLoading(c);
+                }, this, false, true);
+            });
+        },
+        load_profile_field: function() {
+            $('body').delegate('[data-action="ap_load_user_field_form"]', 'click', function(e) {
+                e.preventDefault();
+                AnsPress.site.showLoading(this);
+                var q = $(this).attr('data-query');
+                ApSite.doAjax(apAjaxData(q), function(data) {
+                    AnsPress.site.hideLoading(this);
+                }, this, false);
+            });
+        },
     }
 })(jQuery);
 

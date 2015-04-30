@@ -3,9 +3,9 @@
  * AnsPress question stats widget
  * Widget for showing question stats
  * @package AnsPress
- * @author Rahul Aryan <rah12@live.com>
+ * @author Rahul Aryan <support@anspress.io>
  * @license GPL 2+ GNU GPL licence above 2+
- * @link http://wp3.in
+ * @link http://anspress.io
  * @since 2.0.0-alpha2
  *  
  */
@@ -30,17 +30,17 @@ class AnsPress_Stats_Widget extends WP_Widget {
 			echo $args['before_title'] . $title . $args['after_title'];
 		}
 
-		$ans_count 		= ap_count_answer_meta(get_question_id());
-		$last_active 	= ap_last_active(get_question_id());
-		$total_subs 	= ap_post_subscribers_count(get_question_id());
-		$view_count 	= ap_get_qa_views(get_question_id());
+		$ans_count 		= ap_question_get_the_answer_count();
+		$last_active 	= ap_question_get_the_active_ago();
+		$total_subs 	= ap_question_get_the_subscriber_count();
+		$view_count 	= ap_question_get_the_view_count();
 
 
 		echo '<ul class="ap-stats-widget">';
 		echo '<li><span class="stat-label">'.__('Active', 'ap'). '</span><span class="stat-value"><time class="published updated" itemprop="dateUpdated" datetime="'.mysql2date('c', $last_active).'">'.ap_human_time( mysql2date('U', $last_active)).'</time> '.__('Ago', 'ap').'</span></li>' ;
 		echo '<li><span class="stat-label">'.__('Views', 'ap'). '</span><span class="stat-value">'.sprintf(_n('One time', '%d times', $view_count, 'ap'), $view_count).'</span></li>' ;		
 		echo '<li><span class="stat-label">'.__('Answers', 'ap'). '</span><span class="stat-value">'.sprintf(_n('%2$s1%3$s answer', '%2$s%1$d%3$s answers', $ans_count, 'ap'), $ans_count, '<span data-view="answer_count">', '</span>').'</span></li>' ;		
-		echo '<li><span class="stat-label">'.__('Subscribers', 'ap'). '</span><span class="stat-value">'.sprintf(_n('One follower', '%d followers', $total_subs, 'ap'), $total_subs).'</span></li>' ;		
+		echo '<li><span class="stat-label">'.__('Subscribers', 'ap'). '</span><span class="stat-value">'.sprintf(_n('1 Subscriber', '%d subscribers', $total_subs, 'ap'), $total_subs).'</span></li>' ;		
 		echo '</ul>';
 		echo $args['after_widget'];
 	}

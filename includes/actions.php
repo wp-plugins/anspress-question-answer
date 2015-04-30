@@ -5,7 +5,7 @@
  * @package   AnsPress
  * @author    Rahul Aryan <admin@rahularyan.com>
  * @license   GPL-2.0+
- * @link      http://wp3.in
+ * @link      http://anspress.io
  * @copyright 2014 Rahul Aryan
  */
 
@@ -29,19 +29,20 @@ class AnsPress_Actions
 		add_action( 'ap_after_update_question', array($this, 'ap_after_update_question'), 10, 2 );
 		add_action( 'ap_after_update_answer', array($this, 'ap_after_update_answer'), 10, 2 );
 
-		add_action('before_delete_post', array($this, 'before_delete'));	
+		add_action( 'before_delete_post', array($this, 'before_delete'));	
 
-		add_action('wp_trash_post', array($this, 'trash_post_action'));
-		add_action('untrash_post', array($this, 'untrash_ans_on_question_untrash'));
+		add_action( 'wp_trash_post', array($this, 'trash_post_action'));
+		add_action( 'untrash_post', array($this, 'untrash_ans_on_question_untrash'));
 
-		add_action('comment_post', array($this, 'new_comment_approve'), 10, 2);
-		add_action('comment_unapproved_to_approved', array($this, 'comment_approve'));
-		add_action('comment_approved_to_unapproved', array($this, 'comment_unapproved'));
-		add_action('trashed_comment', array($this, 'comment_trash'));
-		add_action('delete_comment ', array($this, 'comment_trash'));
-		add_action('publish_comment', array($this, 'publish_comment'));
-		add_action('unpublish_comment', array($this, 'unpublish_comment'));
-		add_filter('wp_get_nav_menu_items', array($this, 'update_menu_url'));
+		add_action( 'comment_post', array($this, 'new_comment_approve'), 10, 2);
+		add_action( 'comment_unapproved_to_approved', array($this, 'comment_approve'));
+		add_action( 'comment_approved_to_unapproved', array($this, 'comment_unapproved'));
+		add_action( 'trashed_comment', array($this, 'comment_trash'));
+		add_action( 'delete_comment ', array($this, 'comment_trash'));
+		add_action( 'publish_comment', array($this, 'publish_comment'));
+		add_action( 'unpublish_comment', array($this, 'unpublish_comment'));
+		add_filter( 'wp_get_nav_menu_items', array($this, 'update_menu_url'));
+		add_filter( 'nav_menu_css_class', array($this, 'fix_nav_current_class'), 10, 2 );
 
 		add_action( 'wp_loaded', array( $this, 'flush_rules' ) );
 	}
@@ -53,8 +54,8 @@ class AnsPress_Actions
      */
     public function init()
     {
-    	ap_register_menu('ANSPRESS_BASE_PAGE_URL', __('Questions', 'ap'), ap_base_page_link());
-    	ap_register_menu('ANSPRESS_ASK_PAGE_URL', __('Ask', 'ap'), ap_get_link_to('ask'));
+    	/*ap_register_menu('ANSPRESS_BASE_PAGE_URL', __('Questions', 'ap'), ap_base_page_link());
+    	ap_register_menu('ANSPRESS_ASK_PAGE_URL', __('Ask', 'ap'), ap_get_link_to('ask'));*/
     }
 
 	/**
@@ -75,8 +76,10 @@ class AnsPress_Actions
 		update_post_meta($post_id, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
 		update_post_meta($post_id, ANSPRESS_SELECTED_META, false);
 		
-		//ap_add_history($user_id, $post_id, 'asked');
 		ap_add_parti($post_id, $user_id, 'question');
+
+		// subscribe to current question
+		ap_add_question_subscriber($post_id);
 		
 		//update answer count
 		update_post_meta($post_id, ANSPRESS_ANS_META, '0');
@@ -105,7 +108,10 @@ class AnsPress_Actions
 		update_post_meta($question->ID, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
 		update_post_meta($post_id, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
 		
-		ap_add_parti($question->ID, $user_id, 'answer', $post_id);			
+		ap_add_parti($question->ID, $user_id, 'answer', $post_id);	
+
+		// subscribe to current question
+		ap_add_question_subscriber($question->ID);	
 		
 		// get existing answer count
 		$current_ans = ap_count_published_answers($question->ID);
@@ -168,6 +174,7 @@ class AnsPress_Actions
 				foreach( $ans as $p){
 					do_action('ap_trash_question', $p->ID);
 					ap_remove_parti($p->post_parent, $p->post_author, 'answer');
+
 					ap_delete_meta(array('apmeta_type' => 'flag', 'apmeta_actionid' => $post->ID));
 					wp_trash_post($p->ID);
 				}
@@ -179,9 +186,9 @@ class AnsPress_Actions
 			do_action('ap_trash_answer', $post->ID);
 			ap_remove_parti($post->post_parent, $post->post_author, 'answer');
 			ap_delete_meta(array('apmeta_type' => 'flag', 'apmeta_actionid' => $post->ID));
-			
+			ap_remove_question_subscriber($post->ID, $post->post_author);
 			//update answer count
-			update_post_meta($post->post_parent, ANSPRESS_ANS_META, $ans-1);
+			update_post_meta($post->post_parent, ANSPRESS_ANS_META, $ans);
 		}
 	}
 
@@ -249,7 +256,7 @@ class AnsPress_Actions
 
 	/**
 	 * Actions to run after posting a comment
-	 * @param  int $approved
+	 * @param  object $comment
 	 * @return null|integer   
 	 */
 	public function publish_comment($comment){
@@ -286,20 +293,53 @@ class AnsPress_Actions
 
 	}
 
+	/**
+	 * Update AnsPress pages URL dynimacally
+	 * @param  array $items
+	 * @return array
+	 */
 	public function update_menu_url( $items ) {		
-		global $ap_menu;
-
+		$pages = anspress()->pages;
 		if(!empty($items) && is_array($items))
 			foreach ( $items as $key => $item ) {
-				foreach($ap_menu as $slug => $args){
+				foreach($pages as $slug => $args){	
+
+					if(strpos($item->url, strtoupper('ANSPRESS_PAGE_URL_'.$slug)) !== FALSE ){
+						$item->url = ap_get_link_to($slug);
+						$item->classes[] = 'anspress-page-link';
+						$item->classes[] = 'anspress-page-'.$slug;
+						
+						if(get_query_var('ap_page') == $slug)
+							$item->classes[] = 'anspress-active-menu-link';
+					}
 					
-					if(strpos($item->url, $slug) !== FALSE)
-						$item->url = $args['link'];
 				}
 
 			}
 
 		return $items;
+	}
+
+	/**
+	 * add current-menu-item class in AnsPress pages
+	 * @param  array $class
+	 * @param  object $item
+	 * @return array
+	 * @since  2.1
+	 */
+	public function fix_nav_current_class( $class, $item ) {		
+		$pages = anspress()->pages;
+		if(!empty($item) && is_object($item)){
+			foreach($pages as $slug => $args){
+				if(in_array('anspress-page-link', $class)){
+					if(ap_get_link_to(get_query_var('ap_page')) != $item->url){
+						$pos = array_search('current-menu-item', $class);
+						unset($class[$pos]);
+					}
+				}
+			}
+		}
+		return $class;
 	}
 
 	/**

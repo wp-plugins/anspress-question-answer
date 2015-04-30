@@ -3,9 +3,9 @@
  * Class for base page
  *
  * @package   AnsPress
- * @author    Rahul Aryan <rah12@live.com>
+ * @author    Rahul Aryan <support@anspress.io>
  * @license   GPL-3.0+
- * @link      http://wp3.in
+ * @link      http://anspress.io
  * @copyright 2014 Rahul Aryan
  */
 
@@ -27,13 +27,18 @@ class AnsPress_Common_Pages
     {
         global $questions;
 
-        ap_register_page('base', __('Questions', 'ap'), array($this, 'base_page'));
-        ap_register_page('question', __('Question', 'ap'), array($this, 'question_page'));
-        ap_register_page('ask', __('Ask', 'ap'), array($this, 'ask_page'));
-        ap_register_page('edit', __('Edit', 'ap'), array($this, 'edit_page'));
-        ap_register_page('search', __('Search', 'ap'), array($this, 'search_page'));
+        add_action('init', array($this, 'register_common_pages'));
+        
     }
 
+    public function register_common_pages()
+    {
+        ap_register_page('base', __('Questions', 'ap'), array($this, 'base_page'));
+        ap_register_page('question', __('Question', 'ap'), array($this, 'question_page'), false);
+        ap_register_page('ask', __('Ask', 'ap'), array($this, 'ask_page'));
+        ap_register_page('edit', __('Edit', 'ap'), array($this, 'edit_page'), false);
+        ap_register_page('search', __('Search', 'ap'), array($this, 'search_page'), false);
+    }
 
     public function base_page()
     {
@@ -71,25 +76,31 @@ class AnsPress_Common_Pages
             );
         }
 
-    	$questions 		 = new Question_Query($args);
-
+        ap_get_questions($args);
 		include(ap_get_theme_location('base.php'));
     }
 
+    /**
+     * Output single question page
+     * @return void
+     */
     public function question_page()
     {
-        remove_filter( 'the_content', array($this, 'question_page') );
         global $questions;
 
-        $questions          = new WP_Query(array('p' => get_question_id(), 'post_type' => 'question'));
+        ap_get_question(get_question_id());
         
-        // Set current question as a global $post
-        while ( $questions->have_posts() ) : $questions->the_post();
-            global $post;
-            setup_postdata( $post ); 
-        endwhile;
-
-        include(ap_get_theme_location('question.php'));
+        if(ap_have_questions()){
+            while ( anspress()->questions->have_posts() ) : anspress()->questions->the_post();
+                global $post;
+                setup_postdata( $post );                 
+            endwhile;
+            include(ap_get_theme_location('question.php'));
+            wp_reset_postdata();
+        }else{
+            include(ap_get_theme_location('not-found.php'));
+        }
+        
     }
 
     public function ask_page()

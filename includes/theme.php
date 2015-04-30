@@ -14,34 +14,36 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+/**
+ * Return current page title
+ * @return string current title
+ */
 function ap_page_title() {
+	$pages = anspress()->pages;
+
+	$current_page  = get_query_var('ap_page');
+	
 	if(is_question())
 		$new_title = get_the_title(get_question_id());
-	elseif(is_ask()){
-		if(get_query_var('parent') != '')
-			$new_title = sprintf('%s about "%s"', ap_opt('ask_page_title'), get_the_title(get_query_var('parent')));
-		else
-			$new_title = ap_opt('ask_page_title');
-	}/*
-	elseif(is_question_tags())
-		$new_title = ap_opt('tags_page_title');
-	elseif(is_question_tag()){
-		$tag = get_term_by('slug', get_query_var('question_tags'), 'question_tags');
-		$new_title = sprintf(__('Question tag: %s', 'ap'), $tag->name);
-	}*/
+
 	elseif(is_ap_edit())
 		$new_title = __('Edit post', 'ap');
+	
+	elseif(isset($pages[$current_page]['title']))
+		$new_title = $pages[$current_page]['title'];
 
 	elseif(is_ap_search())
 		$new_title = sprintf(ap_opt('search_page_title'), sanitize_text_field(get_query_var('ap_s')));
+
+	elseif($current_page == '' && !is_question() && get_query_var('question_name') == '')
+		$new_title = ap_opt('base_page_title');
+
+	elseif(get_query_var('parent') != '')
+		$new_title = sprintf( __( 'Discussion on "%s"', 'ap'), get_the_title(get_query_var('parent') ));
+
+	else
+		$new_title = __('Error 404', 'ap');
 	
-	else{
-		if(get_query_var('parent') != '')
-			$new_title = sprintf( __( 'Discussion on "%s"', 'ap'), get_the_title(get_query_var('parent') ));
-		else
-			$new_title = ap_opt('base_page_title');
-			
-	}
 	$new_title = apply_filters('ap_page_title', $new_title);
 	
 	return $new_title;
@@ -134,7 +136,7 @@ function ap_get_current_page_template(){
 
 /**
  * Get post status
- * @param  false|integer $post_id
+ * @param  boolean $post_id
  * @return string
  * @since 2.0.0-alpha2
  */
@@ -251,16 +253,13 @@ function ap_display_question_metas($question_id =  false){
 	}
 
 	$metas = array();
-	if(is_question()){		
-		$metas['created'] = sprintf( __( '<span>Created</span> <i><time itemprop="datePublished" datetime="%s">%s Ago</time></i>', 'ap' ), get_the_time('c', $question_id), ap_human_time( get_the_time('U')));
-		
-	}else{
-		if(ap_is_answer_selected())
+	if(!is_question()){
+		if(ap_question_best_answer_selected())
 			$metas['solved'] = '<span class="ap-best-answer-label ap-tip" title="'.__('answer accepted', 'ap').'">'.__('Selected', 'ap').'</span>';
 
 		$view_count = ap_get_qa_views();
 		$metas['views'] = sprintf( __('<i>%d views</i>', 'ap'), $view_count) ;
-		$metas['history'] = ap_get_latest_history_html($question_id);
+		$metas['history'] = ap_get_latest_history_html($question_id, true);
 	}	
 
 	/**
@@ -308,13 +307,13 @@ function ap_icon($name, $html = false){
 		'delete'			=> 'apicon-trashcan',
 		'flag'				=> 'apicon-flag',
 		'edit'				=> 'apicon-pencil',
-		'comment'			=> 'apicon-mail-reply',
-		'answer'			=> 'apicon-comment',
+		'comment'			=> 'apicon-comments',
+		'answer'			=> 'apicon-answer',
 		'view'				=> 'apicon-eye',
 		'vote'				=> 'apicon-triangle-up',
 		'cross'				=> 'apicon-x',
 		'more'				=> 'apicon-ellipsis',
-		'category'			=> 'apicon-file-directory',
+		'category'			=> 'apicon-category',
 		'home'				=> 'apicon-home',
 		'question'			=> 'apicon-comment-discussion',
 		'upload'			=> 'apicon-cloud-upload',
@@ -328,6 +327,8 @@ function ap_icon($name, $html = false){
 		'link'				=> 'apicon-link',
 		'mute'				=> 'apicon-mute',
 		'unmute'			=> 'apicon-unmute',
+		'tag'				=> 'apicon-tag',
+		'history'				=> 'apicon-history',
 	);
 	
 	$icons = apply_filters('ap_icon', $icons);
@@ -349,11 +350,12 @@ function ap_icon($name, $html = false){
 * @param string $page_slug slug for links
 * @param string $page_title Page title
 * @param callable $func Hook to run when shortcode is found.
+* @param boolean $show_in_menu User can add this pages to their WordPress menu from appearance->menu->AnsPress
 * @return void
 * @since 2.0.1
 */
-function ap_register_page($page_slug, $page_title, $func){
-	ap_append_to_global_var('ap_pages', $page_slug , array('title' => $page_title, 'func' => $func));
+function ap_register_page($page_slug, $page_title, $func, $show_in_menu = true){
+	anspress()->pages[$page_slug] = array('title' => $page_title, 'func' => $func, 'show_in_menu' => $show_in_menu);
 }
 
 /**
@@ -362,17 +364,17 @@ function ap_register_page($page_slug, $page_title, $func){
 * @since 2.0.0-beta
 */
 function ap_page(){
-	global $ap_pages;
+	$pages = anspress()->pages;
 	$current_page  = get_query_var('ap_page');
 
 	if(is_question())
 		$current_page = 'question';
 	
-	elseif($current_page == '' && !is_question())
+	elseif($current_page == '' && !is_question() && get_query_var('question_name') == '')
 		$current_page = 'base';
 
-	if(isset($ap_pages[$current_page]['func']))
-		call_user_func($ap_pages[$current_page]['func']);
+	if(isset($pages[$current_page]['func']))
+		call_user_func($pages[$current_page]['func']);
 	else
 		include(ap_get_theme_location('not-found.php'));
 }
@@ -398,13 +400,15 @@ function ap_post_actions_buttons($disable = array())
 	 * @var string
 	 */
 	if($post->post_type == 'answer')
-		$actions['select_answer'] = ap_select_answer_btn_html(get_the_ID());
+		$actions['select_answer'] = ap_select_answer_btn_html($post->ID);
 
 	/**
 	 * Comment button
 	 */
 	if(ap_user_can_comment())
 		$actions['comment'] = ap_comment_btn_html();
+	
+	$actions['status'] = ap_post_change_status_btn_html($post->ID);
 
 	/**
 	 * edit question link
@@ -430,15 +434,15 @@ function ap_post_actions_buttons($disable = array())
 	$actions = apply_filters('ap_post_actions_buttons', $actions );
 
 	if (!empty($actions) && count($actions) > 0) {
-		echo '<ul class="ap-q-actions ap-ul-inline clearfix">';
+		echo '<ul id="ap_post_actions_'.$post->ID.'" class="ap-q-actions ap-ul-inline clearfix">';
 		foreach($actions as $k => $action){
 			if(!empty($action) && $k != 'dropdown' && !in_array($k, $disable))
 				echo '<li class="ap-post-action ap-action-'.$k.'">'.$action.'</li>';
 		}
-		if(!empty($actions['dropdown'])){
-			echo '<li class="ap-post-action ap-action-dropdown">';
-				echo '<div class="ap-dropdown">';
-				echo '<a class="ap-dropdown-toggle apicon-gear" href="#"></a>';
+		if(!empty($actions['dropdown'])){			
+			echo '<li class="ap-post-action dropdown">';				
+				echo '<div id="ap_post_action_'.$post->ID.'" class="ap-dropdown">';
+				echo '<a class="apicon-ellipsis ap-btn more-actions ap-tip ap-dropdown-toggle" title="'.__('More action', 'ap').'" href="#"></a>';
 				echo '<ul class="ap-dropdown-menu">';
 					foreach($actions['dropdown'] as $sk=>$sub)
 						echo '<li class="ap-post-action ap-action-'.$sk.'">'.$sub.'</li>';
@@ -455,13 +459,14 @@ function ap_post_actions_buttons($disable = array())
  * @return string
  */
 function ap_questions_tab($current_url){
+	if(is_home() || is_front_page())
+		$current_url = home_url('/');
+
 	$param = array();
 
 	$sort = isset($_GET['ap_sort']) ? $_GET['ap_sort'] : 'active';
 
 	$search_q = sanitize_text_field(get_query_var('ap_s'));
-
-	//$param['sort'] = $sort;
 
 	if(!empty( $search_q ))
 		$param['ap_s'] =  $search_q;
@@ -539,7 +544,7 @@ function ap_display_answer_metas($answer_id =  false){
 		$answer_id = get_the_ID();
 
 	$metas = array();
-	if(ap_is_best_answer($answer_id))
+	if(ap_answer_is_best($answer_id))
 		$metas['best_answer'] = '<span class="ap-best-answer-label">'.__('Best answer', 'ap').'</span>';
 
 	$metas['history'] = ap_last_active_time($answer_id);
@@ -598,9 +603,27 @@ function ap_comment_actions_buttons()
 }
 
 /**
- * @param string $slug
- * @param string $link
+ * Echo ask button
+ * @return void
+ * @since 2.1
  */
-function ap_register_menu($slug, $title, $link){
-	ap_append_to_global_var('ap_menu', $slug, array('title' => $title, 'link' => $link));
+function ap_ask_btn(){
+	echo ap_get_ask_btn();
+}
+	/**
+	 * Return the ask button
+	 * @return string Ask button HTML
+	 * @since 2.1
+	 */
+	function ap_get_ask_btn(){
+		return '<a class="ap-btn-ask" href="'.ap_get_link_to('ask').'">'.__('Ask question', 'ap').'</a>';
+	}
+
+/**
+ * Include template php files
+ * @param  string $file File name without extension
+ * @since 2.1
+ */
+function ap_get_template_part($file){
+	include(ap_get_theme_location($file.'.php'));
 }

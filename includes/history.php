@@ -47,17 +47,15 @@ class AP_History
 	}
 	public function new_answer($answer_id) {
 		$post = get_post($answer_id);
-		ap_add_history($post->post_author, $post->post_parent, '', 'new_answer');
+		ap_add_history(get_current_user_id(), $post->post_parent, '', 'new_answer');
 	}
 	
 	public function edit_question($post_id) {
-		$post = get_post($post_id);
-		ap_add_history(get_current_user_id(), $post->ID, '', 'edit_question');
+		ap_add_history(get_current_user_id(), $post_id, '', 'edit_question');
 	}
 	
-	public function edit_answer($postid, $userid, $question_id) {
-		$post = get_post($post_id);
-		ap_add_history(get_current_user_id(), $post->ID, '', 'edit_answer');
+	public function edit_answer($post_id) {
+		ap_add_history(get_current_user_id(), $post_id, '', 'edit_answer');
 	}
 	
 	public function new_comment($comment){
@@ -65,7 +63,8 @@ class AP_History
 		if($post->post_type == 'question'){
 			ap_add_history($comment->user_id, $comment->comment_post_ID, $comment->comment_ID, 'new_comment');
 		}else{
-			ap_add_history($comment->user_id, $question_id, $comment->comment_ID, 'new_comment_answer');
+			$answer = get_post($comment->comment_post_ID);
+			ap_add_history($comment->user_id, $answer->post_parent, $comment->comment_ID, 'new_comment_answer');
 			ap_add_history($comment->user_id, $comment->comment_post_ID, $comment->comment_ID, 'new_comment_answer');
 		}
 	}
@@ -115,7 +114,7 @@ function ap_delete_history($user_id, $action_id, $value, $param = null){
 
 	if($row){
 		$last_activity = ap_get_latest_history($action_id);
-		update_post_meta( $post_id, '__ap_history', array('type' => $last_activity['type'], 'user_id' => $last_activity['user_id'], 'time' => $last_activity['date']) );
+		update_post_meta( $action_id, '__ap_history', array('type' => $last_activity['type'], 'user_id' => $last_activity['user_id'], 'time' => $last_activity['date']) );
 	}
 
 	return $row;
@@ -197,11 +196,11 @@ function ap_last_active_time($post_id = false, $html = true){
 	return sprintf( __('Active %s ago', 'ap'), '<a class="ap-tip" href="#" title="'. $title .'"><time datetime="'. mysql2date('c', $history['date']) .'">'.ap_human_time( mysql2date('U', $history['date'])) ).'</time></a>';
 }
 
-function ap_get_latest_history_html($post_id, $avatar = false, $icon = false){
+function ap_get_latest_history_html($post_id, $initial = false, $avatar = false, $icon = false){
 	$post = get_post($post_id);
 	$history = get_post_meta($post_id, '__ap_history', true);
 
-	if(!$history){
+	if(!$history && $initial){
 		$history['date'] 	= get_the_time('c', $post_id);
 		$history['user_id'] = $post->post_author;
 		$history['type'] 	= 'new_'.$post->post_type;
@@ -216,12 +215,9 @@ function ap_get_latest_history_html($post_id, $avatar = false, $icon = false){
 			$html .= '<a class="ap-avatar" href="'.ap_user_link($history['user_id']).'">'.get_avatar($history['user_id'], 22).'</a>';		
 
 		$title = ap_history_title($history['type']);
-
-		$html .= '<span class="ap-post-history">'.sprintf( __('%s %s <time datetime="'. mysql2date('c', $history['date']) .'">%s</time> ago', 'ap'), ap_user_display_name($history['user_id']), $title, ap_human_time( $history['date'], false)) .'</span>';
+		$html .= '<span class="ap-post-history">'.ap_icon('history', true).sprintf( __(' %s %s <time datetime="'. mysql2date('c', $history['date']) .'">%s</time> ago', 'ap'), ap_user_display_name($history['user_id']), $title, ap_human_time( $history['date'], false)) .'</span>';
 
 		
-	}elseif(!$icon && $post->post_type = 'question'){
-		$html = '<span class="ap-post-history">'.sprintf( __('Asked by %s', 'ap'), ap_user_display_name() ).'</span>';
 	}
 	
 	if($html)	

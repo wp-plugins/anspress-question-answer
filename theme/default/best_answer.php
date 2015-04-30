@@ -2,8 +2,8 @@
 /**
  * Best answer content
  * 	
- * @author Rahul Aryan <rah12@live.com>
- * @link http://wp3.in/anspress
+ * @author Rahul Aryan <support@anspress.io>
+ * @link http://anspress.io/anspress
  * @since 0.1
  *
  * @package AnsPress
@@ -12,9 +12,9 @@
 /**
  * Show best answer
  */
-if(ap_is_answer_selected(get_question_id())){
+if(ap_question_best_answer_selected(get_question_id())){
 	echo '<div id="ap-best-answer">';
-		echo '<h3 class="ap-widget-title">' . __('Best answer', 'ap') .'</h3>';
+		echo '<h3 class="ap-answers-label">' . __('Best answer', 'ap') .'</h3>';
 		ap_get_best_answer();
 	echo '</div>';
 }

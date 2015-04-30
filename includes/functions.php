@@ -130,7 +130,8 @@ function is_anspress(){
 }
 
 function is_question(){
-	if(is_anspress() && (get_query_var('question_id') || get_query_var('question') || get_query_var('question_name')))
+	$question_id = (int) get_query_var('question_id');
+	if(is_anspress() && $question_id > 0 )
 		return true;
 		
 	return false;
@@ -159,6 +160,8 @@ function get_question_id(){
 		return $post->ID;
 	}elseif(get_query_var('edit_q')){
 		return get_query_var('edit_q');
+	}elseif(ap_answer_the_object()){
+		return ap_answer_get_the_question_id();
 	}
 	
 	return false;
@@ -208,7 +211,7 @@ function ap_count_all_answers($id){
 function ap_count_published_answers($id){
 	
 	global $wpdb;
-	$count = $wpdb->get_var( $wpdb->prepare("SELECT COUNT(*) FROM $wpdb->posts where post_parent = %d AND post_status = %s AND post_type = %s", $id, 'publish', 'answer'));
+	$count = $wpdb->get_var( $wpdb->prepare("SELECT COUNT(*) FROM $wpdb->posts where post_parent = %d AND (post_status = %s OR post_status = %s) AND post_type = %s", $id, 'publish', 'closed', 'answer'));
 
 	return $count;
 }
@@ -224,11 +227,11 @@ function ap_count_answer_meta($post_id =false){
  * @return int
  */
 function ap_count_other_answer($question_id =false){
-	if(!$question_id) $question_id = get_the_ID();
+	if(!$question_id) $question_id = get_question_id();
 
 	$count = ap_count_answer_meta($question_id);
 	
-	if(ap_is_answer_selected($question_id))
+	if(ap_question_best_answer_selected($question_id))
 		return (int)($count - 1);
 
 	return (int)$count;
@@ -238,15 +241,6 @@ function ap_count_other_answer($question_id =false){
 function ap_last_active($post_id =false){
 	if(!$post_id) $post_id = get_the_ID();
 	return get_post_meta($post_id, ANSPRESS_UPDATED_META, true);
-}
-
-//check if current questions have answers
-function ap_have_ans($id){
-	
-	if(ap_count_all_answers($id) > 0)
-		return true;	
-	
-	return false;
 }
 
 // link to asnwers
@@ -276,7 +270,7 @@ function ap_comment_btn_html($echo = false){
 
 		$nonce = wp_create_nonce( 'comment_form_nonce' );
 		$comment_count = get_comments_number( get_the_ID() );
-		$output = '<a href="#comments-'.get_the_ID().'" class="comment-btn ap-tip" data-action="load_comment_form" data-query="ap_ajax_action=load_comment_form&post='.get_the_ID().'&__nonce='.$nonce.'" title="'.__('Comments', 'ap').'">'.__('Comment', 'ap').'<span class="ap-data-view ap-view-count-'.$comment_count.'"><b data-view="comments_count_'.get_the_ID().'">'.$comment_count.'</b></span></a>';
+		$output = '<a href="#comments-'.get_the_ID().'" class="ap-btn comment-btn ap-tip" data-action="load_comment_form" data-query="ap_ajax_action=load_comment_form&post='.get_the_ID().'&__nonce='.$nonce.'" title="'.__('Comments', 'ap').'">'.__('Comment', 'ap').'<span class="ap-data-view ap-view-count-'.$comment_count.'"><b data-view="comments_count_'.get_the_ID().'">'.$comment_count.'</b></span></a>';
 
 		if($echo)
 			echo $output;
@@ -452,39 +446,6 @@ function ap_selected_answer($post_id = false){
 }
 
 /**
- * Check if answer is selected for given question
- * @param  false|integer $question_id
- * @return boolean
- */
-function ap_is_answer_selected($question_id = false){
-	if($question_id === false)
-		$question_id = get_the_ID();
-	
-	$meta = get_post_meta($question_id, ANSPRESS_SELECTED_META, true);
-
-	if(!$meta)
-		return false;
-	
-	return true;
-}
-
-/**
- * Check if given anser/post is selected as a best answer
- * @param  false|integer $post_id 
- * @return boolean
- * @since unknown
- */
-function ap_is_best_answer($post_id = false){
-	if($post_id === false)
-		$post_id = get_the_ID();
-	
-	$meta = get_post_meta($post_id, ANSPRESS_BEST_META, true);
-	if($meta) return true;
-	
-	return false;
-}
-
-/**
  * Print select anser HTML button
  * @param integer $post_id
  * @return  null|string
@@ -497,15 +458,21 @@ function ap_select_answer_btn_html($post_id){
 	$action = 'answer-'.$post_id;
 	$nonce = wp_create_nonce( $action );	
 	
-	if(!ap_is_answer_selected($ans->post_parent)){		
-		return '<a href="#" class="ap-btn-select ap-sicon '.ap_icon('check').' ap-tip" data-action="select_answer" data-query="answer_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=select_best_answer" title="'.__('Select this answer as best', 'ap').'">'.__('Select', 'ap').'</a>';
+	if(!ap_question_best_answer_selected($ans->post_parent)){		
+		return '<a href="#" class="ap-btn ap-btn-select ap-sicon '.ap_icon('check').' ap-tip" data-action="select_answer" data-query="answer_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=select_best_answer" title="'.__('Select this answer as best', 'ap').'">'.__('Select', 'ap').'</a>';
 		
-	}elseif(ap_is_answer_selected($ans->post_parent) && ap_is_best_answer($ans->ID)){
-		return '<a href="#" class="ap-btn-select ap-sicon '.ap_icon('cross').' selected ap-tip" data-action="select_answer" data-query="answer_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=select_best_answer" title="'.__('Unselect this answer', 'ap').'">'.__('Unselect', 'ap').'</a>';
+	}elseif(ap_question_best_answer_selected($ans->post_parent) && ap_answer_is_best($ans->ID)){
+		return '<a href="#" class="ap-btn ap-btn-select ap-sicon '.ap_icon('cross').' active ap-tip" data-action="select_answer" data-query="answer_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=select_best_answer" title="'.__('Unselect this answer', 'ap').'">'.__('Unselect', 'ap').'</a>';
 		
 	}
 }
 
+/**
+ * Output frontend post delete button
+ * @param  integer $post_id
+ * @param  boolean $echo
+ * @return void|string
+ */
 function ap_post_delete_btn_html($post_id = false, $echo = false){
 	if(!$post_id){
 		$post_id = get_the_ID();
@@ -520,6 +487,44 @@ function ap_post_delete_btn_html($post_id = false, $echo = false){
 			echo $output;
 		else
 			return $output;
+	}
+}
+
+function ap_post_change_status_btn_html($post_id = false){
+	$post = get_post($post_id);
+
+	if(ap_user_can_change_status($post_id)){		
+		$action = 'change_post_status_'.$post_id;
+		$nonce = wp_create_nonce( $action );
+		
+		$status = apply_filters('ap_change_status_dropdown', array('closed' => __('Close', 'ap'), 'publish' => __('Open', 'ap'), 'moderate' => __('Moderate', 'ap'), 'private_post' => __('Private', 'ap') ));
+
+		$output = '<div class="ap-dropdown">
+			<a class="ap-btn ap-tip ap-dropdown-toggle" title="'.__('Change status of post', 'ap').'" href="#" >
+				'.__('Status', 'ap').' <i class="caret"></i>
+			</a>
+			<ul id="ap_post_status_toggle_'.$post_id.'" class="ap-dropdown-menu" role="menu">';
+
+			foreach($status as $k => $title){
+				
+				$can = true;
+
+				if($k == 'closed' && ( !ap_user_can_change_status_to_closed() || $post->post_type == 'answer'))
+					$can = false;
+
+				elseif($k == 'moderate' && !ap_user_can_change_status_to_moderate() )
+					$can = false;
+
+				if($can){
+					$output .= '<li class="'.$k.($k == $post->post_status ? ' active' : '').'">
+						<a href="#" data-action="ap_change_status" data-query="post_id='.$post_id.'&__nonce='.$nonce.'&ap_ajax_action=change_post_status&status='.$k.'">'.$title.'</a>
+					</li>';
+				}
+			}	
+			$output .='</ul>
+		</div>';
+
+		return $output;
 	}
 }
 
@@ -577,158 +582,6 @@ function sanitize_comma_delimited($str){
 	return implode(",", array_map("intval", explode(",", $str)));
 }
 
-function ap_pagi($base, $total_pages, $paged, $end_size = 1, $mid_size = 5){
-	$pagi_a = paginate_links( array(
-		'base' => $base, // the base URL, including query arg
-		'format' => 'page/%#%', // this defines the query parameter that will be used, in this case "p"
-		'prev_text' => __('&laquo; Previous', 'ap'), // text for previous page
-		'next_text' => __('Next &raquo;', 'ap'), // text for next page
-		'total' => $total_pages, // the total number of pages we have
-		'current' => $paged, // the current page
-		'end_size' => 1,
-		'mid_size' => 5,
-		'type' => 'array'
-		));
-	if($pagi_a){
-		echo '<ul class="ap-pagination clearfix">';
-		echo '<li><span class="page-count">'. sprintf(__('Page %d of %d', 'ap'), $paged, $total_pages) .'</span></li>';
-		foreach($pagi_a as $pagi){
-			echo '<li>'. $pagi .'</li>';
-		}
-		echo '</ul>';
-	}
-}
-
-function ap_question_side_tab(){
-	$links = array (
-		'discussion' => array('icon' => 'ap-apicon-flow-tree', 'title' => __('Discussion', 'ap'), 'url' => '#discussion')
-		);
-	$links = apply_filters('ap_question_tab', $links);
-	$i = 1;
-	if(count($links) > 1){
-		echo '<ul class="ap-question-extra-nav" data-action="ap-tab">';
-		foreach($links as $link){
-			echo '<li'.($i == 1 ? ' class="active"' : '').'><a class="'.$link['icon'].'" href="'.$link['url'].'">'.$link['title'].'</a></li>';
-			$i++;
-		}
-		echo '</ul>';
-	}
-}
-
-function ap_read_features($type = 'addon'){
-	$option = get_option('ap_addons');
-	$cache = wp_cache_get('ap_'.$type.'s_list', 'array');
-	
-	if($cache !== FALSE)
-		return $cache;
-	
-	$features = array();
-	//load files from addons folder
-	$files=glob(ANSPRESS_DIR.'/'.$type.'s/*/'.$type.'.php');
-	//print_r($files);
-	foreach ($files as $file){
-		$data = ap_get_features_data($file);
-		$data['folder'] = basename(dirname($file));
-		$data['file'] = basename($file);
-		$data['active'] = (isset($option[$data['name']]) && $option[$data['name']]) ? true : false;
-		$features[$data['name']] = $data;
-	}
-	wp_cache_set( 'ap_'.$type.'s_list', $features, 'array');
-	return $features;
-}
-
-
-function ap_get_features_data( $plugin_file) {
-	$plugin_data = ap_get_file_data( $plugin_file);
-
-	return $plugin_data;
-}
-
-function ap_get_file_data( $file) {
-	// We don't need to write to the file, so just open for reading.
-	$fp = fopen( $file, 'r' );
-
-	// Pull only the first 8kiB of the file in.
-	$file_data = fread( $fp, 1000 );
-
-	// PHP will close file handle, but we are good citizens.
-	fclose( $fp );
-
-	$metadata=ap_features_metadata($file_data, array(
-		'name' 				=> 'Name',
-		'version' 			=> 'Version',
-		'description' 		=> 'Description',
-		'author' 			=> 'Author',
-		'author_uri' 		=> 'Author URI',
-		'addon_uri' 		=> 'Addon URI'
-		));
-
-	return $metadata;
-}
-
-/**
- * @param string $contents
- */
-function ap_features_metadata($contents, $fields){
-	$metadata=array();
-
-	foreach ($fields as $key => $field)
-		if (preg_match('/'.str_replace(' ', '[ \t]*', preg_quote($field, '/')).':[ \t]*([^\n\f]*)[\n\f]/i', $contents, $matches))
-			$metadata[$key]=trim($matches[1]);
-		
-		return $metadata;
-	}
-
-	function ap_users_tab(){
-		$order = isset($_GET['ap_sort']) ? $_GET['ap_sort'] : 'points';
-		
-		$link = '?ap_sort=';
-
-		
-		?>
-		<div class="ap-lists-tab clearfix">
-			<ul class="ap-tabs clearfix" role="tablist">			
-				<li class="<?php echo $order == 'points' ? ' active' : ''; ?>"><a href="<?php echo $link.'points'; ?>"><?php _e('Points', 'ap'); ?></a></li>
-				<li class="<?php echo $order == 'newest' ? ' active' : ''; ?>"><a href="<?php echo $link.'newest'; ?>"><?php _e('Newest', 'ap'); ?></a></li>			
-			</ul>
-		</div>
-		<?php
-	}
-
-
-	function ap_qa_on_post($post_id = false){
-		
-		if(!$post_id)
-			$post_id = get_the_ID();
-
-		$post = get_post($post_id);
-
-		if('question' == $post->post_type || 'answer' == $post->post_type)
-			return;
-
-		wp_enqueue_style( 'ap-style', ap_get_theme_url('css/ap.css'), array(), AP_VERSION);
-		
-		$questions = new Question_Query( array('post_parent' => $post_id) );
-
-		echo '<div class="anspress-container">';
-		include ap_get_theme_location('on-post.php');
-		wp_reset_postdata();
-		echo '<a href="'. add_query_arg(array('parent' => get_the_ID()), ap_base_page_link()) .'" class="ap-view-all">'.__( 'View All', 'ap' ).'</a>';
-		echo '</div>';
-
-	}
-
-	function ap_ask_btn($parent_id = false){
-		$args = array('ap_page' => 'ask');
-		
-		if($parent_id !== false)
-			$args['parent'] = $parent_id;
-		
-		if(get_query_var('parent') != '')
-			$args['parent'] = get_query_var('parent');
-
-		echo '<a class="ap-ask-btn" href="'.add_query_arg(array($args), ap_base_page_link()).'">'.__('Ask Question', 'ap').'</a>';
-	}
 
 /**
  * Check if doing ajax request
@@ -835,6 +688,7 @@ function ap_responce_message($id, $only_message = false)
 		'already_flagged' => array('type' => 'warning', 'message' => __('You have already reported this post.', 'ap')),
 		'captcha_error' => array('type' => 'error', 'message' => __('Please check captcha field and resubmit it again.', 'ap')),
 		'comment_content_empty' => array('type' => 'error', 'message' => __('Comment content is empty.', 'ap')),
+		'status_updated' => array('type' => 'success', 'message' => __('Post status updated successfully', 'ap')),
 		);
 
 	/**
@@ -976,179 +830,217 @@ function ap_do_event(){
 }
 
 /**
- * For user display name
- * It can be filtered for adding cutom HTML
- * @param  mixed $args
- * @return string
- * @since 0.1
+ * Echo anspress links
+ * @return void
+ * @since 2.1
  */
-function ap_user_display_name($args = array())
-{
-	global $post;
-	$defaults = array(
-		'user_id'            => get_the_author_meta('ID'),
-		'html'                => false,
-		'echo'                => false,
-		'anonymous_label'    => __('Anonymous', 'ap'),
-		);
-
-	if (!is_array($args)) {
-		$defaults['user_id'] = $args;
-		$args = $defaults;
-	} else {
-		$args = wp_parse_args($args, $defaults);
-	}
-
-	extract($args);
-
-	if ($user_id > 0) {
-		$user = get_userdata($user_id);
-
-		if (!$html) {
-			$return = $user->display_name;
-		} else {
-			$return = '<span class="who"><a href="'.ap_user_link($user_id).'">'.$user->display_name.'</a></span>';
-		}
-	} elseif ($post->post_type == 'question' || $post->post_type == 'answer') {
-		$name = get_post_meta($post->ID, 'anonymous_name', true);
-
-		if (!$html) {
-			if ($name != '') {
-				$return = $name;
-			} else {
-				$return = $anonymous_label;
-			}
-		} else {
-			if ($name != '') {
-				$return = '<span class="who">'.$name.__(' (anonymous)', 'ap').'</span>';
-			} else {
-				$return = '<span class="who">'.$anonymous_label.'</span>';
-			}
-		}
-	} else {
-		$return = '<span class="who">'.$anonymous_label.'</span>';
-	}
-
-    /**
-     * FILTER: ap_user_display_name
-     * Filter can be used to alter display name
-     * @var string
-     * @since 2.0.1
-     */
-    $return = apply_filters('ap_user_display_name', $return);
-
-    if ($echo) {
-    	echo $return;
-    } else {
-    	return $return;
-    }
+function ap_link_to($sub){
+	echo ap_get_link_to($sub);
 }
 
-/**
- * Return Link to user profile pages if profile plugin is installed else return user posts link
- * @param  false|integer $user_id 	user id
- * @param  string $sub 		page slug
- * @return string
- * @since  unknown
- */
-function ap_user_link($user_id = false, $sub = false)
-{
-	if ($user_id === false) {
-		$user_id = get_the_author_meta('ID');
-	}
+	/**
+	 * Return link to AnsPress pages
+	 * @param string|array $sub
+	 */
+	function ap_get_link_to($sub){
+		
+		$base = rtrim(get_permalink(ap_opt('base_page')), '/');
+		$args = '';
 
-	if(function_exists('pp_get_link_to')) {
-		return pp_get_link_to($sub, $user_id);
-	}elseif(function_exists('bp_core_get_userlink')){
-		return bp_core_get_userlink($user_id, false, true);
-	}
+		if(get_option('permalink_structure') != ''){		
+			if(!is_array($sub))
+				$args = $sub ? '/'.$sub : '';
 
-	return get_author_posts_url($user_id);	
-}
+			elseif(is_array($sub)){
+				$args = '/';
 
+				if(!empty($sub))
+					foreach($sub as $s)
+						$args .= $s.'/';
+				}
 
-/**
- * Display user meta
- * @param  	boolean 		$html  for html output
- * @param  	false|integer 	$user_id  User id, if empty then post author witll be user
- * @param 	boolen 			$echo
- * @return 	string
- */
-function ap_user_display_meta($html = false, $user_id = false, $echo = false)
-{
-	if (false === $user_id) 
-		$user_id = get_the_author_meta('ID');
-	
+				$args = rtrim($args, '/').'/';
+		}else{
 
-	$metas = array();
-
-	$metas['display_name'] = '<span class="ap-user-meta ap-user-meta-display_name">'. ap_user_display_name(array('html' => true)) .'</span>';
-	
-	if($user_id > 0)
-		$metas['reputation'] = '<span class="ap-user-meta ap-user-meta-reputation">'. sprintf(__('%d Reputation', 'ap'), ap_get_reputation($user_id, true)) .'</span>';
-
-    /**
-     * FILTER: ap_user_display_meta_array
-     * Can be used to alter user display meta
-     * @var array
-     */
-    $metas = apply_filters('ap_user_display_meta_array', $metas);
-
-    $output = '';
-
-    if (!empty($metas) && is_array($metas) && count($metas) > 0) {
-    	$output .= '<div class="ap-user-meta">';
-    	foreach ($metas as $meta) {
-    		$output .= $meta.' ';
-    	}
-    	$output .= '</div>';
-    }
-
-    if ($echo) {
-    	echo $output;
-    } else {
-    	return $output;
-    }
-}
-
-/**
- * Return link to AnsPress pages
- * @param string $sub
- */
-function ap_get_link_to($sub){
-	
-	$base = rtrim(get_permalink(ap_opt('base_page')), '/');
-	$args = '';
-
-	if(get_option('permalink_structure') != ''){		
-		if(!is_array($sub))
-			$args = $sub ? '/'.$sub : '';
-
-		elseif(is_array($sub)){
-			$args = '/';
-
-			if(!empty($sub))
-				foreach($sub as $s)
-					$args .= $s.'/';
-			}
-			$link = $base;
-
-	}else{
-
-		if(!is_array($sub))
-			$args = $sub ? '&ap_page='.$sub : '';
-		elseif(is_array($sub)){
-			$args = '';
+			if(!is_array($sub))
+				$args = $sub ? '&ap_page='.$sub : '';
 			
-			if(!empty($sub))
-				foreach($sub as $k => $s)
-					$args .= '&'.$k .'='.$s;
+			elseif(is_array($sub)){
+				$args = '';
+				
+				if(!empty($sub))
+					foreach($sub as $k => $s)
+						$args .= '&'.$k .'='.$s;
 			}
+		}
 
-			$link = $base;
-
+		return $base. $args ;
 	}
 
-	return $link. $args ;
+
+/**
+ * Return the total numbers of post
+ * @param  string         $post_type
+ * @param  boolean|string $ap_type
+ * @return array
+ * @since  2.0.0-alpha2
+ */
+function ap_total_posts_count($post_type = 'question', $ap_type =  false)
+{
+	global $wpdb;
+	
+	if('question' == $post_type)
+		$type = "p.post_type = 'question'";
+	elseif('answer' == $post_type)
+		$type = "p.post_type = 'answer'";
+	else
+		$type = "(p.post_type = 'question' OR p.post_type = 'answer')";
+
+	$meta = "";
+	$join = "";
+	
+	if($ap_type){
+		$meta = "AND m.apmeta_type='$ap_type'";
+		$join = "INNER JOIN ".$wpdb->prefix."ap_meta m ON p.ID = m.apmeta_actionid";
+	}
+
+	$where = "WHERE $type $meta";
+	
+	$where = apply_filters( 'ap_total_posts_count', $where );
+	
+	$query = "SELECT count(*) as count, p.post_status FROM $wpdb->posts p $join $where GROUP BY p.post_status";
+	
+	$cache_key = md5( $query );
+
+	$count = wp_cache_get( $cache_key, 'counts');
+	
+	if ( false !== $count )
+		return $count;
+		
+	$count = $wpdb->get_results( $query, ARRAY_A);
+	
+	$counts = array();
+	foreach ( get_post_stati() as $state )
+		$counts[$state] = 0;	
+
+	$counts['total'] = 0;
+
+	foreach ( (array) $count as $row ){
+		$counts[$row['post_status']] = $row['count'];
+		$counts['total'] += $row['count'];
+	}	
+	wp_cache_set( $cache_key, (object)$counts, 'counts' );
+
+	return (object)$counts;
 }
 
+function ap_total_published_questions(){
+	$posts = ap_total_posts_count();
+	return $posts->publish;
+}
+
+/**
+ * Get total numbers of solved question
+ * @param  string $type int|object
+ * @return integer|object
+ */
+function ap_total_solved_questions($type = 'int'){
+	global $wpdb;
+
+	$query = "SELECT count(*) as count, p.post_status FROM $wpdb->posts p INNER JOIN ".$wpdb->prefix."postmeta m ON p.ID = m.post_id WHERE m.meta_key = '_ap_selected' AND m.meta_value !='' GROUP BY p.post_status";
+	
+	$cache_key = md5( $query );
+
+	$count = wp_cache_get( $cache_key, 'counts');
+
+	if ( false !== $count )
+		return $count;
+
+	$count = $wpdb->get_results( $query, ARRAY_A);
+	
+	$counts = array();
+	foreach ( get_post_stati() as $state )
+		$counts[$state] = 0;	
+
+	$counts['total'] = 0;
+
+	foreach ( (array) $count as $row ){
+		$counts[$row['post_status']] = $row['count'];
+		$counts['total'] += $row['count'];
+	}	
+	wp_cache_set( $cache_key, (object)$counts, 'counts' );
+
+	$counts = (object)$counts;
+
+	if($type == 'int')
+		return $counts->publish + $counts->closed + $counts->private_post;
+
+	return $counts;
+}
+
+/**
+ * Get current sorting type
+ * @return string
+ * @since 2.1
+ */
+function ap_get_sort(){
+	if(isset($_GET['ap_sort']))
+		return sanitize_text_field( $_GET['ap_sort'] );
+}
+
+/**
+ * Register AnsPress menu
+ * @param  page $slug  [description]
+ * @param  [type] $title [description]
+ * @param  [type] $link  [description]
+ * @return [type]        [description]
+ */
+function ap_register_menu($slug, $title, $link){
+	anspress()->menu[$slug] = array('title' => $title, 'link' => $link);
+}
+
+/**
+ * Check if first parameter is false, if yes then return other parameter
+ * @param  mixed $param
+ * @param  mixed $return
+ * @return mixed
+ * @since 2.1
+ */
+function ap_parameter_empty($param = false, $return){
+	if($param === false || $param == '')
+		return $return;
+
+	return $param;
+}
+
+
+function ap_post_status_description($post_id = false){
+    $post_id = ap_parameter_empty($post_id, @ap_question_get_the_ID());
+    $post = get_post($post_id);
+    $post_type = $post->post_type == 'question' ? __('Question','ap') : __('Answer','ap');
+
+    if ( ap_have_parent_post($post_id) && $post->post_type != 'answer') : ?>
+        <div id="ap_post_status_desc_<?php echo $post_id; ?>" class="ap-notice blue clearfix">
+            <?php echo ap_icon('link', true) ?>
+            <span><?php printf(__( 'Question is asked for %s.', 'ap' ), '<a href="'. get_permalink(ap_question_get_the_post_parent()) .'">'.get_the_title( ap_question_get_the_post_parent() ).'</a>'); ?></span>
+        </div>
+    <?php endif;
+
+    if ( is_private_post($post_id)) : ?>
+        <div id="ap_post_status_desc_<?php echo $post_id; ?>" class="ap-notice gray clearfix">
+            <i class="apicon-lock"></i><span><?php printf(__( '%s is marked as a private, only admin and post author can see.', 'ap' ), $post_type); ?></span>
+        </div>
+    <?php endif;
+
+    if ( is_post_waiting_moderation($post_id)) : ?>
+        <div id="ap_post_status_desc_<?php echo $post_id; ?>" class="ap-notice yellow clearfix">
+            <i class="apicon-info"></i><span><?php printf(__( '%s is waiting for approval by moderator.', 'ap' ), $post_type); ?></span>
+        </div>
+    <?php endif;
+
+    if ( is_post_closed($post_id) && $post->post_type != 'answer') : ?>
+        <div id="ap_post_status_desc_<?php echo $post_id; ?>" class="ap-notice red clearfix">
+            <?php echo ap_icon('cross', true) ?><span><?php printf(__( '%s is closed, new answer are not accepted.', 'ap' ), $post_type); ?></span>
+        </div>
+    <?php endif;
+}

@@ -3,9 +3,9 @@
  * Class for AnsPress base page shortcode
  *
  * @package   AnsPress
- * @author    Rahul Aryan <rah12@live.com>
+ * @author    Rahul Aryan <support@anspress.io>
  * @license   GPL-2.0+
- * @link      http://wp3.in
+ * @link      http://anspress.io
  * @copyright 2014 Rahul Aryan
  */
 
@@ -37,7 +37,6 @@ class AnsPress_BasePage_Shortcode {
 	 * @since 2.0.0-beta
 	 */
 	public function anspress_sc( $atts, $content="" ) {
-		
 		global $questions, $wp;
 
 		if(isset($atts['categories'])){
@@ -67,7 +66,7 @@ class AnsPress_BasePage_Shortcode {
 		}
 
 		ob_start();
-		echo '<div class="anspress-container">';
+		echo '<div id="anspress">';
 			
 			/**
 			 * ACTION: ap_before
@@ -79,7 +78,7 @@ class AnsPress_BasePage_Shortcode {
 			ap_page();
 
 			if(!ap_opt('author_credits'))
-				echo '<div class="ap-cradit">Question and answer is powered by <a href="http://wp3.in" traget="_blank">AnsPress</a></div>';
+				echo '<div class="ap-cradit">Question and answer is powered by <a href="http://anspress.io" traget="_blank">AnsPress</a></div>';
 
 		echo '</div>';
 		wp_reset_postdata();

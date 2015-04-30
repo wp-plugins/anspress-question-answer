@@ -8,16 +8,16 @@
  * @author    Rahul Aryan <support@rahularyan.com>
  * @copyright 2014 WP3.in & Rahul Aryan
  * @license   GPL-2.0+ http://www.gnu.org/licenses/gpl-2.0.txt
- * @link      http://wp3.in
+ * @link      http://anspress.io
  *
  * @wordpress-plugin
  * Plugin Name:       AnsPress
- * Plugin URI:        http://wp3.in
+ * Plugin URI:        http://anspress.io
  * Description:       The most advance community question and answer system for WordPress
- * Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
- * Version:           2.0.5
+ * Donate link: https://www.paypal.com/cgi-bin/webscr?business=support@anspress.io&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
+ * Version:           2.1
  * Author:            Rahul Aryan
- * Author URI:        http://wp3.in
+ * Author URI:        http://anspress.io
  * Text Domain:       ap
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
@@ -38,7 +38,7 @@ if (!class_exists('AnsPress')) {
     class AnsPress
     {
 
-        private $_plugin_version = '2.0.5';
+        private $_plugin_version = '2.1';
 
         private $_plugin_path;
 
@@ -49,7 +49,16 @@ if (!class_exists('AnsPress')) {
         public static $instance = null;
 
         public $anspress_actions;
+        
         public $anspress_ajax;
+
+        public $pages;
+        public $user_pages;
+        public $users;
+        public $menu;
+        public $questions;
+        public $answers;
+        public $form;
 
         /**
          * Filter object
@@ -74,6 +83,7 @@ if (!class_exists('AnsPress')) {
         public $anspress_forms;
         public $anspress_reputation;
         public $anspress_bp;
+        public $anspress_users;
 
 
         /**
@@ -87,7 +97,7 @@ if (!class_exists('AnsPress')) {
                 self::$instance->_setup_constants();
                 
                 add_action('init', array( self::$instance, 'load_textdomain' ));
-                add_action('bp_loaded', array( self::$instance, 'bp_include' ));
+                add_action('bp_include', array( self::$instance, 'bp_include' ));
 
                 global $ap_classes;
                 $ap_classes = array();
@@ -101,6 +111,7 @@ if (!class_exists('AnsPress')) {
                 self::$instance->anspress_theme              = new AnsPress_Theme();
                 self::$instance->anspress_cpt                = new AnsPress_PostTypes();
                 self::$instance->anspress_reputation         = new AnsPress_Reputation();
+                self::$instance->anspress_users              = new AnsPress_User();
 
                 /**
                  * ACTION: anspress_loaded
@@ -219,8 +230,8 @@ if (!class_exists('AnsPress')) {
             require_once ANSPRESS_DIR.'includes/actions.php';
             require_once ANSPRESS_DIR.'includes/ajax.php';
             require_once ANSPRESS_DIR.'includes/class-roles-cap.php';
-            require_once ANSPRESS_DIR.'includes/class-question_query.php';
-            require_once ANSPRESS_DIR.'includes/class-answer_query.php';
+            require_once ANSPRESS_DIR.'includes/question-loop.php';
+            require_once ANSPRESS_DIR.'includes/answer-loop.php';
             require_once ANSPRESS_DIR.'includes/class-theme.php';
             require_once ANSPRESS_DIR.'includes/post_types.php';
             require_once ANSPRESS_DIR.'includes/query_filter.php';
@@ -250,6 +261,11 @@ if (!class_exists('AnsPress')) {
             require_once ANSPRESS_DIR.'includes/reputation.php';            
             require_once ANSPRESS_DIR.'vendor/autoload.php';
             require_once ANSPRESS_DIR.'includes/requirements.php';
+            require_once ANSPRESS_DIR.'includes/class-user.php';
+            require_once ANSPRESS_DIR.'includes/user.php';
+            require_once ANSPRESS_DIR.'includes/users-loop.php';
+            require_once ANSPRESS_DIR.'includes/deprecated.php';
+            require_once ANSPRESS_DIR.'includes/user-fields.php';
              
         }
 
@@ -276,10 +292,24 @@ if (!class_exists('AnsPress')) {
 
 function anspress()
 {
-    AnsPress::instance();
+    return AnsPress::instance();
 }
 
 anspress();
+
+/*----------------------------------------------------------------------------*
+ * Dashboard and Administrative Functionality
+ *----------------------------------------------------------------------------*/
+
+/*
+ * The code below is intended to to give the lightest footprint possible.
+ */
+
+if (is_admin()) {
+    require_once plugin_dir_path(__FILE__).'admin/anspress-admin.php';
+    add_action('plugins_loaded', array( 'AnsPress_Admin', 'get_instance' ));
+}
+
 
 /*
  * Register hooks that are fired when the plugin is activated or deactivated.
@@ -323,15 +353,3 @@ add_action('plugins_loaded', array( 'anspress_vote', 'get_instance' ));
 add_action('plugins_loaded', array( 'anspress_view', 'get_instance' ));
 
 
-/*----------------------------------------------------------------------------*
- * Dashboard and Administrative Functionality
- *----------------------------------------------------------------------------*/
-
-/*
- * The code below is intended to to give the lightest footprint possible.
- */
-
-if (is_admin()) {
-    require_once plugin_dir_path(__FILE__).'admin/anspress-admin.php';
-    add_action('plugins_loaded', array( 'AnsPress_Admin', 'get_instance' ));
-}

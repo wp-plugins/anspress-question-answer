@@ -1,7 +1,7 @@
 <?php
 /**
  * AnsPress process form
- * @link http://wp3.in
+ * @link http://anspress.io
  * @since 2.0.1
  * @license GPL 2+
  * @package AnsPress
@@ -102,6 +102,10 @@ class AnsPress_Process_Form
 
 			case 'options_form':
 				$this->options_form();
+				break;
+
+			case 'ap_user_profile_field':
+				$this->ap_user_profile_field();
 				break;
 			
 			default:
@@ -208,7 +212,7 @@ class AnsPress_Process_Form
 
 		$status = 'publish';
 		
-		if(ap_opt('moderate_new_question') == 'pending' || (ap_opt('moderate_new_question') == 'reputation' && ap_get_points($user_id) < ap_opt('mod_question_point')))
+		if(ap_opt('new_question_status') == 'moderate' || (ap_opt('new_question_status') == 'reputation' && ap_get_points($user_id) < ap_opt('mod_question_point')))
 			$status = 'moderate';
 		
 		if(isset($fields['is_private']) && $fields['is_private'])
@@ -281,7 +285,7 @@ class AnsPress_Process_Form
 
 		$status = 'publish';
 		
-		if(ap_opt('moderate_new_question') == 'pending' || (ap_opt('moderate_new_question') == 'point' && ap_get_points($user_id) < ap_opt('mod_question_point')))
+		if(ap_opt('edit_question_status') == 'moderate' || (ap_opt('edit_question_status') == 'point' && ap_get_points($user_id) < ap_opt('mod_answer_point')))
 			$status = 'moderate';
 		
 		if(isset($this->fields['is_private']) && $this->fields['is_private'])
@@ -446,12 +450,12 @@ class AnsPress_Process_Form
 
 		$user_id = get_current_user_id();
 
-		/**
-		 * TODO: ADD - moderate for answers too
-		 */
 		$status = 'publish';
 		
-		if($fields['is_private'])
+		if(ap_opt('new_answer_status') == 'moderate' || (ap_opt('new_answer_status') == 'point' && ap_get_points($user_id) < ap_opt('new_answer_status')))
+			$status = 'moderate';
+		
+		if(isset($this->fields['is_private']) && $this->fields['is_private'])
 			$status = 'private_post';
 			
 		$answer_array = array(
@@ -496,10 +500,14 @@ class AnsPress_Process_Form
 				}
 				
 				ob_start();
-				if($current_ans == 1)								
+
+				if($current_ans == 1){								
 					ap_get_answers(array('question_id' => $question->ID));
-				else
-					include(ap_get_theme_location('answer.php'));
+					ap_get_template_part('answers');
+				}else{
+					ap_get_answer( $post_id );
+					ap_get_template_part('answer');
+				}
 				
 				$html = ob_get_clean();
 				
@@ -533,8 +541,11 @@ class AnsPress_Process_Form
 		$answer = get_post($this->fields['edit_post_id']);
 		
 		$status = 'publish';
-
-		if($this->fields['is_private'])
+		
+		if(ap_opt('edit_answer_status') == 'moderate' || (ap_opt('edit_answer_status') == 'point' && ap_get_points(get_current_user_id()) < ap_opt('new_answer_status')))
+			$status = 'moderate';
+		
+		if(isset($this->fields['is_private']) && $this->fields['is_private'])
 			$status = 'private_post';
 
 		$answer_array = array(
@@ -655,7 +666,7 @@ class AnsPress_Process_Form
 		if(!isset($_POST['__nonce']) || !wp_verify_nonce( $_POST['__nonce'], 'nonce_option_form' ) || !current_user_can('manage_options'))
 			return;
 
-		$result = array();
+		//$result = array();
 		flush_rewrite_rules();
 		$options = $_POST['anspress_opt'];
 
@@ -673,5 +684,39 @@ class AnsPress_Process_Form
 			//$result = array('status' => true, 'html' => '<div class="updated fade" style="display:none"><p><strong>'.__( 'AnsPress options updated successfully', 'ap' ).'</strong></p></div>');
 		}
 		
+	}
+
+	public function ap_user_profile_field(){
+		$user_id = get_current_user_id();
+		
+		if(!is_user_logged_in()){
+			$this->result  = array('message' => 'no_permission');
+			return;
+		}
+
+		if(!isset($_POST['__nonce']) || !wp_verify_nonce( $_POST['__nonce'], 'nonce_user_profile_'.$user_id ) )
+			ap_send_json( ap_ajax_responce('something_wrong'));
+
+		if(ap_has_users(array('ID' => $user_id ) )){
+			while ( ap_users() ) : ap_the_user();
+				
+				$form = ap_user_get_fields(array('form' => array('field_hidden' => true, 'hide_footer' => true)));
+
+				$field = array_values(array_intersect($form->fields_name, array_keys($_POST)));
+				$field_name = $field[0];
+
+				if(!empty($_POST[$field_name]))
+					$form->update_field($field_name);
+
+				$form = ap_user_get_fields(array('show_only' => $field_name, 'form' => array('field_hidden' => true, 'hide_footer' => true)));
+
+				$this->result  = array(
+					'action' 		=> 'updated_user_field',
+					'do'			=> 'updateHtml',
+					'container'		=> '#user_field_form_'.$field_name,
+					'html'			=> $form->get_form()
+				);
+			endwhile;
+		}
 	}
 }

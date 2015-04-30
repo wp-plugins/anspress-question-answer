@@ -3,7 +3,7 @@
  * AnsPress reputation controller class
  *
  * @package   AnsPress
- * @author    Rahul Aryan <rah12@live.com>
+ * @author    Rahul Aryan <support@anspress.io>
  * @license   GPL-3.0+
  * @link      http://wp3.com
  * @copyright 2014 Rahul Aryan
@@ -12,6 +12,15 @@
 class AnsPress_Reputation {
 	
 	public function __construct(){
+		add_action('init', array($this, 'init'));
+	}
+
+	public function init(){
+
+		// return if reputation is disabled
+		if(ap_opt('disable_reputation'))
+			return;
+
 		add_action('ap_after_new_question', array($this, 'new_question'));
 		add_action('ap_untrash_question', array($this, 'new_question'));
 		add_action('ap_trash_question', array($this, 'delete_question'));
@@ -30,6 +39,9 @@ class AnsPress_Reputation {
 		
 		add_action('ap_publish_comment', array($this, 'new_comment'));
 		add_action('ap_unpublish_comment', array($this, 'delete_comment'));
+
+		add_filter('ap_user_display_meta_array', array($this, 'display_meta'), 10, 2);
+		add_action('ap_user_left_after_name', array( $this, 'ap_user_left_after_name' ));
 	}
 	
 	/**
@@ -263,6 +275,24 @@ class AnsPress_Reputation {
 		ap_reputation_log_delete('comment', $comment->user_id, $reputation, $comment->comment_ID);
 	}
 	
+
+	public function display_meta($metas, $user_id){
+		if($user_id > 0)
+			$metas['reputation'] = '<span class="ap-user-meta ap-user-meta-reputation" title="'.__('Reputation', 'ap').'">'. sprintf(__('%d Rep.', 'ap'), ap_get_reputation($user_id, true)) .'</span>';
+
+		return $metas;
+	}
+
+	/**
+	 * Display user reputation below user name in profile page
+	 * @return void
+	 * @since 2.1
+	 */
+	public function ap_user_left_after_name(){
+		echo '<span class="ap-user-reputation">';
+		printf(__('%s Rep.', 'ap'), ap_user_get_the_reputation());
+		echo '</span>';
+	}
 }
 
 function ap_reputation_option(){

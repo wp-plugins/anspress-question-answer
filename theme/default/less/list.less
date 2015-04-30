@@ -1,7 +1,7 @@
 //
 // Question lists style
 // --------------------------------------------------
-.anspress-container{
+#anspress{
 	.ap-questions{
 		&-item{
 			border-bottom: 1px solid #F8F8F8;
@@ -30,6 +30,7 @@
 		    margin-bottom: 5px;
 		    margin-top: 0;
 		    a{
+		    	color: @link-color;
 		    	text-decoration: none;
 		    }
 		}
@@ -67,6 +68,22 @@
 		&-summery{
 			padding-right: 10px;
 		}
+		.ap-display-meta-item {
+			color: @meta-color;
+			a{
+				color: @meta-color;
+			}
+			i:before{
+			    color: #aaa;
+			    font-size: 12px;
+			}
+		}
+		.ap-post-type{
+		    display: inline;
+		    font-size: 11px;
+		    margin: 0;
+		    padding: 0 6px;
+		}
 	}
 
 	.selected, .ap-best-answer-label {
@@ -103,4 +120,21 @@
 		}
 	}
 
+}
+.ap-list-head{
+    background: none repeat scroll 0 0 #f8f8f8;
+    border: 1px solid #eee;
+    border-radius: 3px;
+    padding: 14px;
+	.ap-btn-ask{
+		float: right;
+		background: @ap-color;
+		border-radius: 2px;
+	    color: #fff;
+	    margin-left: 15px;
+	    padding: 5px 10px;
+	    &:visited{
+	    	color: #fff;
+	    }
+	}
 }

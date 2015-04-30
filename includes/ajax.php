@@ -26,6 +26,8 @@ class AnsPress_Ajax
 		add_action('ap_ajax_delete_comment', array($this, 'delete_comment'));
 		add_action('ap_ajax_select_best_answer', array($this, 'select_best_answer'));
 		add_action('ap_ajax_delete_post', array($this, 'delete_post'));
+		add_action('ap_ajax_change_post_status', array($this, 'change_post_status'));
+		add_action('ap_ajax_load_user_field_form', array($this, 'load_user_field_form'));
 		
 		add_action('wp_ajax_ap_suggest_tags', array($this, 'ap_suggest_tags'));
 		add_action('wp_ajax_nopriv_ap_suggest_tags', array($this, 'ap_suggest_tags'));
@@ -199,18 +201,28 @@ class AnsPress_Ajax
 		$post = get_post($answer_id);
 		$user_id = get_current_user_id();
 		
-		if(ap_is_answer_selected($post->post_parent)){
+		if(ap_question_best_answer_selected($post->post_parent)){
 			do_action('ap_unselect_answer', $user_id, $post->post_parent, $post->ID);
 			update_post_meta($post->ID, ANSPRESS_BEST_META, 0);
 			update_post_meta($post->post_parent, ANSPRESS_SELECTED_META, false);
 			update_post_meta($post->post_parent, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
+
+			if(ap_opt('close_after_selecting'))
+				wp_update_post( array('ID' => $post->post_parent, 'post_status' => 'publish') );
+
 			ap_send_json( ap_ajax_responce(array('message' => 'unselected_the_answer', 'action' => 'unselected_answer', 'do' => 'reload')));
+
+
 
 		}else{
 			do_action('ap_select_answer', $user_id, $post->post_parent, $post->ID);
 			update_post_meta($post->ID, ANSPRESS_BEST_META, 1);
 			update_post_meta($post->post_parent, ANSPRESS_SELECTED_META, $post->ID);
 			update_post_meta($post->post_parent, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
+
+			if(ap_opt('close_after_selecting'))
+				wp_update_post( array('ID' => $post->post_parent, 'post_status' => 'closed') );
+
 			$html = ap_select_answer_btn_html($answer_id);
 			ap_send_json( ap_ajax_responce(array('message' => 'selected_the_answer', 'action' => 'selected_answer', 'do' => 'reload', 'html' => $html)));
 		}
@@ -253,6 +265,81 @@ class AnsPress_Ajax
 				'view'			=> array('answer_count' => $current_ans, 'answer_count_label' => $count_label))));
 		}
 		
+	}
+
+	/**
+	 * Handle change post status request
+	 * @return void
+	 * @since 2.1
+	 */
+	public function change_post_status(){
+		$post_id = (int) $_POST['post_id'];
+		$status = $_POST['status'];
+
+		if(!is_user_logged_in() || !wp_verify_nonce( $_POST['__nonce'], 'change_post_status_'.$post_id ) || !ap_user_can_change_status($post_id)){
+			ap_send_json( ap_ajax_responce('no_permission'));
+			die();
+		}else{		
+			$post = get_post($post_id);
+			if(($post->post_type == 'question' || $post->post_type == 'answer') && $post->post_status != $status){
+				$update_data = array();
+				if($status == 'publish')
+					$update_data['post_status'] = 'publish';
+
+				elseif($status == 'moderate')
+					$update_data['post_status'] = 'moderate';
+
+				elseif($status == 'private_post')
+					$update_data['post_status'] = 'private_post';
+
+				elseif($status == 'closed')
+					$update_data['post_status'] = 'closed';
+
+				$update_data['ID'] = $post->ID;
+				wp_update_post( $update_data );
+
+				ob_start();
+					ap_post_status_description($post->ID);
+				$html = ob_get_clean();
+
+				ap_send_json( ap_ajax_responce(array(
+					'action' 		=> 'status_updated',
+					'message' 		=> 'status_updated',
+					'do'			=> array('remove_if_exists', 'toggle_active_class', 'append_before'),
+					'append_before_container'		=> '#ap_post_actions_'.$post->ID,
+					'toggle_active_class_container'	=> '#ap_post_status_toggle_'.$post->ID,
+					'remove_if_exists_container'	=> '#ap_post_status_desc_'.$post->ID,
+					'active'		=> '.'.$status,
+					'html'			=> $html,
+				)));
+				die();
+			}			
+		}
+		ap_send_json( ap_ajax_responce('something_wrong'));
+		die();
+	}
+
+	public function load_user_field_form(){
+		$user_id 		= get_current_user_id();
+		$field_name 	= sanitize_text_field($_POST['field']);
+
+		if(!is_user_logged_in() || !wp_verify_nonce( $_POST['__nonce'], 'user_field_form_'.$field_name.'_'.$user_id )){
+			ap_send_json( ap_ajax_responce('no_permission'));
+		}else{
+			if(ap_has_users(array('ID' => $user_id ) )){
+				while ( ap_users() ) : ap_the_user(); 
+					$form = ap_user_get_fields(array('show_only' => $field_name, 'form' => array('field_hidden' => false, 'hide_footer' => false, 'show_cancel' => true, 'is_ajaxified' => true, 'submit_button' => __('Update', 'ap'))));
+					ap_send_json( ap_ajax_responce(array(
+						'action' 		=> 'user_field_form_loaded',
+						'do'			=> 'updateHtml',
+						'container'		=> '#user_field_form_'.$field_name,
+						'html'			=> $form->get_form()
+					)));
+				endwhile;
+			}
+		}
+		ap_send_json( ap_ajax_responce('something_wrong'));
+		die();
 	}
 
 	

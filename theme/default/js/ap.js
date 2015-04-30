@@ -1,6 +1,7 @@
 /* https://github.com/ultimatedelman/autogrow */
 ;
 (function($) {
+
     //pass in just the context as a $(obj) or a settings JS object
     $.fn.autogrow = function(opts) {
         var that = $(this).css({
@@ -105,6 +106,20 @@
     }
 })(jQuery);
 jQuery(document).ready(function() {
+    jQuery(document).click(function(e) {
+        var target = e.target;
+        if (!jQuery(target).is('.ap-dropdown-toggle') && !jQuery(target).parent().is('.open')) {
+            jQuery('.ap-dropdown').removeClass('open');
+        }
+    });
+
+    // Dropdown toggle
+    jQuery('.ap-dropdown-toggle').click(function(e){
+        e.preventDefault();
+        jQuery('.ap-dropdown').removeClass('open');
+        jQuery(this).closest('.ap-dropdown').addClass('open');
+    });
+
     jQuery('.ap-tip').tooltipster({
         contentAsHTML: true,
         animation: 'fade',
@@ -153,29 +168,14 @@ jQuery(document).ready(function() {
     jQuery('.ap-radio-btn').click(function() {
         jQuery(this).toggleClass('active');
     });
-    /*jQuery('#answer_form').click(function(){
-        var form = this;
-        jQuery(this).find('.ap-editor-answer-label').remove();
-        jQuery(this).animate({
-            height: '200'
-        }, 500).find('>*').delay(500).fadeIn(200, function(){
-            jQuery(form).removeClass('ap-form-mini').css('height', '');
-        });
-    })*/
     jQuery('.bootstrap-tagsinput > input').keyup(function(event) {
         jQuery(this).css(width, 'auto');
     });
-    jQuery('.ap-dropdown').click(function(event) {
-        event.preventDefault();
-        jQuery(this).toggleClass('open');
-    });
-    jQuery(document).mouseup(function(e) {
-        var container = jQuery(".ap-dropdown");
-        if (!container.is(e.target) // if the target of the click isn't the container...
-            && container.has(e.target).length === 0) // ... nor a descendant of the container
-        {
-            container.removeClass('open');
-        }
+
+
+    jQuery('.ap-dynamic-avatar').initial({fontSize:15, fontWeight:600});
+    jQuery( document ).ajaxComplete(function( event, data, settings ) {
+        jQuery('.ap-dynamic-avatar').initial({fontSize:15, fontWeight:600});
     });
 });
 

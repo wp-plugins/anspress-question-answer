@@ -7,7 +7,7 @@
  *
  * @package    AnsPress
  * @license    http://opensource.org/licenses/gpl-license.php  GNU Public License
- * @author    Rahul Aryan <rah12@live.com>
+ * @author    Rahul Aryan <support@anspress.io>
  */
 
 
@@ -23,10 +23,19 @@ function init_scripts_front(){
 		wp_enqueue_script( 'ap-functions-js', ANSPRESS_URL.'assets/ap-functions.js', 'jquery');		
 		wp_enqueue_script( 'anspress_acript', ANSPRESS_URL.'assets/anspress_site.js', 'jquery', AP_VERSION);		
 		wp_enqueue_script( 'tooltipster', ap_get_theme_url('js/jquery.tooltipster.min.js'), 'jquery', AP_VERSION);
+		wp_enqueue_script( 'initial-js', ap_get_theme_url('js/initial.min.js'), 'jquery', AP_VERSION);
 		wp_enqueue_script( 'ap-js', ap_get_theme_url('js/ap.js'), 'jquery', AP_VERSION);
 		wp_enqueue_style( 'tooltipster', ap_get_theme_url('css/tooltipster.css'), array(), AP_VERSION);
-		//wp_enqueue_style( 'perfect-scrollbar', ap_get_theme_url('css/perfect-scrollbar.min.css'), array(), AP_VERSION);
-		wp_enqueue_style( 'ap-style', ap_get_theme_url('css/main.css'), array(), AP_VERSION);	
+		wp_enqueue_style( 'ap-style', ap_get_theme_url('css/main.css'), array(), AP_VERSION);
+
+		$custom_css = "
+                #anspress .ap-q-cells{
+                        margin-left: ".(ap_opt('avatar_size_qquestion') + 20)."px;
+                }
+                #anspress .ap-a-cells{
+                        margin-left: ".(ap_opt('avatar_size_qanswer') + 20)."px;
+                }";
+        wp_add_inline_style( 'ap-style', $custom_css );
 		
 		wp_enqueue_style( 'ap-fonts', ap_get_theme_url('fonts/style.css'), array(), AP_VERSION);
 		

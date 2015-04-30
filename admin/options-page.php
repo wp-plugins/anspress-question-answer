@@ -3,7 +3,7 @@ class AnsPress_Options_Page
 {
 	public function __construct()
 	{
-		add_action('init', array($this, 'add_option_groups'), 100 );
+		add_action('init', array($this, 'add_option_groups'), 2 );
 	}
 	
 	public function add_option_groups() 
@@ -127,11 +127,11 @@ class AnsPress_Options_Page
 				'show_desc_tip' => false,
 			) ,
 			array(
-				'name' => 'anspress_opt[answers_per_page]',
-				'label' => __('Answers per page', 'ap') ,
-				'desc' => __('Answers to show per page.', 'ap') ,
+				'name' => 'anspress_opt[users_per_page]',
+				'label' => __('Users per page', 'ap') ,
+				'desc' => __('Users to show per page.', 'ap') ,
 				'type' => 'number',
-				'value' => $settings['answers_per_page'],
+				'value' => $settings['users_per_page'],
 			) ,
 			array(
 				'name' => '__sep',
@@ -287,7 +287,38 @@ class AnsPress_Options_Page
 		));
 		
 		// register user settings
-		/*ap_register_option_group('user', __('User', 'ap') , array(
+		ap_register_option_group('users', __('Users', 'ap') , array(
+			array(
+				'name' => 'anspress_opt[enable_users_directory]',
+				'label' => __('Show users directory', 'ap') ,
+				'desc' => __('When enabled public can see directory of users.', 'ap') ,
+				'type' => 'checkbox',
+				'value' => $settings['enable_users_directory'],
+				'show_desc_tip' => false,
+			) ,
+			array(
+				'name' => '__sep',
+				'type' => 'custom',
+				'html' => '<span class="ap-form-separator">' . __('Features', 'ap') . '</span>',
+			) ,
+			array(
+				'name' => 'anspress_opt[disable_reputation]',
+				'label' => __('Disable reputation', 'ap') ,
+				'desc' => __('Disable reputation for user', 'ap') ,
+				'type' => 'checkbox',
+				'value' => $settings['disable_reputation'],
+				'show_desc_tip' => false,
+			) ,
+			
+			array(
+				'name' => 'anspress_opt[users_page_avatar_size]',
+				'label' => __('Users avatar size', 'ap') ,
+				'desc' => __('Set user avatar size for users page item.', 'ap') ,
+				'type' => 'number',
+				'value' => $settings['users_page_avatar_size'],
+				'show_desc_tip' => false,
+			) ,
+
 			array(
 				'name' => 'anspress_opt[cover_width]',
 				'label' => __('Cover width', 'ap') ,
@@ -332,7 +363,7 @@ class AnsPress_Options_Page
 				'value' => $settings['default_rank'],
 				'show_desc_tip' => false,
 			) ,
-		));*/
+		));
 		
 		// register permission settings
 		ap_register_option_group('permission', __('Permission', 'ap') , array(
@@ -398,11 +429,6 @@ class AnsPress_Options_Page
 		// register moderate settings
 		ap_register_option_group('moderate', __('Moderate', 'ap') , array(
 			array(
-				'name' => '__sep',
-				'type' => 'custom',
-				'html' => '<span class="ap-form-separator">' . __('Flag') . '</span>',
-			) ,
-			array(
 				'name' => 'anspress_opt[new_question_status]',
 				'label' => __('Status of new question', 'ap') ,
 				'desc' => __('Set post status of new question.', 'ap') ,
@@ -415,11 +441,35 @@ class AnsPress_Options_Page
 				'show_desc_tip' => false,
 			) ,
 			array(
+				'name' => 'anspress_opt[edit_question_status]',
+				'label' => __('Status of edited question', 'ap') ,
+				'desc' => __('Set post status of edited question.', 'ap') ,
+				'type' => 'select',
+				'value' => $settings['edit_question_status'],
+				'options' => array(
+					'publish' => __('Publish') ,
+					'moderate' => __('Moderate', 'profile')
+				) ,
+				'show_desc_tip' => false,
+			) ,
+			array(
 				'name' => 'anspress_opt[new_answer_status]',
 				'label' => __('Status of new answer', 'ap') ,
 				'desc' => __('Set post status of new answer.', 'ap') ,
 				'type' => 'select',
 				'value' => $settings['new_answer_status'],
+				'options' => array(
+					'publish' => __('Publish') ,
+					'moderate' => __('Moderate', 'profile')
+				) ,
+				'show_desc_tip' => false,
+			) ,
+			array(
+				'name' => 'anspress_opt[edit_answer_status]',
+				'label' => __('Status of edited answer', 'ap') ,
+				'desc' => __('Set post status of edited answer.', 'ap') ,
+				'type' => 'select',
+				'value' => $settings['edit_answer_status'],
 				'options' => array(
 					'publish' => __('Publish') ,
 					'moderate' => __('Moderate', 'profile')

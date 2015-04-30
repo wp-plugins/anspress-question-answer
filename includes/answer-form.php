@@ -2,7 +2,7 @@
 /**
  * Form and controls of ask form
  *
- * @link http://wp3.in
+ * @link http://anspress.io
  * @since 2.0.1
  * @license GPL2+
  * @package AnsPress
@@ -35,10 +35,7 @@ new AnsPress_Answer_Form;
  */
 function ap_answer_form($question_id, $editing = false){
 
-    if(is_post_closed($question_id) && !$editing)
-        return;    
-
-    if(!ap_user_can_answer($question_id))
+    if(!ap_user_can_answer($question_id) && !$editing)
         return;
 
     global $editing_post;
@@ -114,9 +111,9 @@ src="https://www.google.com/recaptcha/api.js?hl='.get_locale().'&onload=onloadCa
         );
     }
 
-    $form = new AnsPress_Form($args);
+    anspress()->form = new AnsPress_Form($args);
 
-    echo $form->get_form();
+    echo anspress()->form->get_form();
 }
 
 /**

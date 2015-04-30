@@ -184,12 +184,12 @@ class AnsPress_PostTypes
     public function post_type_link($link, $post) {
         if ($post->post_type == 'question') {
             if(get_option('permalink_structure')){
-                return ap_get_link_to($post->post_name.'/'.$post->ID.'/');
+                return home_url( '/question/'.$post->post_name.'/');
             }else{
                 return add_query_arg( array('apq' => false, 'question_id' =>$post->ID), ap_base_page_link());
             }
         }elseif ($post->post_type == 'answer' && $post->post_parent != 0) {
-           return get_permalink($post->post_parent) ."#answer_{$post->ID}";
+           return home_url( '/question/'.$post->post_name.'/') ."?show_answer=$post->ID#answer_{$post->ID}";
         }
         return $link;
     }
@@ -227,7 +227,7 @@ class AnsPress_PostTypes
             echo get_avatar(get_the_author_meta('user_email'), 40);
         }elseif ('status' == $column) {            
             echo '<span class="post-status">' . $post->post_status .'</span>';
-        } /*elseif (ANSPRESS_CAT_TAX == $column) {
+        } /*elseif ('question_category' == $column && taxonomy_exists( 'question_category' )) {
 
             $category = get_the_terms($post->ID, ANSPRESS_CAT_TAX);            
 

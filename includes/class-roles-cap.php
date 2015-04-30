@@ -92,6 +92,7 @@ class AP_Roles{
 				'ap_message'				=> true,
 				
 				'ap_new_tag'				=> true,
+				'ap_change_status'			=> true,
 			);
 			
 			$mod_caps = array(				
@@ -107,6 +108,7 @@ class AP_Roles{
 				'ap_change_label'			=> true,
 				'ap_view_private'			=> true,
 				'ap_view_moderate'			=> true,
+				'ap_change_status_other'	=> true,
 			);
 			
 			$roles = array('editor', 'contributor', 'author', 'ap_participant', 'ap_moderator', 'subscriber');
@@ -168,8 +170,11 @@ function ap_user_can_answer($question_id){
 	if(!ap_opt('disallow_op_to_answer') && $question->post_author == get_current_user_id())
 		return false;
 
-	if(ap_opt('close_after_selecting') && ap_is_answer_selected($question_id) )
+	if($question->post_type == 'closed' )
 		return false;
+
+	if(ap_allow_anonymous() && !is_user_logged_in())
+		return true;
 
 	if((current_user_can('ap_new_answer'))){
 		if(!ap_opt('multiple_answers') && ap_is_user_answered($question_id, get_current_user_id()) && get_current_user_id() != '0')
@@ -192,19 +197,17 @@ function ap_user_can_see_answers(){
 }
 
 function ap_user_can_select_answer($post_id){
+	if(!is_user_logged_in())
+		return false;
+
 	if(is_super_admin())
 		return true;
 	
 	$post 		= get_post($post_id);
 	$question 	= get_post($post->post_parent);
 	
-	global $current_user;
-	
-	$user_id		= $current_user->ID;
-	
-	if($post->post_type == 'answer' && $question->post_author ==  $user_id){
+	if($post->post_type == 'answer' && $question->post_author ==  get_current_user_id())
 		return true;
-	}
 	
 	return false;
 }
@@ -326,8 +329,11 @@ function ap_user_can_create_tag(){
 function ap_user_can_view_private_post($post_id){
 	$post = get_post( $post_id );
 
-	if($post->post_type != 'private_post')
-		return;
+	if($post->post_status != 'private_post')
+		return true;
+
+	if($post->post_author == get_current_user_id())
+		return true;
 
 	if(is_super_admin() || current_user_can('ap_view_private'))
 		return true;
@@ -339,10 +345,7 @@ function ap_user_can_view_private_post($post_id){
 		if($question->post_author == get_current_user_id())
 			return true;
 	}
-	
-	if($post->post_author == get_current_user_id())
-		return true;
-	
+
 	return false;
 }
 
@@ -382,4 +385,36 @@ function ap_user_can_view_post($post_id = false){
 
 function ap_allow_anonymous(){
 	return ap_opt('allow_anonymous');
+}
+
+/**
+ * Check if current user can change post status i.e. private_post, moderate, closed
+ * @param  integer $post_id Question id
+ * @return boolean
+ * @since 2.1
+ **/
+function ap_user_can_change_status($post_id){
+	if( current_user_can('ap_change_status_other') || is_super_admin())
+		return true;
+
+	$post = get_post( $post_id );
+
+	if(current_user_can('ap_change_status') && $post->post_author == get_current_user_id())
+		return true;
+
+	return false;
+}
+
+function ap_user_can_change_status_to_closed(){
+	if(is_super_admin() || current_user_can('ap_change_status_other'))
+		return true;
+	
+	return false;
+}
+
+function ap_user_can_change_status_to_moderate(){
+	if(is_super_admin() || current_user_can('ap_change_status_other'))
+		return true;
+	
+	return false;
 }

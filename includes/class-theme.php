@@ -27,12 +27,12 @@ class AnsPress_Theme
         AnsPress_Common_Pages::get_instance();
         
         add_action('init', array($this, 'init_actions'));
-        add_filter('post_class', array( $this, 'question_post_class' ));
+        add_filter('post_class', array( $this, 'question_answer_post_class' ));
         add_filter('body_class', array( $this, 'body_class' ));        
         add_filter('comments_template', array( $this, 'comment_template' ));
         add_action('after_setup_theme', array( $this, 'includes' ));
-        add_filter('wp_title', array( $this, 'ap_title' ) , 100, 2);
-        add_filter('the_title', array( $this, 'the_title' ) , 100, 2);
+        add_filter('wp_title', array( $this, 'ap_title' ) , 1, 2);
+        add_filter('the_title', array( $this, 'the_title' ) , 1, 2);
         add_filter('wp_head', array( $this, 'feed_link' ) , 9);
         add_action('ap_before', array( $this, 'ap_before_html_body' ));
     }
@@ -50,53 +50,7 @@ class AnsPress_Theme
     {
         require_once ap_get_theme_location('functions.php');
     }
-    
-    /**
-     * Append single question page content to the_content() for compatibility purpose.
-     * @param  string $content
-     * @return string
-     * @since 2.0.1
-     */
-    public function question_single_the_content($content) 
-    {
         
-        // check if is question
-        if (is_singular('question')) 
-        {
-            
-            /**
-             * This will prevent infinite loop
-             */
-            
-            remove_filter(current_filter() , array(
-                $this,
-                'question_single_the_content'
-            ));
-            
-            //check if user have permission to see the question
-            if (ap_user_can_view_post()) 
-            {
-                ob_start();
-                echo '<div class="anspress-container">';
-                
-                /**
-                 * ACTION: ap_before
-                 * Action is fired before loading AnsPress body.
-                 */
-                do_action('ap_before');
-                
-                include ap_get_theme_location('question.php');
-                echo '</div>';
-                return ob_get_clean();
-            } 
-            else return '<div class="ap-pending-notice ap-apicon-clock">' . ap_responce_message('no_permission_to_view_private', true) . '</div>';
-        } 
-        else
-        {
-            return $content;
-        }
-    }
-    
     /**
      * Add answer-seleted class in post_class
      * @param  array $classes
@@ -104,14 +58,18 @@ class AnsPress_Theme
      * @since 2.0.1
      *
      */
-    public function question_post_class($classes) 
+    public function question_answer_post_class($classes) 
     {
         global $post;
         if ($post->post_type == 'question') 
         {
-            if (ap_is_answer_selected($post->post_id)) $classes[] = 'answer-selected';
+            if (ap_question_best_answer_selected($post->post_id)) $classes[] = 'answer-selected';
             
             $classes[] = 'answer-count-' . ap_count_answer_meta();
+        }
+        if ($post->post_type == 'answer') 
+        {
+            if (ap_answer_is_best($post->post_id)) $classes[] = 'best-answer';
         }
         
         return $classes;
@@ -162,13 +120,13 @@ class AnsPress_Theme
      */
     public function ap_title($title) 
     {
-        
         if (is_anspress()) 
         {
             remove_filter('wp_title', array(
                 $this,
                 'ap_title'
             ));
+
             $new_title = ap_page_title();
             
             $new_title = str_replace('ANSPRESS_TITLE', $new_title, $title);
@@ -211,4 +169,5 @@ class AnsPress_Theme
     {
         dynamic_sidebar('ap-before');
     }
+
 }

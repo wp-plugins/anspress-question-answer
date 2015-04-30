@@ -11,6 +11,9 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 AnsPress - Best question and answer plugin for WordPress. Made with developers in mind, highly customizable
 
 == Description ==
+
+`Question permalink has been updated in 2.1 to : http://domain.com/question/question_title/`
+
 Demo & support forum: http://wp3.in/questions/
 GitHub repo: [Git AnsPress](https://github.com/anspress/anspress/)
 

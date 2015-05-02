@@ -3,8 +3,8 @@ Contributors: nerdaryan
 Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
 Tags: question, answer, q&a, forum, profile, stackoverflow, quora, buddypress
 Requires at least: 4.1.1
-Tested up to: 4.1.1
-Stable tag: 2.1.1
+Tested up to: 4.2
+Stable tag: 2.1.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -128,6 +128,11 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 
 == Changelog ==
+
+= 2.1.1 =
+
+* Tested with WP 4.2
+* [option] Toggle question permalink
 
 = 2.1.1 =
 

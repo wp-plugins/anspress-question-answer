@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_
 Tags: question, answer, q&a, forum, profile, stackoverflow, quora, buddypress
 Requires at least: 4.1.1
 Tested up to: 4.2
-Stable tag: 2.1.3
+Stable tag: 2.1.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -128,6 +128,16 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 
 == Changelog ==
+
+= 2.1.4 =
+
+* [fix] allowed style align property
+* [fix] allowed strikethorugh (del) tag for editor
+* [fix] Allowed ul, ol, li tags in editor
+* [new] Added filter for ask and answer form editors
+* [fix] "status updated" message when post status get updated
+* [fix] Answers shorting
+* [fix] sanitize_text_field breaks loading question with non-ansi symbols in url #281
 
 = 2.1.1 =
 

@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_
 Tags: question, answer, q&a, forum, profile, stackoverflow, quora, buddypress
 Requires at least: 4.1.1
 Tested up to: 4.2
-Stable tag: 2.1.4
+Stable tag: 2.1.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -128,6 +128,16 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 
 == Changelog ==
+
+= 2.1.5 =
+
+* [fix] minor bugs
+* [fix] Check undefined in ap_get_avatar_scr()
+* [new] Added avatar upload
+* [fix] ask and answer form button on update
+* [fix] Hide close test in editor modal
+* [fix] added blockquote style in editor
+* [fix] Dropdown not work for ajax content
 
 = 2.1.4 =
 

@@ -1,7 +1,7 @@
 module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-contrib-less');
-	grunt.loadNpmTasks( 'grunt-wp-i18n' );
+	grunt.loadNpmTasks('grunt-wp-i18n' );
 	grunt.loadNpmTasks('grunt-phpdocumentor');
 	grunt.loadNpmTasks('grunt-csscomb');
 	grunt.loadNpmTasks('grunt-contrib-copy');
@@ -44,8 +44,7 @@ module.exports = function(grunt) {
 		copy: {
 		    main: {
 		        files: [
-		            {nonull:true, expand: true, cwd: 'E:\\wamp\\www\\anspress\\wp-content\\plugins\\anspress-question-answer', src: ['**/*', '!**/.git/**', '!**/.svn/**', '!**/node_modules/**', '!**/bin/**', '!**/docs/**', '!**/tests/**'], dest: 'E:\\wamp\\www\\answerbox\\wp-content\\plugins\\anspress-question-answer'},
-		            {nonull:true, expand: true, cwd: 'E:\\wamp\\www\\anspress\\wp-content\\plugins\\anspress-question-answer', src: ['**/*', '!**/.git/**', '!**/.svn/**', '!**/node_modules/**', '!**/bin/**', '!**/docs/**', '!**/tests/**'], dest: 'E:\\wamp\\www\\wp3\\wp-content\\plugins\\anspress-question-answer'}
+		            {nonull:true, expand: true, cwd: 'E:\\wamp\\www\\anspress\\wp-content\\plugins\\anspress-question-answer', src: ['**/*', '!**/.git/**', '!**/.svn/**', '!**/node_modules/**', '!**/bin/**', '!**/docs/**', '!**/tests/**'], dest: 'E:\\wamp\\www\\answerbox\\wp-content\\plugins\\anspress-question-answer'}
 		        ]
 		    }
 		},

@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_
 Tags: question, answer, q&a, forum, profile, stackoverflow, quora, buddypress
 Requires at least: 4.1.1
 Tested up to: 4.2
-Stable tag: 2.1.5
+Stable tag: 2.1.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -129,6 +129,17 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 == Changelog ==
 
+= 2.1.6 =
+
+* [option] added option for toggling question sidebar
+* [fix] Search widget and form
+* [fix] Check if array
+* [fix] anspress trash action hooks
+* [fix] Add translation support for "ago"-string #283
+* [fix] User can't edit his own answer
+* [fix] Some documentation error
+
+
 = 2.1.5 =
 
 * [fix] minor bugs
@@ -161,103 +172,54 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 = 2.1 =
 
 * [new]adding user profile fields
-
 * [theme] improved button
-
 * [fix] Questions widget #279
-
 * [fix] let admin answer even if question is closed
-
 * [fix] Answer permalink #279
-
 * [fix] Possible XSS vulnerability
-
 * [theme] added default widget in question sidebar
-
 * [fix] dropdown #279
-
 * [new] subscribe on own question
-
 * [fix] User page not found if space in user_name #274
-
 * [theme] Answer form
-
 * [fix] Answers pagination
-
 * [fix] chnage_status to change_status #278
-
 * [fix] Answers loop and count
-
 * [new] Ajaxified change status
-
 * [new] Change post status
-
 * [theme] added post status sticker
-
 * [fix] Query "private_post" and "moderate" only if user have permission
-
 * Padding for no-questions element
-
 * [theme] Question list meta improved
-
 * [theme] Improved single question page layout
-
 * [theme] question page layout
-
 * [fix] Answer loop
-
 * [added] search form before questions list
-
 * Updated question permalink, removed base page
-
 * Replaced .anspress-container to #anspress
-
 * [fix] Bugs
-
 * [removed] Unused file responce_message.php
-
 * [fix] 12 major bugs
-
 * [fix] Removed var dump
-
 * [fix] Major bugs
-
 * [fix] Question and answer moderation
-
 * [new] user question and answer page
-
 * User posts styled
-
 * [new] User posts page added
-
 * Improved question query and loop
-
 * [fix] Shows login message when user dont have permission to ask or answer
-
 * [added] user page, initial.min.js
-
 * Improved user menu
-
 * [added] option for toggle user directory page
-
 * user link improved
-
 * [fix] Sorting user by reputation
-
 * [fix] page titles
-
 * [added] styles for users loop
-
 * [added] option for "users per page"
-
 * [added] user page and loop
-
 * [added] Option for toggling reputations
-
 * [fix] 404 causing infinite loop
-
 * Added ap_ prefix
-
 
 
 = 2.0.5 =

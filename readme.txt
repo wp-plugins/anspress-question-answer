@@ -12,9 +12,7 @@ AnsPress - Best question and answer plugin for WordPress. Made with developers i
 
 == Description ==
 
-`Question permalink has been updated in 2.1 to : http://domain.com/question/question_title/`
-
-Demo & support forum: http://wp3.in/questions/
+Demo & support forum: http://anspress.io/
 GitHub repo: [Git AnsPress](https://github.com/anspress/anspress/)
 
 Easily add question and answer section like stackoverflow.com or quora.com in your WordPress.
@@ -40,14 +38,8 @@ AnsPress is a most complete question and answer system for WordPress. AnsPress i
   * User points system (reputation)
 
 
-= Developers =
-
-Project site: [WP3](http://wp3.in)
-Twitter: [@wp3in](http://twitter.com/wp3in)
-GooglePlus: [@wp3](https://plus.google.com/+rahularyannerdaryan?rel=author)
-
 = Help & Support =
-For fast help and support, please post on our forum http://wp3.in/questions/
+For fast help and support, please post on our forum http://anspress.io/questions/
 
 
 **Page Shortcodes**

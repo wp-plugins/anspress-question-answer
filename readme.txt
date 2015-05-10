@@ -16,7 +16,19 @@ Demo & support forum: http://anspress.io/
 GitHub repo: [Git AnsPress](https://github.com/anspress/anspress/)
 
 Easily add question and answer section like stackoverflow.com or quora.com in your WordPress.
-AnsPress is a most complete question and answer system for WordPress. AnsPress is made with developers in mind, highly customizable. AnsPress provide an easy to use override system for theme. List of features:
+AnsPress is a most complete question and answer system for WordPress. AnsPress is made with developers in mind, highly customizable. AnsPress provide an easy to use override system for theme. 
+
+Extensions:
+
+  * [AnsPress email notification](http://anspress.io/downloads/anspress-email/)
+  * [Categories for AnsPress](http://anspress.io/downloads/categories-for-anspress/)
+  * [Tags for AnsPress](http://anspress.io/downloads/tags-for-anspress/)
+
+Developers tool
+
+  * [AnsPress extension boilerplate builder](http://anspress.io/downloads/anspress-boilerplate-extension/)
+
+List of features:
 
   * Sorting question and answer by many options.
   * Ajax based form submission

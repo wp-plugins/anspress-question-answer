@@ -12,8 +12,6 @@
 class AnsPress_Ajax
 {
 
-	private $request;
-
     /**
      * Initialize the plugin by setting localization and loading public scripts
      * and styles.
@@ -26,6 +24,7 @@ class AnsPress_Ajax
 		add_action('ap_ajax_delete_comment', array($this, 'delete_comment'));
 		add_action('ap_ajax_select_best_answer', array($this, 'select_best_answer'));
 		add_action('ap_ajax_delete_post', array($this, 'delete_post'));
+		add_action('ap_ajax_permanent_delete_post', array($this, 'permanent_delete_post'));
 		add_action('ap_ajax_change_post_status', array($this, 'change_post_status'));
 		add_action('ap_ajax_load_user_field_form', array($this, 'load_user_field_form'));
 		
@@ -127,7 +126,7 @@ class AnsPress_Ajax
 			$post = new WP_Query(array('p' => $comment_post_ID, 'post_type' => array('question', 'answer')));
 			$count = get_comment_count( $comment_post_ID );
 			ob_start();
-				echo '<div class="ap-comment-block clearfix">';
+				if(!ap_opt('show_comments_by_default')) echo '<div class="ap-comment-block clearfix">';
 					//if(ap_user_can_comment() || (isset($_REQUEST['comment_ID']) && ap_user_can_edit_comment((int)$_REQUEST['comment_ID'] ))){
 						echo '<div class="ap-comment-form clearfix">';
 							echo '<div class="ap-comment-inner">';
@@ -135,15 +134,18 @@ class AnsPress_Ajax
 							echo '</div>';
 						echo '</div>';
 					//}
-					while( $post->have_posts() ) : $post->the_post();					
-					comments_template();
-					endwhile;
-					wp_reset_postdata();
-				echo '</div>';
+					if(!ap_opt('show_comments_by_default')){
+						while( $post->have_posts() ) : $post->the_post();					
+						comments_template();
+						endwhile;
+						wp_reset_postdata();
+					}
+				if(!ap_opt('show_comments_by_default')) echo '</div>';
 			$result['html'] = ob_get_clean();
 			$result['container'] = '#comments-'.$comment_post_ID;
-			$result['message'] = 'success';
-			$result['view'] = array('comments_count_'.$comment_post_ID => $count['approved'], 'comment_count_label_'.$comment_post_ID => sprintf(_n('One comment', '%d comments', $count['approved'], 'ap'), $count['approved']) );
+			//$result['message'] = 'success';
+			$result['view_default'] = ap_opt('show_comments_by_default');
+			$result['view'] = array('comments_count_'.$comment_post_ID => '('.$count['approved'].')', 'comment_count_label_'.$comment_post_ID => sprintf(_n('One comment', '%d comments', $count['approved'], 'ap'), $count['approved']) );
 
 		}else{
 			$result['message'] = 'no_permission';
@@ -158,9 +160,12 @@ class AnsPress_Ajax
      * @since 2.0.0
      */
     public function delete_comment(){
-    	if(isset($_POST['comment_ID']) && ap_user_can_delete_comment((int)$_POST['comment_ID'] ) && wp_verify_nonce( $_POST['__nonce'], 'delete_comment' )){
+    	$comment_id = (int) $_POST['comment_ID'];
+    	
+    	if(isset($_POST['comment_ID']) && ap_user_can_delete_comment($comment_id ) && wp_verify_nonce( $_POST['__nonce'], 'delete_comment' )){
 
-    		$comment = get_comment( $_POST['comment_ID'] );
+    		$comment = get_comment( $comment_id );
+    		
     		if (time() > (get_comment_date( 'U', (int)$_POST['comment_ID'] ) + (int)ap_opt('disable_delete_after')) && !is_super_admin()) {
 				ap_send_json( ap_ajax_responce(array('message_type' => 'warning', 'message' => sprintf(__('This post was created %s ago, its locked hence you cannot delete it.', 'ap'), ap_human_time( get_comment_date( 'U', (int)$_POST['comment_ID'] )) ))));
 				return;
@@ -171,7 +176,7 @@ class AnsPress_Ajax
     		if($delete){
     			do_action( 'ap_after_deleting_comment', $comment );
     			$count = get_comment_count( $comment->comment_post_ID );
-    			ap_send_json(ap_ajax_responce(  array( 'action' => 'delete_comment', 'comment_ID' => (int)$_POST['comment_ID'], 'message' => 'comment_delete_success', 'view' => array('comments_count_'.$comment->comment_post_ID => $count['approved'], 'comment_count_label_'.$comment->comment_post_ID => sprintf(_n('One comment', '%d comments', $count['approved'], 'ap'), $count['approved']) ))));
+    			ap_send_json(ap_ajax_responce(  array( 'action' => 'delete_comment', 'comment_ID' => (int)$_POST['comment_ID'], 'message' => 'comment_delete_success', 'view' => array('comments_count_'.$comment->comment_post_ID => '('.$count['approved'].')', 'comment_count_label_'.$comment->comment_post_ID => sprintf(_n('One comment', '%d comments', $count['approved'], 'ap'), $count['approved']) ))));
     		}else{
     			ap_send_json( ap_ajax_responce('something_wrong'));
     		}
@@ -262,6 +267,48 @@ class AnsPress_Ajax
 				'count_label' 	=> $count_label,
 				'remove' 		=> $remove,
 				'message' 		=> 'answer_moved_to_trash',
+				'view'			=> array('answer_count' => $current_ans, 'answer_count_label' => $count_label))));
+		}
+		
+	}
+
+	public function permanent_delete_post()
+	{
+		$post_id = (int) $_POST['post_id'];
+
+		$action = 'delete_post_'.$post_id;	
+		
+		if(!wp_verify_nonce( $_POST['__nonce'], $action ) || !ap_user_can_permanent_delete()){
+			ap_send_json( ap_ajax_responce('something_wrong'));
+			return;
+		}
+		
+		$post = get_post( $post_id );
+
+		wp_trash_post( $post_id );
+		
+		if($post->post_type == 'question'){
+			do_action('ap_wp_trash_question', $post_id);
+
+		}else{
+			do_action('ap_wp_trash_answer', $post_id);
+		}
+
+		wp_delete_post($post_id, true);
+
+		if($post->post_type == 'question'){
+			ap_send_json( ap_ajax_responce( array('action' => 'delete_question', 'do' => 'redirect', 'redirect_to' => ap_base_page_link(), 'message' => 'question_deleted_permanently')));
+		}else{
+			$current_ans = ap_count_published_answers($post->post_parent);
+			$count_label = sprintf( _n('1 Answer', '%d Answers', $current_ans, 'ap'), $current_ans);
+			$remove = (!$current_ans ? true : false);
+			ap_send_json( ap_ajax_responce(array(
+				'action' 		=> 'delete_answer', 
+				'div_id' 		=> '#answer_'.$post_id,
+				'count' 		=> $current_ans,
+				'count_label' 	=> $count_label,
+				'remove' 		=> $remove,
+				'message' 		=> 'answer_deleted_permanently',
 				'view'			=> array('answer_count' => $current_ans, 'answer_count_label' => $count_label))));
 		}
 		

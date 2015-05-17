@@ -270,7 +270,7 @@ function ap_comment_btn_html($echo = false){
 
 		$nonce = wp_create_nonce( 'comment_form_nonce' );
 		$comment_count = get_comments_number( get_the_ID() );
-		$output = '<a href="#comments-'.get_the_ID().'" class="ap-btn comment-btn ap-tip" data-action="load_comment_form" data-query="ap_ajax_action=load_comment_form&post='.get_the_ID().'&__nonce='.$nonce.'" title="'.__('Comments', 'ap').'">'.__('Comment', 'ap').'<span class="ap-data-view ap-view-count-'.$comment_count.'"><b data-view="comments_count_'.get_the_ID().'">'.$comment_count.'</b></span></a>';
+		$output = '<a href="#comments-'.get_the_ID().'" class="comment-btn ap-tip" data-action="load_comment_form" data-query="ap_ajax_action=load_comment_form&post='.get_the_ID().'&__nonce='.$nonce.'" title="'.__('Comments', 'ap').'">'.__('Comment', 'ap').'<span class="ap-data-view ap-view-count-'.$comment_count.'" data-view="comments_count_'.get_the_ID().'">('.$comment_count.')</span></a>';
 
 		if($echo)
 			echo $output;
@@ -459,10 +459,10 @@ function ap_select_answer_btn_html($post_id){
 	$nonce = wp_create_nonce( $action );	
 	
 	if(!ap_question_best_answer_selected($ans->post_parent)){		
-		return '<a href="#" class="ap-btn ap-btn-select ap-sicon '.ap_icon('check').' ap-tip" data-action="select_answer" data-query="answer_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=select_best_answer" title="'.__('Select this answer as best', 'ap').'">'.__('Select', 'ap').'</a>';
+		return '<a href="#" class="ap-btn-select ap-sicon '.ap_icon('check').' ap-tip" data-action="select_answer" data-query="answer_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=select_best_answer" title="'.__('Select this answer as best', 'ap').'">'.__('Select', 'ap').'</a>';
 		
 	}elseif(ap_question_best_answer_selected($ans->post_parent) && ap_answer_is_best($ans->ID)){
-		return '<a href="#" class="ap-btn ap-btn-select ap-sicon '.ap_icon('cross').' active ap-tip" data-action="select_answer" data-query="answer_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=select_best_answer" title="'.__('Unselect this answer', 'ap').'">'.__('Unselect', 'ap').'</a>';
+		return '<a href="#" class="ap-btn-select ap-sicon '.ap_icon('cross').' active ap-tip" data-action="select_answer" data-query="answer_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=select_best_answer" title="'.__('Unselect this answer', 'ap').'">'.__('Unselect', 'ap').'</a>';
 		
 	}
 }
@@ -490,6 +490,28 @@ function ap_post_delete_btn_html($post_id = false, $echo = false){
 	}
 }
 
+function ap_post_permanent_delete_btn_html($post_id = false, $echo = false){
+	if($post_id === false){
+		$post_id = get_the_ID();
+	}
+	if(ap_user_can_permanent_delete()){		
+		$action = 'delete_post_'.$post_id;
+		$nonce = wp_create_nonce( $action );
+		
+		$output = '<a href="#" class="delete-btn" data-action="ap_delete_post" data-query="post_id='. $post_id.'&__nonce='. $nonce .'&ap_ajax_action=permanent_delete_post" title="'.__('Delete permanently', 'ap').'">'.__('Delete permanently', 'ap').'</a>';
+
+		if($echo)
+			echo $output;
+		else
+			return $output;
+	}
+}
+
+/**
+ * Output chnage post status button
+ * @param  boolean|integer $post_id
+ * @return null|string
+ */
 function ap_post_change_status_btn_html($post_id = false){
 	$post = get_post($post_id);
 
@@ -500,7 +522,7 @@ function ap_post_change_status_btn_html($post_id = false){
 		$status = apply_filters('ap_change_status_dropdown', array('closed' => __('Close', 'ap'), 'publish' => __('Open', 'ap'), 'moderate' => __('Moderate', 'ap'), 'private_post' => __('Private', 'ap') ));
 
 		$output = '<div class="ap-dropdown">
-			<a class="ap-btn ap-tip ap-dropdown-toggle" title="'.__('Change status of post', 'ap').'" href="#" >
+			<a class="ap-tip ap-dropdown-toggle" title="'.__('Change status of post', 'ap').'" href="#" >
 				'.__('Status', 'ap').' <i class="caret"></i>
 			</a>
 			<ul id="ap_post_status_toggle_'.$post_id.'" class="ap-dropdown-menu" role="menu">';
@@ -632,6 +654,7 @@ function ap_form_allowed_tags(){
 		'ol' => array(),
 		'li' => array(),
 		'del' => array(),
+		'br' => array(),
 		);
 	
 	/**
@@ -706,6 +729,9 @@ function ap_responce_message($id, $only_message = false)
 		'captcha_error' => array('type' => 'error', 'message' => __('Please check captcha field and resubmit it again.', 'ap')),
 		'comment_content_empty' => array('type' => 'error', 'message' => __('Comment content is empty.', 'ap')),
 		'status_updated' => array('type' => 'success', 'message' => __('Post status updated successfully', 'ap')),
+		'post_image_uploaded' => array('type' => 'success', 'message' => __('Image uploaded successfully', 'ap')),
+		'question_deleted_permanently' => array('type' => 'success', 'message' => __('Question has been deleted permanently', 'ap')),
+		'answer_deleted_permanently' => array('type' => 'success', 'message' => __('Answer has been deleted permanently', 'ap')),
 		);
 
 	/**
@@ -1007,10 +1033,10 @@ function ap_get_sort(){
 
 /**
  * Register AnsPress menu
- * @param  page $slug  [description]
- * @param  [type] $title [description]
- * @param  [type] $link  [description]
- * @return [type]        [description]
+ * @param  string $slug 
+ * @param  string $title
+ * @param  string $link
+ * @return void
  */
 function ap_register_menu($slug, $title, $link){
 	anspress()->menu[$slug] = array('title' => $title, 'link' => $link);
@@ -1060,4 +1086,82 @@ function ap_post_status_description($post_id = false){
             <?php echo ap_icon('cross', true) ?><span><?php printf(__( '%s is closed, new answer are not accepted.', 'ap' ), $post_type); ?></span>
         </div>
     <?php endif;
+
+    if ( $post->post_status=='trash') : ?>
+        <div id="ap_post_status_desc_<?php echo $post_id; ?>" class="ap-notice red clearfix">
+            <?php echo ap_icon('cross', true) ?><span><?php printf(__( '%s has been trashed, you can delete it permanently from wp-admin.', 'ap' ), $post_type); ?></span>
+        </div>
+    <?php endif;
+}
+
+function ap_post_upload_form($post_id = false){
+	$html = '
+    <div class="ap-post-upload-form">
+        <div class="ap-btn ap-upload-o '.ap_icon('image').'">
+        	<span>'.__('Add image to editor', 'ap').'</span>';
+        	if(ap_user_can_upload_image())
+	        	$html .= '	
+	            <span class="ap-upload-link">
+	            	'.__('upload', 'ap').'
+	            	<input type="file" name="post_upload_image" class="ap-upload-input" data-action="ap_post_upload_field">
+	            </span> '.__('or', 'ap');
+
+            $html .= '<span class="ap-upload-remote-link">
+            	'.__('add image from link', 'ap').'            	
+            </span>
+            <div class="ap-upload-link-rc">
+        		<input type="text" name="post_remote_image" class="ap-form-control" placeholder="'.__('Enter images link', 'ap').'" data-action="post_remote_image">        		
+        		<a data-action="post_image_ok" class="apicon-check ap-btn" href="#"></a>
+        		<a data-action="post_image_close" class="apicon-x ap-btn" href="#"></a>
+        	</div>
+        </div>';
+        
+        if(ap_user_can_upload_image())
+	        	$html .= '<script id="ap_post_upload_field" type="application/json">
+        	'.json_encode(array( '__nonce' => wp_create_nonce( 'upload_image_'.get_current_user_id().'_'.get_question_id() ), 'post_id' => $post_id, 'question_id' => get_question_id() )).'
+        	</script>';
+
+    $html .= '</div>';
+
+    return $html;
+
+}
+
+function ap_post_upload_hidden_form(){
+	if(ap_opt('allow_upload_image'))
+		return '<form id="hidden-post-upload" enctype="multipart/form-data" method="POST" style="display:none">
+			<input type="hidden" name="ap_ajax_action" value="upload_post_image" />
+			<input type="hidden" name="ap_form_action" value="upload_post_image" />
+			<input type="hidden" name="action" value="ap_ajax" />
+		</form>';
+}
+
+function ap_upload_user_file( $file = array(), $question_id ) {
+	require_once( ABSPATH . 'wp-admin/includes/admin.php' );
+	$file_return = wp_handle_upload( $file, array('test_form' => false, 'mimes' => array (
+                'jpg|jpeg'=>'image/jpeg',
+                'gif'=>'image/gif',
+                'png'=>'image/png'
+            ) ) );
+	if( isset( $file_return['error'] ) || isset( $file_return['upload_error_handler'] ) ) {
+		return false;
+	} else {
+		$filename = $file_return['file'];
+		$attachment = array(
+			'post_parent' => $question_id,
+			'post_mime_type' => $file_return['type'],
+			'post_title' => preg_replace( '/\.[^.]+$/', '', basename( $filename ) ),
+			'post_content' => '',
+			'post_status' => 'inherit',
+			'guid' => $file_return['url']
+			);
+		$attachment_id = wp_insert_attachment( $attachment, $file_return['url'] );
+		require_once(ABSPATH . 'wp-admin/includes/image.php');
+		$attachment_data = wp_generate_attachment_metadata( $attachment_id, $filename );
+		wp_update_attachment_metadata( $attachment_id, $attachment_data );
+		if( 0 < intval( $attachment_id ) ) {
+			return $attachment_id;
+		}
+	}
+	return false;
 }

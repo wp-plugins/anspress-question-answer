@@ -185,14 +185,14 @@ class AnsPress_PostTypes
         if ($post->post_type == 'question') {
             if(get_option('permalink_structure')){
                 if(ap_opt('question_permalink_follow'))
-                    return ap_base_page_link() .'question/'.$post->post_name.'/';
+                    return  rtrim(ap_base_page_link(), '/').'/question/'.$post->post_name.'/';
                 else
                     return home_url( '/question/'.$post->post_name.'/');
             }else{
                 return add_query_arg( array('apq' => false, 'question_id' =>$post->ID), ap_base_page_link());
             }
         }elseif ($post->post_type == 'answer' && $post->post_parent != 0) {
-           return home_url( '/question/'.$post->post_name.'/') ."?show_answer=$post->ID#answer_{$post->ID}";
+           return get_permalink( $post->post_parent ) ."?show_answer=$post->ID#answer_{$post->ID}";
         }
         return $link;
     }
@@ -205,17 +205,24 @@ class AnsPress_PostTypes
      */
     public function cpt_question_columns($columns)
     {
-        $columns = array(
-            "cb" => "<input type=\"checkbox\" />",
-            "author" => __('Author', 'ap'),
-            "title" => __('Title', 'ap'),
-            "status" => __('Status', 'ap'),
-            "answers" => __('Ans', 'ap'),
-            "comments" => __('Comments', 'ap'),
-            "vote" => __('Vote', 'ap'),            
-            "flag" => __('Flag', 'ap'),            
-            "date" => __('Date', 'ap')
-        );
+        $columns = array();
+        $columns["cb"]          = "<input type=\"checkbox\" />";
+        $columns["asker"]      = __('Author', 'ap');
+        $columns["title"]       = __('Title', 'ap');
+
+        if(taxonomy_exists( 'question_category' ))
+            $columns["question_category"]       = __('Category', 'ap');
+
+        if(taxonomy_exists( 'question_tag' ))
+            $columns["question_tag"]       = __('Tag', 'ap');
+        
+        $columns["status"]      = __('Status', 'ap');
+        $columns["answers"]     = __('Ans', 'ap');
+        $columns["comments"]    = __('Comments', 'ap');
+        $columns["vote"]        = __('Vote', 'ap');           
+        $columns["flag"]        = __('Flag', 'ap');           
+        $columns["date"]        = __('Date', 'ap');
+
         return $columns;
     }
 
@@ -223,16 +230,46 @@ class AnsPress_PostTypes
     {
         global $post;
 
-        if($post->post_type != 'question')
+        if(!($post->post_type != 'question' || $post->post_type != 'answer'))
             return $column;
 
         if ('asker' == $column || 'answerer' == $column) {
+            
             echo get_avatar(get_the_author_meta('user_email'), 40);
+        
         }elseif ('status' == $column) {            
-            echo '<span class="post-status">' . $post->post_status .'</span>';
-        } /*elseif ('question_category' == $column && taxonomy_exists( 'question_category' )) {
+            
+            echo '<span class="post-status">';
+            
+                if('private_post' == $post->post_status)
+                    echo __('Private', 'ap');
 
-            $category = get_the_terms($post->ID, ANSPRESS_CAT_TAX);            
+                elseif('closed' == $post->post_status)
+                    echo __('Closed', 'ap');
+
+                elseif('moderate' == $post->post_status)
+                    echo __('Moderate', 'ap');
+
+                elseif('private' == $post->post_status)
+                    echo __('Private', 'ap');
+
+                elseif('darft' == $post->post_status)
+                    echo __('Draft', 'ap');
+
+                elseif('pending' == $post->post_status)
+                    echo __('Pending', 'ap');
+
+                elseif('trash' == $post->post_status)
+                    echo __('Trash', 'ap');
+
+                else
+                    echo __('Open', 'ap');
+
+            echo '</span>';
+        
+        } elseif ('question_category' == $column && taxonomy_exists( 'question_category' )) {
+
+            $category = get_the_terms($post->ID, 'question_category');            
 
             if (!empty($category)) {
                 $out = array();
@@ -246,9 +283,9 @@ class AnsPress_PostTypes
             else {
                 _e('--');
             }
-        } elseif (ANSPRESS_TAG_TAX == $column) {
+        } elseif ('question_tag' == $column && taxonomy_exists( 'question_tag' )) {
             
-            $terms = get_the_terms($post->ID, ANSPRESS_TAG_TAX);
+            $terms = get_the_terms($post->ID, 'question_tag');
             
             
             if (!empty($terms)) {
@@ -258,8 +295,8 @@ class AnsPress_PostTypes
                 foreach ($terms as $term) {
                     $out[] = sprintf('<a href="%s">%s</a>', esc_url(add_query_arg(array(
                         'post_type' => $post->post_type,
-                        ANSPRESS_TAG_TAX => $term->slug
-                    ), 'edit.php')), esc_html(sanitize_term_field('name', $term->name, $term->term_id, ANSPRESS_TAG_TAX, 'display')));
+                        'question_tag' => $term->slug
+                    ), 'edit.php')), esc_html(sanitize_term_field('name', $term->name, $term->term_id, 'question_tag', 'display')));
                 }
                 
                 echo join(', ', $out);
@@ -267,9 +304,9 @@ class AnsPress_PostTypes
             
             
             else {
-                _e('No Tags');
+                _e('--', 'ap');
             }
-        }*/ elseif ('answers' == $column) {
+        } elseif ('answers' == $column) {
             $a_count = ap_count_answer_meta();
             
             /* If terms were found. */
@@ -291,7 +328,8 @@ class AnsPress_PostTypes
                 'action' => 'edit'
             ), 'post.php')) . '"><strong>' . get_the_title($post->post_parent) . '</strong></a>';
         } elseif ('vote' == $column) {
-            echo '<span class="vote-count' . ($post->flag ? ' zero' : '') . '">' . $post->net_vote . '</span>';
+            $vote = get_post_meta( $post->ID, ANSPRESS_VOTE_META, true );
+            echo '<span class="vote-count' . ($vote ? ' zero' : '') . '">' .$vote . '</span>';
         }elseif ('flag' == $column) {
             $total_flag = ap_post_flag_count();
             echo '<span class="flag-count' . ($total_flag ? ' flagged' : '') . '">'. $total_flag . '</span>';
@@ -307,8 +345,9 @@ class AnsPress_PostTypes
     {
         $columns = array(
             "cb" => "<input type=\"checkbox\" />",
-            "author" => __('Author', 'ap'),
+            "answerer" => __('Author', 'ap'),
             "answer_content" => __('Content', 'ap'),
+            "status" => __('Status', 'ap'),
             "comments" => __('Comments', 'ap'),
             "vote" => __('Vote', 'ap'),
             "flag" => __('Flag', 'ap'),

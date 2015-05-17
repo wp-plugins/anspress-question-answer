@@ -171,7 +171,7 @@ class AnsPress_BP
 		if(ap_opt('disable_reputation'))
 			return;
 
-		echo '<span class="ap-user-meta ap-user-meta-reputation">'. sprintf(__('%d Reputation', 'ap'), ap_get_reputation( bp_displayed_user_id(), true)) .'</span>';
+		echo '<span class="ap-user-meta ap-user-meta-reputation">'. sprintf(__('%s Reputation', 'ap'), ap_get_reputation( bp_displayed_user_id(), true)) .'</span>';
 	}
 
 	/**
@@ -184,6 +184,9 @@ class AnsPress_BP
 
 	public function ap_the_answer_content($content){
 		global $post;
+		
+		if ( !function_exists( 'bp_activity_at_name_filter' ) )
+			require_once '/bp-activity/bp-activity-filters.php';
 		
 		if($post->post_type == 'answer')
 			return bp_activity_at_name_filter($content);

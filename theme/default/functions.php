@@ -20,20 +20,23 @@ function init_scripts_front(){
 	//if(is_anspress()){
 		wp_enqueue_script( 'jquery');				
 		wp_enqueue_script( 'jquery-form', array('jquery'), false, true );			
-		wp_enqueue_script( 'ap-functions-js', ANSPRESS_URL.'assets/ap-functions.js', 'jquery');		
-		wp_enqueue_script( 'anspress_acript', ANSPRESS_URL.'assets/anspress_site.js', 'jquery', AP_VERSION);		
+		//wp_enqueue_script( 'ap-functions-js', ANSPRESS_URL.'assets/ap-functions.js', 'jquery');		
+		wp_enqueue_script( 'waypoints', ap_get_theme_url('js/jquery.waypoints.min.js'), 'jquery', AP_VERSION);	
+		wp_enqueue_script( 'anspress_acript', ANSPRESS_URL.'assets/prod/anspress_site.min.js', 'jquery', AP_VERSION);		
 		wp_enqueue_script( 'tooltipster', ap_get_theme_url('js/jquery.tooltipster.min.js'), 'jquery', AP_VERSION);
 		wp_enqueue_script( 'initial-js', ap_get_theme_url('js/initial.min.js'), 'jquery', AP_VERSION);
-		wp_enqueue_script( 'ap-js', ap_get_theme_url('js/ap.js'), 'jquery', AP_VERSION);
+		wp_enqueue_script( 'ap-js', ap_get_theme_url('prod/ap.min.js'), 'jquery', AP_VERSION);
 		wp_enqueue_style( 'tooltipster', ap_get_theme_url('css/tooltipster.css'), array(), AP_VERSION);
 		wp_enqueue_style( 'ap-style', ap_get_theme_url('css/main.css'), array(), AP_VERSION);
 
 		$custom_css = "
                 #anspress .ap-q-cells{
-                        margin-left: ".(ap_opt('avatar_size_qquestion') + 20)."px;
+                        margin-left: ".(ap_opt('avatar_size_qquestion') + 10)."px;
                 }
                 #anspress .ap-a-cells{
-                        margin-left: ".(ap_opt('avatar_size_qanswer') + 20)."px;
+                        margin-left: ".(ap_opt('avatar_size_qanswer') + 10)."px;
+                }#anspress .ap-comment-content{
+                        margin-left: ".(ap_opt('avatar_size_qcomment') + 15)."px;
                 }";
         wp_add_inline_style( 'ap-style', $custom_css );
 		
@@ -99,8 +102,9 @@ function init_scripts_front(){
 if ( ! function_exists( 'ap_comment' ) ) :
 	function ap_comment( $comment ) {
 		$GLOBALS['comment'] = $comment;
+		$class = '0' == $comment->comment_approved ? ' pending' : '';
 		?>
-		<li <?php comment_class('clearfix'); ?> id="li-comment-<?php comment_ID(); ?>">
+		<li <?php comment_class('clearfix'.$class); ?> id="li-comment-<?php comment_ID(); ?>">
 			<!-- comment #<?php comment_ID(); ?> -->
 			<div id="comment-<?php comment_ID(); ?>" class="clearfix">
 				<div class="ap-avatar ap-pull-left">
@@ -109,13 +113,10 @@ if ( ! function_exists( 'ap_comment' ) ) :
 					<?php echo get_avatar( $comment->user_id, 30 ); ?>
 					</a>
 				</div>
-				<div class="ap-comment-content no-overflow">
-					<?php if ( '0' == $comment->comment_approved ) : ?>
-						<p class="comment-awaiting-moderation"><?php _e( 'Your comment is awaiting moderation.', 'ap' ); ?></p>
-					<?php endif; ?>
-										
-					<div class="ap-comment-texts">
-						<?php echo get_comment_text(); ?>
+				<div class="ap-comment-content no-overflow">					
+					<div class="ap-comment-header">
+						<a href="<?php echo ap_user_link($comment->user_id); ?>" class="ap-comment-author"><?php echo ap_user_display_name($comment->user_id); ?></a>
+
 						<?php $a=" e ";$b=" ";$time=get_option('date_format').$b.get_option('time_format').$a.get_option('gmt_offset');
 								printf( ' - <a title="%4$s" href="#li-comment-%5$s" class="ap-comment-time"><time datetime="%1$s">%2$s %3$s</time></a>',
 								get_comment_time( 'c' ),
@@ -129,6 +130,9 @@ if ( ! function_exists( 'ap_comment' ) ) :
 							ap_comment_actions_buttons();
 						?>
 					</div>
+					<div class="ap-comment-texts">
+						<?php echo get_comment_text(); ?>						
+					</div>
 					<?php
 						/**
 						 * ACTION: ap_after_comment_content
@@ -137,6 +141,9 @@ if ( ! function_exists( 'ap_comment' ) ) :
 						 */
 						do_action('ap_after_comment_content', $comment );
 					?>
+					<?php if ( '0' == $comment->comment_approved ) : ?>
+						<p class="comment-awaiting-moderation"><?php _e( 'Your comment is awaiting moderation.', 'ap' ); ?></p>
+					<?php endif; ?>
 				</div>
 			</div>
 		<?php

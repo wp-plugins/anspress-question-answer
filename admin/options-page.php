@@ -22,6 +22,22 @@ class AnsPress_Options_Page
 				'show_desc_tip' => false,
 			),
 			array(
+				'name' => 'anspress_opt[question_help_page]',
+				'label' => __('Question Help page', 'ap') ,
+				'desc' => __('Direction for asking a question.', 'ap') ,
+				'type' => 'page_select',
+				'value' => @$settings['question_help_page'],
+				'show_desc_tip' => false,
+			),
+			array(
+				'name' => 'anspress_opt[answer_help_page]',
+				'label' => __('Answer Help page', 'ap') ,
+				'desc' => __('Direction for answring a question.', 'ap') ,
+				'type' => 'page_select',
+				'value' => @$settings['answer_help_page'],
+				'show_desc_tip' => false,
+			),
+			array(
 				'name' => 'anspress_opt[author_credits]',
 				'label' => __('Hide author credits', 'ap') ,
 				'desc' => __('Show your love by showing link to AnsPress project site.', 'ap') ,
@@ -300,6 +316,14 @@ class AnsPress_Options_Page
 				'value' => $settings['disable_voting_on_answer'],
 				'show_desc_tip' => false,
 			) ,
+			array(
+				'name' => 'anspress_opt[disable_answer_nav]',
+				'label' => __('Disable navigation', 'ap') ,
+				'desc' => __('Disable answer navigation.', 'ap') ,
+				'type' => 'checkbox',
+				'value' => $settings['disable_answer_nav'],
+				'show_desc_tip' => false,
+			) ,
 		));
 		
 		// register user settings
@@ -340,7 +364,7 @@ class AnsPress_Options_Page
 				'label' => __('Cover width', 'ap') ,
 				'desc' => __('Set width of user cover photo.', 'ap') ,
 				'type' => 'number',
-				'value' => $settings['cover_width'],
+				'value' => @$settings['cover_width'],
 				'show_desc_tip' => false,
 			) ,
 			array(
@@ -348,7 +372,7 @@ class AnsPress_Options_Page
 				'label' => __('Cover height', 'ap') ,
 				'desc' => __('Set height of user cover photo.', 'ap') ,
 				'type' => 'number',
-				'value' => $settings['cover_height'],
+				'value' => @$settings['cover_height'],
 				'show_desc_tip' => false,
 			) ,
 			array(
@@ -356,7 +380,7 @@ class AnsPress_Options_Page
 				'label' => __('Cover thumb width', 'ap') ,
 				'desc' => __('Set width of user cover photo thumbnail.', 'ap') ,
 				'type' => 'number',
-				'value' => $settings['cover_width_small'],
+				'value' => @$settings['cover_width_small'],
 				'show_desc_tip' => false,
 			) ,
 			array(
@@ -364,7 +388,7 @@ class AnsPress_Options_Page
 				'label' => __('Small cover height', 'ap') ,
 				'desc' => __('Set height of user cover photo thumbnail.', 'ap') ,
 				'type' => 'number',
-				'value' => $settings['cover_height_small'],
+				'value' => @$settings['cover_height_small'],
 				'show_desc_tip' => false,
 			) ,
 			array(
@@ -376,7 +400,7 @@ class AnsPress_Options_Page
 					'hide_empty' => false,
 					'orderby' => 'id'
 				)) ,
-				'value' => $settings['default_rank'],
+				'value' => @$settings['default_rank'],
 				'show_desc_tip' => false,
 			) ,
 		));
@@ -390,15 +414,15 @@ class AnsPress_Options_Page
 				'type' => 'checkbox',
 				'value' => $settings['multiple_answers'],
 				'show_desc_tip' => false,
-			) ,
+			),
 			array(
 				'name' => 'anspress_opt[disallow_op_to_answer]',
-				'label' => __('Asker cant answer', 'ap') ,
-				'desc' => __('Disallow asker to answer his own question.', 'ap') ,
+				'label' => __('Asker can answer', 'ap') ,
+				'desc' => __('Allow asker to answer his own question.', 'ap') ,
 				'type' => 'checkbox',
 				'value' => $settings['disallow_op_to_answer'],
 				'show_desc_tip' => false,
-			) ,
+			),
 			array(
 				'name' => 'anspress_opt[allow_anonymous]',
 				'label' => __('Allow anonymous', 'ap') ,
@@ -406,7 +430,7 @@ class AnsPress_Options_Page
 				'type' => 'checkbox',
 				'value' => $settings['allow_anonymous'],
 				'show_desc_tip' => false,
-			) ,
+			),
 			array(
 				'name' => 'anspress_opt[only_admin_can_answer]',
 				'label' => __('Only admin can answer', 'ap') ,
@@ -414,7 +438,7 @@ class AnsPress_Options_Page
 				'type' => 'checkbox',
 				'value' => $settings['only_admin_can_answer'],
 				'show_desc_tip' => false,
-			) ,
+			),
 			array(
 				'name' => 'anspress_opt[logged_in_can_see_ans]',
 				'label' => __('Only logged in can see answers', 'ap') ,
@@ -422,7 +446,7 @@ class AnsPress_Options_Page
 				'type' => 'checkbox',
 				'value' => $settings['logged_in_can_see_ans'],
 				'show_desc_tip' => false,
-			) ,
+			),
 			array(
 				'name' => 'anspress_opt[logged_in_can_see_comment]',
 				'label' => __('Only logged in can see comment', 'ap') ,
@@ -430,8 +454,7 @@ class AnsPress_Options_Page
 				'type' => 'checkbox',
 				'value' => $settings['logged_in_can_see_comment'],
 				'show_desc_tip' => false,
-			) ,
-
+			),
 			array(
 				'name' => 'anspress_opt[disable_delete_after]',
 				'label' => __('Lock delete action', 'ap') ,
@@ -439,7 +462,20 @@ class AnsPress_Options_Page
 				'type' => 'number',
 				'value' => $settings['disable_delete_after'],
 				'show_desc_tip' => false,
-			) ,
+			),
+			array(
+				'name' => '__sep',
+				'type' => 'custom',
+				'html' => '<span class="ap-form-separator">' . __('Upload', 'ap') . '</span>',
+			),
+			array(
+				'name' => 'anspress_opt[allow_upload_image]',
+				'label' => __('Allow image upload', 'ap') ,
+				'desc' => __('Allow logged-in users to upload image.', 'ap') ,
+				'type' => 'checkbox',
+				'value' => $settings['allow_upload_image'],
+				'show_desc_tip' => false,
+			),
 		));
 		
 		// register moderate settings

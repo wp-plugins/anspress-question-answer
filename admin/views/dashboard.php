@@ -18,13 +18,12 @@ $answer_count = ap_total_posts_count('answer');
 $flagged_count = ap_total_posts_count('both', 'flag');
 
 ?>
-<div id="ap-admin-dashboard" class="wrap">
+<div id="anspress" class="wrap">
 	<?php do_action('ap_before_admin_page_title') ?>
 	<h2><?php _e('AnsPress Dashboard', 'ap') ?></h2>
 
-	<div id="ap-dash-tiles">
-		<div class="grid-sizer"></div>
-		<div class="ap-dash-tile col-4">
+	<div class="row ap-dash-tiles">
+		<div class="ap-dash-tile col-md-6">
 			<div class="ap-dash-tile-in ap-tile anspress-stats-count">
 				<ul class="clearfix">
 					<li>
@@ -53,82 +52,81 @@ $flagged_count = ap_total_posts_count('both', 'flag');
 					</li>
 				</ul>
 			</div>
-		</div>
-		<div class="ap-dash-tile col-2">
 			<div class="ap-dash-tile-in ap-dash-questions">
-				<h3 class="ap-dash-title"><?php _e('Questions', 'ap') ?></h3>
+				<h3 class="ap-dash-title"><?php _e('Latest Questions', 'ap') ?></h3>
 				<?php
-					$questions = new Question_Query(array('showposts' => 5));
-					if($questions->have_posts()):
+					ap_get_questions(array('sortby' => 'newest'));
+					if ( ap_have_questions() ):
 				?>
-					<ul>
-						<?php
-							while ( $questions->have_posts() ) : $questions->the_post();
-								global $post;
-								$answers = get_post_meta(get_the_ID(), ANSPRESS_ANS_META, true);
-								$vote = get_post_meta(get_the_ID(), ANSPRESS_VOTE_META, true);
-								$view = get_post_meta(get_the_ID(), ANSPRESS_VIEW_META, true);
-								echo '<li class="clearfix">';
-								echo '<div class="ap-avatar">'.get_avatar( $post->post_author, 30 ).'</div>';
-								echo '<div class="ap-q-post"><a class="ap-q-title" href="'.get_permalink().'">'.get_the_title().'</a>
-										<div class="ap-q-meta">
-											<span class="ap-a-count">'.sprintf(_n('1 answer', '%d answers', $answers, 'ap'), $answers).'</span>
-											<span class="ap-vote-count">'.sprintf(_n('1 vote', '%d votes', $vote, 'ap'), $vote).'</span>
-											<span class="ap-view-count">'.sprintf(_n('1 view', '%d views', $view, 'ap'), $view).'</span>
-										</div>
-										</div>';
-								echo '</li>';
-							endwhile;
-							wp_reset_postdata();
-						?>
-					</ul>
-				<?php 
-					else: 
-						_e('There is no question yet.', 'ap');
-					endif; 
-				?>
-			</div>
-		</div>
-		<div class="ap-dash-tile col-2">
-			<div class="ap-dash-tile-in ap-tile anspress-support-link ap-tile-card">
-				<p><?php _e('Have any questions ?', 'ap') ?></p>
-				<a href="http://anspress.io/questions/ask" target="_blank"><?php _e('Ask for support', 'ap') ?></a>
-			</div>
-		</div>
+				<div class="ap-user-posts">
+					<?php while ( ap_questions() ) : ap_the_question(); ?>
+						<div class="ap-user-posts-item clearfix">
+							<a class="ap-user-posts-vcount ap-tip<?php echo ap_question_best_answer_selected() ? ' answer-selected' :''; ?>" href="<?php ap_question_the_permalink(); ?>" title="<?php _e('Answers'); ?>"><?php echo ap_icon('answer', true); ?><?php echo ap_question_get_the_answer_count(); ?></a>
+							<span class="ap-user-posts-active"><?php ap_question_the_active_ago(); ?></span>
+							<a class="ap-user-posts-ccount ap-tip" href="<?php ap_question_the_permalink(); ?>" title="<?php _e('Comments', 'ap'); ?>"><?php echo ap_icon('comment', true); ?><?php echo get_comments_number(); ?></a>
+							<div class="no-overflow"><a href="<?php ap_question_the_permalink(); ?>" class="ap-user-posts-title"><?php the_title(); ?></a></div>				
+						</div>	
+					
+					<?php 
+						endwhile;
+						wp_reset_postdata();
+					?>
 
-		<div class="ap-dash-tile col-2">
-			<div class="ap-dash-tile-in ap-dash-questions">
-				<h3 class="ap-dash-title"><?php _e('Answers', 'ap') ?></h3>
-				<?php
-					$answers = new Answers_Query(array('showposts' => 5));
-					if($answers->have_posts()):
-				?>
-					<ul>
-						<?php
-							while ( $answers->have_posts() ) : $answers->the_post();
-								global $post;
-								$vote = get_post_meta(get_the_ID(), ANSPRESS_VOTE_META, true);
-								$view = get_post_meta(get_the_ID(), ANSPRESS_VIEW_META, true);
-								echo '<li class="clearfix">';
-								echo '<div class="ap-avatar">'.get_avatar( $post->post_author, 30 ).'</div>';
-								echo '<div class="ap-q-post"><a class="ap-q-title" href="'.get_permalink().'">'.substr(strip_tags(get_the_content()), 0, 50).'</a>
-										<div class="ap-q-meta">
-											<span class="ap-parent-link"><a href="'.get_permalink( $post->post_parent ).'">'.__('View question', 'ap').'</a></span>
-											<span class="ap-vote-count">'.sprintf(_n('1 vote', '%d votes', $vote, 'ap'), $vote).'</span>
-											<span class="ap-view-count">'.sprintf(_n('1 view', '%d views', $view, 'ap'), $view).'</span>
-										</div>
-										</div>';
-								echo '</li>';
-							endwhile;
-							wp_reset_postdata();
-						?>
-					</ul>
-				<?php 
-					else: 
-						_e('There is no question yet.', 'ap');
-					endif; 
-				?>
+					<?php 
+						else: 
+							_e('There is no question yet.', 'ap');
+						endif; 
+					?>
+				</div>
 			</div>
+		</div>
+		<div class="ap-dash-tile col-md-6 ">
+			<div class="ap-dash-tile col-md-4 clearfix">
+				<div class="ap-donation-block">
+					<h3>Please donate</h3>
+					<p>We love open source as you do, so we decided to keep AnsPress free and open source. Your donation will keep us going, so kindly donate. Thanks.</p>
+					<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+						<input type="hidden" name="cmd" value="_xclick">
+						<input type="hidden" name="business" value="support@anspress.io">
+						<input type="hidden" name="lc" value="US">
+						<input type="hidden" name="button_subtype" value="services">
+						<input type="hidden" name="no_note" value="0">
+						<input type="hidden" name="currency_code" value="USD">
+						<input type="hidden" name="bn" value="PP-BuyNowBF:btn_paynowCC_LG.gif:NonHostedGuest">
+						<table>
+						<tr><td><input type="hidden" name="on0" value="Amount">Amount</td></tr><tr><td><select name="os0">
+							<option value="I am fan">I am fan $10.00 USD</option>
+							<option value="I am big fan">I am big fan $20.00 USD</option>
+							<option value="I am biggest fan">I am biggest fan $30.00 USD</option>
+						</select> </td></tr>
+						<tr><td><input type="hidden" name="on1" value="Feature request ?">Feature request ?</td></tr><tr><td><input type="text" name="os1" maxlength="200"></td></tr>
+						</table>
+						<input type="hidden" name="currency_code" value="USD">
+						<input type="hidden" name="option_select0" value="I am fan">
+						<input type="hidden" name="option_amount0" value="10.00">
+						<input type="hidden" name="option_select1" value="I am big fan">
+						<input type="hidden" name="option_amount1" value="20.00">
+						<input type="hidden" name="option_select2" value="I am biggest fan">
+						<input type="hidden" name="option_amount2" value="30.00">
+						<input type="hidden" name="option_index" value="0">
+						<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_paynowCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+						<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+					</form>
+				</div>
+				<div class="anspress-links">
+					<a href="http://anspress.io/" target="_blank"><i class="apicon-anspress-icon"></i><?php _e('About AnsPress', 'ap'); ?></a>
+					<a href="http://anspress.io/questions/" target="_blank"><i class="apicon-question"></i><?php _e('Support Q&A', 'ap'); ?></a>
+					<a href="http://anspress.io/themes/" target="_blank"><i class="apicon-info"></i><?php _e('AnsPress Themes', 'ap'); ?></a>
+					<a href="http://github.com/anspress/anspress" target="_blank"><i class="apicon-mark-github"></i><?php _e('Github Repo', 'ap'); ?></a>
+				</div>
+				<div class="ap-ext-notice">
+					<i class="apicon-puzzle"></i>
+					<h3>AnsPress extensions</h3>
+					<p>Extend AnsPress capabilities, get free extensions</p>
+					<a href="http://anspress.io/extensions/" target="_blank">Browse</a>
+				</div>
+			</div>
+
 		</div>
 		
 	</div>

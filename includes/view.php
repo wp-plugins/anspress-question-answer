@@ -52,19 +52,20 @@ class anspress_view {
  * Insert view data in ap_meta table and update post meta ANSPRESS_VIEW_META
  * @param  integer $data_id
  * @param  string $type	
- * @return boolean|integer
+ * @return boolean
  */
 function ap_insert_views($data_id, $type){
 	if($type == 'question'){
 		$userid = get_current_user_id();
-		$row = ap_add_meta($userid, 'post_view', $data_id, $_SERVER['REMOTE_ADDR'] );
+		//$row = ap_add_meta($userid, 'post_view', $data_id, $_SERVER['REMOTE_ADDR'] );
 		
-		$view = ap_get_views_db($data_id);
+		//$view = ap_get_views_db($data_id);
+		$view = ap_get_qa_views($data_id);
 		$view = $view+1;
 		update_post_meta( $data_id, ANSPRESS_VIEW_META, apply_filters('ap_insert_views', $view ));
 		do_action('after_insert_views', $data_id, $view);
 
-		return $row;
+		return true;
 	}
 	return false;
 }

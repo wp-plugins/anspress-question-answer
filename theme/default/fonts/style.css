@@ -1,10 +1,10 @@
 @font-face {
 	font-family: 'anspress';
-	src:url('fonts/anspress.eot?-36ax6n');
-	src:url('fonts/anspress.eot?#iefix-36ax6n') format('embedded-opentype'),
-		url('fonts/anspress.woff?-36ax6n') format('woff'),
-		url('fonts/anspress.ttf?-36ax6n') format('truetype'),
-		url('fonts/anspress.svg?-36ax6n#anspress') format('svg');
+	src:url('fonts/anspress.eot?-2lbq88');
+	src:url('fonts/anspress.eot?#iefix-2lbq88') format('embedded-opentype'),
+		url('fonts/anspress.woff?-2lbq88') format('woff'),
+		url('fonts/anspress.ttf?-2lbq88') format('truetype'),
+		url('fonts/anspress.svg?-2lbq88#anspress') format('svg');
 	font-weight: normal;
 	font-style: normal;
 }
@@ -23,24 +23,8 @@
 	-moz-osx-font-smoothing: grayscale;
 }
 
-.apicon-category:before {
-	content: "\e606";
-}
-
-.apicon-tag:before {
-	content: "\e607";
-}
-
-.apicon-comments:before {
-	content: "\e603";
-}
-
-.apicon-anspress:before {
-	content: "\e604";
-}
-
-.apicon-anspress-icon:before {
-	content: "\e605";
+.apicon-home:before {
+	content: "\e611";
 }
 
 .apicon-thumbs-up-down:before {
@@ -53,6 +37,54 @@
 
 .apicon-thumb-down:before {
 	content: "\e602";
+}
+
+.apicon-toggle-on:before {
+	content: "\e60f";
+}
+
+.apicon-toggle-off:before {
+	content: "\e610";
+}
+
+.apicon-image:before {
+	content: "\e608";
+}
+
+.apicon-category:before {
+	content: "\e606";
+}
+
+.apicon-tag:before {
+	content: "\e607";
+}
+
+.apicon-comments:before {
+	content: "\e603";
+}
+
+.apicon-chevron-down:before {
+	content: "\e60d";
+}
+
+.apicon-chevron-up:before {
+	content: "\e60e";
+}
+
+.apicon-chevron-right:before {
+	content: "\e60b";
+}
+
+.apicon-chevron-left:before {
+	content: "\e60c";
+}
+
+.apicon-screen-normal:before {
+	content: "\e609";
+}
+
+.apicon-screen-full:before {
+	content: "\e60a";
 }
 
 .apicon-alert:before {
@@ -69,10 +101,6 @@
 
 .apicon-check:before {
 	content: "\f03a";
-}
-
-.apicon-clippy:before {
-	content: "\f035";
 }
 
 .apicon-clock:before {
@@ -103,20 +131,8 @@
 	content: "\f04e";
 }
 
-.apicon-file-code:before {
-	content: "\f010";
-}
-
-.apicon-fold:before {
-	content: "\f0cc";
-}
-
 .apicon-gear:before {
 	content: "\f02f";
-}
-
-.apicon-gist:before {
-	content: "\f00e";
 }
 
 .apicon-gist-secret:before {
@@ -187,28 +203,8 @@
 	content: "\f080";
 }
 
-.apicon-organization:before {
-	content: "\f037";
-}
-
-.apicon-paintcan:before {
-	content: "\f0d1";
-}
-
-.apicon-pencil:before {
-	content: "\f058";
-}
-
-.apicon-person:before {
-	content: "\f018";
-}
-
 .apicon-pin:before {
 	content: "\f041";
-}
-
-.apicon-plug:before {
-	content: "\f0d4";
 }
 
 .apicon-plus:before {
@@ -225,10 +221,6 @@
 
 .apicon-question:before {
 	content: "\f02c";
-}
-
-.apicon-quote:before {
-	content: "\f063";
 }
 
 .apicon-rss:before {
@@ -269,5 +261,13 @@
 
 .apicon-x:before {
 	content: "\f081";
+}
+
+.apicon-anspress:before {
+	content: "\e604";
+}
+
+.apicon-anspress-icon:before {
+	content: "\e605";
 }
 

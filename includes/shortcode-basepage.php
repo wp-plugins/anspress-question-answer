@@ -73,7 +73,7 @@ class AnsPress_BasePage_Shortcode {
 			 * Action is fired before loading AnsPress body.
 			 */
 			do_action('ap_before');
-			
+
 			// include theme file
 			ap_page();
 

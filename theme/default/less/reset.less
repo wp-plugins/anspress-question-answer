@@ -3,8 +3,16 @@
 // --------------------------------------------------
 
 #anspress{
-	line-height: 1.6;
-	font-size: 14px;
+    font-family: "Helvetica Neue",Helvetica,"Segoe UI",Arial,freesans,sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    ul{
+    	line-height: 1.4;
+    }
+    h3{
+    	line-height: 1.8;
+    }
 	.hentry {
 		padding-top: 0;
 		margin: 0;
@@ -51,9 +59,10 @@
 	}
 
 	.ap-avatar{
-		margin-right:15px;
+		margin-right:10px;
 		img{
 			.border-radius(@avatar-border-radius);
+			box-shadow: none;
 		}
 	}
 
@@ -96,10 +105,9 @@
 	}
 
 	.ap-widget-title {
-		font-size: 14px;
+		font-size: 13px;
 	    font-weight: 600;
-	    line-height: 1.2;
-	    margin-bottom: 15px;
+	    margin-bottom: 5px;
 	    margin-top: 0;
 	}
 
@@ -149,7 +157,7 @@
 		padding: 15px;
 		text-align: center;
 	}
-	.ap-questions-tab{
+	.ap-questions-tab, .ap-answers-tab{
 		background: #fff;
 	    border: 1px solid #ddd;
 	    border-radius: 2px;
@@ -246,6 +254,31 @@
 		>li{
 			margin:0;
 			padding: 0;
+		}
+	}
+	.ap-tab-nav{
+		li> a{
+		    background: none repeat scroll 0 0 #eee;
+		    border-color: #ddd #ddd transparent;
+		    border-image: none;
+		    border-radius: 2px 2px 0 0;
+		    border-style: solid solid none;
+		    border-width: 1px 1px medium;
+		    display: block;
+		    margin-bottom: -9px;
+		    padding: 5px 12px;
+		    &:focus{
+		    	outline: none;
+		    }
+	    }
+	    li.active > a{
+	    	background: none repeat scroll 0 0 #fff;
+	    }
+	}
+	.ap-tab-container > *{
+		display: none;
+		&.active{
+			display: block;
 		}
 	}
 }

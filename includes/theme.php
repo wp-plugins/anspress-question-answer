@@ -32,14 +32,17 @@ function ap_page_title() {
 	elseif(is_ap_search())
 		$new_title = sprintf(ap_opt('search_page_title'), sanitize_text_field(get_query_var('ap_s')));
 
-	elseif(isset($pages[$current_page]['title']))
-		$new_title = $pages[$current_page]['title'];
+	elseif(is_ask())
+		$new_title = ap_opt('ask_page_title');
 
 	elseif($current_page == '' && !is_question() && get_query_var('question_name') == '')
 		$new_title = ap_opt('base_page_title');
 
 	elseif(get_query_var('parent') != '')
 		$new_title = sprintf( __( 'Discussion on "%s"', 'ap'), get_the_title(get_query_var('parent') ));
+
+	elseif(isset($pages[$current_page]['title']))
+		$new_title = $pages[$current_page]['title'];
 
 	else
 		$new_title = __('Error 404', 'ap');
@@ -329,6 +332,7 @@ function ap_icon($name, $html = false){
 		'unmute'			=> 'apicon-unmute',
 		'tag'				=> 'apicon-tag',
 		'history'				=> 'apicon-history',
+		'image'				=> 'apicon-image',
 	);
 	
 	$icons = apply_filters('ap_icon', $icons);
@@ -422,8 +426,11 @@ function ap_post_actions_buttons($disable = array())
 	if(is_user_logged_in())
 		$actions['dropdown']['flag'] = ap_flag_btn_html();
 
-	if(ap_user_can_delete($post->ID))
+	if(ap_user_can_delete($post->ID) && $post->post_status != 'trash')
 		$actions['dropdown']['delete'] = ap_post_delete_btn_html();
+
+	if(ap_user_can_delete($post->ID))
+		$actions['dropdown']['permanent_delete'] = ap_post_permanent_delete_btn_html();
 
 	/**
 	 * FILTER: ap_post_actions_buttons
@@ -442,7 +449,7 @@ function ap_post_actions_buttons($disable = array())
 		if(!empty($actions['dropdown'])){			
 			echo '<li class="ap-post-action dropdown">';				
 				echo '<div id="ap_post_action_'.$post->ID.'" class="ap-dropdown">';
-				echo '<a class="apicon-ellipsis ap-btn more-actions ap-tip ap-dropdown-toggle" title="'.__('More action', 'ap').'" href="#"></a>';
+				echo '<a class="apicon-ellipsis more-actions ap-tip ap-dropdown-toggle" title="'.__('More action', 'ap').'" href="#"></a>';
 				echo '<ul class="ap-dropdown-menu">';
 					foreach($actions['dropdown'] as $sk=>$sub)
 						echo '<li class="ap-post-action ap-action-'.$sk.'">'.$sub.'</li>';
@@ -458,7 +465,7 @@ function ap_post_actions_buttons($disable = array())
  * Output questions list tab
  * @return string
  */
-function ap_questions_tab($current_url){
+function ap_questions_tab($current_url = ''){
 	if(is_home() || is_front_page())
 		$current_url = home_url('/');
 
@@ -481,7 +488,7 @@ function ap_questions_tab($current_url){
 	if(!ap_opt('disable_voting_on_question'))
 		$navs['voted'] =  array('link' => add_query_arg(array('ap_sort' => 'voted'), $link), 'title' => __('Voted', 'ap'));
 
-	$navs['answers'] = array('link' => add_query_arg(array('ap_sort' => 'answers'), $link), 'title' => __('Answers', 'ap'));
+	$navs['answers'] = array('link' => add_query_arg(array('ap_sort' => 'answers'), $link), 'title' => __('Answered', 'ap'));
 	$navs['unanswered'] = array('link' => add_query_arg(array('ap_sort' => 'unanswered'), $link), 'title' => __('Unanswered', 'ap'));
 	$navs['unsolved'] = array('link' => add_query_arg(array('ap_sort' => 'unsolved'), $link), 'title' => __('Unsolved', 'ap')); 
 
@@ -494,7 +501,7 @@ function ap_questions_tab($current_url){
 	 */
 	$navs = apply_filters('ap_questions_tab', $navs );
 
-	echo '<ul class="ap-questions-tab ap-ul-inline clearfix">';
+	echo '<ul id="ap-question-tab" class="ap-questions-tab ap-ul-inline clearfix">';
 	foreach ($navs as $k => $nav) {
 		echo '<li class="ap-questions-tab-'.esc_attr($k).( $sort == $k ? ' active' : '') .'"><a href="'. esc_url($nav['link']) .'">'. $nav['title'] .'</a></li>';
 	}
@@ -627,3 +634,99 @@ function ap_ask_btn(){
 function ap_get_template_part($file){
 	include(ap_get_theme_location($file.'.php'));
 }
+
+/**
+ * Output the contents of help page
+ * @since 2.2
+ */
+function ap_how_to_ask(){
+	$content = ap_get_how_to_ask();
+	
+	if($content !== false)
+		echo $content;
+}
+	/**
+	 * Get the contents of help page
+	 * @return string|false
+	 * @since 2.2
+	 */
+	function ap_get_how_to_ask(){
+		if(ap_opt('qustion_help_page') != ''){
+			$help = get_post((int)ap_opt('question_help_page'));
+			return $help->the_content();
+		}
+		return false;
+	}
+
+/**
+ * Output the contents of answer help page
+ * @since 2.2
+ */
+function ap_how_to_answer(){
+	$content = ap_get_how_to_answer();
+	
+	if($content !== false)
+		echo $content;
+}
+	/**
+	 * Get the contents of help page
+	 * @return string|false
+	 * @since 2.2
+	 */
+	function ap_get_how_to_answer(){
+		if(ap_opt('answer_help_page') != ''){
+			$help = get_post((int)ap_opt('answer_help_page'));
+			return $help->post_content;
+		}
+		return false;
+	}
+
+function ap_breadcrumbs(){
+	$navs = ap_get_breadcrumbs();
+
+	echo '<ul class="ap-breadcrumbs clearfix">';
+	echo '<li class="ap-breadcrumbs-home"><a href="'.home_url( '/' ).'" class="apicon-home"></a></li>';
+	echo '<li><i class="apicon-chevron-right"></i></li>';
+
+	$i = 1;
+	$total_nav = count($navs);
+	
+	foreach($navs as $k => $nav){
+		if(!empty($nav)){
+			echo '<li>';
+			echo '<a href="'.$nav['link'].'">'.$nav['title'].'</a>';
+			echo '</li>';
+			
+			if($total_nav != $i)
+				echo '<li><i class="apicon-chevron-right"></i></li>';
+		}
+		$i++;
+	}
+
+	echo '</ul>';
+}
+
+	function ap_get_breadcrumbs(){
+		$current_page  = get_query_var('ap_page');
+		$title = ap_page_title();
+		$a = array();
+		
+		$a['base'] = array( 'title' => ap_opt('base_page_title'), 'link' => ap_base_page_link(), 'order' => 0 );
+
+		
+
+		if( is_question_tag()){
+			$a['tag'] = array( 'title' => __('Tags', 'ap'), 'link' => '', 'order' => 10 );
+		}
+
+		elseif(is_question()){			
+			$a['page'] = array( 'title' => substr($title, 0, 30). (strlen($title)>30 ? __('..', 'ap') : ''), 'link' => get_permalink( get_question_id() ), 'order' => 10 );
+		}
+		else{
+			$a['page'] = array( 'title' => substr($title, 0, 30). (strlen($title)>30 ? __('..', 'ap') : ''), 'link' => ap_get_link_to($current_page), 'order' => 10 );
+		}
+
+		$a = apply_filters('ap_breadcrumbs', $a );
+
+		return ap_sort_array_by_order($a);
+	}

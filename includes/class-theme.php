@@ -87,7 +87,6 @@ class AnsPress_Theme
         // add anspress class to body
         if (get_the_ID() == ap_opt('questions_page_id') || get_the_ID() == ap_opt('question_page_id') || is_singular('question')) $classes[] = 'anspress';
         
-        // return the $classes array
         return $classes;
     }
     
@@ -152,16 +151,11 @@ class AnsPress_Theme
         return $title;
     }
     
-    public function menu($atts, $item, $args) 
-    {
-        return $atts;
-    }
-    
     public function feed_link() 
     {
         if (is_anspress()) 
         {
-            echo '<link href="' . esc_url(home_url('/feed/question-feed')) . '" title="' . __('Question >> Feed', 'ap') . '" type="application/rss+xml" rel="alternate">';
+            echo '<link href="' . esc_url(home_url('/feed/question-feed')) . '" title="' . __('Question Feed', 'ap') . '" type="application/rss+xml" rel="alternate">';
         }
     }
     

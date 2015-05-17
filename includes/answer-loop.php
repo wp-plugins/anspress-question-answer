@@ -36,11 +36,10 @@ class Answers_Query extends WP_Query {
         global $answers;
 
         $paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
-
-        if(isset($args['question_id']))
-            $question_id = $args['question_id'];
-
+        
         $defaults = array(
+            'question_id'  => get_question_id(),
+            'ap_answers_query'  => true,
             'showposts'         => ap_opt('answers_per_page'),
             'paged'             => $paged,
             'only_best_answer'  => false,
@@ -52,11 +51,24 @@ class Answers_Query extends WP_Query {
 
         $this->args = wp_parse_args( $args, $defaults );
         
+        if(isset($this->args['question_id']))
+            $question_id = $this->args['question_id'];
+
         if(!empty($question_id))
             $this->args['post_parent'] = $question_id;
 
         if(isset($this->args[ 'sortby' ]))
             $this->orderby_answers();
+
+        if(isset($this->args['only_best_answer']) && $this->args['only_best_answer'])
+            $this->args['meta_query'] = array(
+                array(
+                    'key'           => ANSPRESS_BEST_META,
+                    'type'          => 'BOOLEAN',
+                    'compare'       => '=',
+                    'value'         => '1'
+                )
+            );
 
         $this->args['post_type'] = 'answer';        
 
@@ -84,15 +96,15 @@ class Answers_Query extends WP_Query {
                     )
                 );
             break;
-            case 'oldest' :
+            case 'oldest':
                 $this->args['orderby'] = 'meta_value date';
                 $this->args['order'] = 'ASC';
             break;
-            case 'newest' :
+            case 'newest':
                 $this->args['orderby'] = 'meta_value date';
                 $this->args['order'] = 'DESC';
             break;
-            default :
+            default:
                 $this->args['orderby'] = 'meta_value';
                 $this->args['meta_key'] = ANSPRESS_UPDATED_META;
                 $this->args['meta_query']  = array(
@@ -165,21 +177,16 @@ function ap_get_best_answer($question_id = false){
     if(!$question_id) 
         $question_id = get_question_id();
 
-    $answer_id = ap_selected_answer($question_id);
     
-    $args = array('p' => $answer_id);
+    $args = array('only_best_answer' => true);
 
-    if(ap_user_can_view_private_post($answer_id))
+    /*if(ap_user_can_view_private_post($answer_id))
       $args['post_status'][] = 'private_post';
 
     if(ap_user_can_view_moderate_post($answer_id))
-       $args['post_status'][] = 'moderate';
+       $args['post_status'][] = 'moderate';*/
 
-    anspress()->answers = new Answers_Query( $args ); 
-
-    while ( ap_have_answers() ) : ap_the_answer();
-        include(ap_get_theme_location('answer.php'));
-    endwhile ;
+    anspress()->answers = new Answers_Query( $args );
 }
 
 
@@ -247,7 +254,7 @@ function ap_answer_the_question_id(){
  * @since 2.1
  */
 function ap_answer_user_can_view(){
-    return ap_user_can_view_post(ap_answer_get_the_question_id());
+    return ap_user_can_view_post(ap_answer_get_the_answer_id());
 }
 
 /**
@@ -276,7 +283,7 @@ function ap_answer_get_author_id(){
 
 /**
  * echo user profile link
- * @return 2.1
+ * @since 2.1
  */
 function ap_answer_the_author_link(){
     echo ap_answer_get_the_author_link();
@@ -291,7 +298,7 @@ function ap_answer_the_author_link(){
     }
 
 function ap_answer_the_author_avatar($size = false){
-    $size = ap_parameter_empty(ap_opt('avatar_size_qanswer'), 45);
+    $size = ap_parameter_empty(ap_opt('avatar_size_qanswer'), $size);
     echo ap_answer_get_the_author_avatar( $size );
 }
     /**
@@ -306,7 +313,7 @@ function ap_answer_the_author_avatar($size = false){
 
 /**
  * Output active answer vote button
- * @return 2.1
+ * @since 2.1
  */
 function ap_answer_the_vote_button(){
     ap_vote_btn(ap_answer_the_object());
@@ -410,13 +417,13 @@ function ap_answers_the_pagination(){
 }
 
 function ap_answer_the_active_time($answer_id = false){
-    echo ap_answer_get_the_active_time();
+    echo ap_answer_get_the_active_time($answer_id);
 }
 
-function ap_answer_get_the_active_time($answer_id = false){
-    $answer_id = ap_parameter_empty($answer_id, @ap_answer_get_the_answer_id());
-    return ap_get_latest_history_html($answer_id);
-}
+    function ap_answer_get_the_active_time($answer_id = false){
+        $answer_id = ap_parameter_empty($answer_id, @ap_answer_get_the_answer_id());
+        return ap_get_latest_history_html($answer_id);
+    }
 
 function ap_answer_the_time($answer_id = false, $format = 'U'){
     $answer_id = ap_parameter_empty($answer_id, @ap_answer_get_the_answer_id());

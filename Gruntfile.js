@@ -5,6 +5,7 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-phpdocumentor');
 	grunt.loadNpmTasks('grunt-csscomb');
 	grunt.loadNpmTasks('grunt-contrib-copy');
+	grunt.loadNpmTasks('grunt-contrib-uglify');
 
 	grunt.initConfig({
 	    makepot: {
@@ -56,19 +57,34 @@ module.exports = function(grunt) {
 		    },
 		    files: {
 		      "theme/default/css/main.css": "theme/default/less/main.less",
+		      "assets/ap-admin.css": "assets/ap-admin.less"
 		    }
 		  },
 		  production: {
 		    files: {
 		      "theme/default/css/main.css": "theme/default/less/main.less",
+		      "assets/ap-admin.css": "assets/ap-admin.less"
 
 		    }
 		  }
+		},
+		uglify: {
+			my_target: {
+			  files: {
+			    'assets/prod/anspress_site.min.js': ['assets/js/anspress_site.js'],
+			    'assets/prod/ap-admin.min.js': ['assets/js/ap-admin.js'],
+			    'theme/default/prod/ap.min.js': ['theme/default/js/ap.js']
+			  }
+			}
 		},
 		watch: {
 			less: {
 				files: ['**/*.less'],
 				tasks: ['less'],
+			},
+			uglify: {
+				files: ['theme/default/js/*.js','assets/js/*.js'],
+				tasks: ['uglify'],
 			}
 		},
 	});

@@ -15,7 +15,7 @@
  * Plugin URI:        http://anspress.io
  * Description:       The most advance community question and answer system for WordPress
  * Donate link: https://www.paypal.com/cgi-bin/webscr?business=support@anspress.io&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
- * Version:           2.1.6
+ * Version:           2.2
  * Author:            Rahul Aryan
  * Author URI:        http://anspress.io
  * Text Domain:       ap
@@ -38,13 +38,7 @@ if (!class_exists('AnsPress')) {
     class AnsPress
     {
 
-        private $_plugin_version = '2.1.6';
-
-        private $_plugin_path;
-
-        private $_plugin_url;
-
-        private $_text_domain = 'ap';
+        private $_plugin_version = '2.2';
 
         public static $instance = null;
 
@@ -96,7 +90,9 @@ if (!class_exists('AnsPress')) {
                 self::$instance = new AnsPress();
                 self::$instance->_setup_constants();
                 
-                add_action('init', array( self::$instance, 'load_textdomain' ));
+                add_action('plugins_loaded', array( self::$instance, 'load_textdomain' ));
+                
+                
                 add_action('bp_include', array( self::$instance, 'bp_include' ));
 
                 global $ap_classes;
@@ -137,7 +133,7 @@ if (!class_exists('AnsPress')) {
              }
 
              if (!defined('AP_DB_VERSION')) {
-                 define('AP_DB_VERSION', '11');
+                 define('AP_DB_VERSION', '12');
              }
 
              if (!defined('DS')) {
@@ -158,10 +154,6 @@ if (!class_exists('AnsPress')) {
 
              if (!defined('ANSPRESS_ADDON_DIR')) {
                  define('ANSPRESS_ADDON_DIR', ANSPRESS_DIR.'addons'.DS);
-             }
-
-             if (!defined('ANSPRESS_ADDON_URL')) {
-                 define('ANSPRESS_ADDON_URL', ANSPRESS_URL.'addons/');
              }
 
              if (!defined('ANSPRESS_THEME_DIR')) {
@@ -252,15 +244,14 @@ if (!class_exists('AnsPress')) {
             require_once ANSPRESS_DIR.'includes/answer-form.php';
             require_once ANSPRESS_DIR.'widgets/search.php';
             require_once ANSPRESS_DIR.'widgets/subscribe.php';
-            require_once ANSPRESS_DIR.'widgets/participants.php';
             require_once ANSPRESS_DIR.'widgets/question_stats.php';
             require_once ANSPRESS_DIR.'widgets/related_questions.php';
             require_once ANSPRESS_DIR.'widgets/categories.php';
             require_once ANSPRESS_DIR.'widgets/questions.php';
+            require_once ANSPRESS_DIR.'widgets/breadcrumbs.php';
             require_once ANSPRESS_DIR.'includes/rewrite.php';            
             require_once ANSPRESS_DIR.'includes/reputation.php';            
             require_once ANSPRESS_DIR.'vendor/autoload.php';
-            require_once ANSPRESS_DIR.'includes/requirements.php';
             require_once ANSPRESS_DIR.'includes/class-user.php';
             require_once ANSPRESS_DIR.'includes/user.php';
             require_once ANSPRESS_DIR.'includes/users-loop.php';
@@ -278,11 +269,21 @@ if (!class_exists('AnsPress')) {
          */
         public function load_textdomain()
         {
-            load_plugin_textdomain($this->_text_domain, false, dirname(plugin_basename(__FILE__)).'/languages/');
+            $locale = apply_filters( 'plugin_locale', get_locale(), 'ap' );
+
+
+            if ( $loaded = load_textdomain( 'ap', trailingslashit( WP_LANG_DIR ) . 'ap' . '/' . 'ap' . '-' . $locale . '.mo' ) ) {
+                return $loaded;
+            } else {
+                load_plugin_textdomain( 'ap', FALSE, basename( dirname( __FILE__ ) ) . '/languages/' );
+            }
         }
 
         public function bp_include()
         {
+            if ( !class_exists( 'BuddyPress' ) )
+                return;
+
             require_once ANSPRESS_DIR.'includes/bp.php';
             self::$instance->anspress_bp = new AnsPress_BP;
         }
@@ -351,5 +352,12 @@ function anspress_uninstall()
 
 add_action('plugins_loaded', array( 'anspress_vote', 'get_instance' ));
 add_action('plugins_loaded', array( 'anspress_view', 'get_instance' ));
+
+function ap_activation_redirect( $plugin ) {
+    if( $plugin == plugin_basename( __FILE__ ) ) {
+        exit( wp_redirect( admin_url( 'admin.php?page=anspress_about' ) ) );
+    }
+}
+add_action( 'activated_plugin', 'ap_activation_redirect' );
 
 

@@ -22,12 +22,11 @@ class AnsPress_Actions
 		
 		AP_History::get_instance();
 
-		add_action( 'init', array($this, 'init') );
-		add_action( 'ap_after_new_question', array($this, 'after_new_question'), 1, 2 );
-		add_action( 'ap_after_new_answer', array($this, 'after_new_answer'), 1, 2 );
+		add_action( 'ap_after_new_question', array($this, 'after_new_question'), 0, 2 );
+		add_action( 'ap_after_new_answer', array($this, 'after_new_answer'), 0, 2 );
 
-		add_action( 'ap_after_update_question', array($this, 'ap_after_update_question'), 1, 2 );
-		add_action( 'ap_after_update_answer', array($this, 'ap_after_update_answer'), 1, 2 );
+		add_action( 'ap_after_update_question', array($this, 'ap_after_update_question'), 0, 2 );
+		add_action( 'ap_after_update_answer', array($this, 'ap_after_update_answer'), 0, 2 );
 
 		add_action( 'before_delete_post', array($this, 'before_delete'));	
 
@@ -39,24 +38,18 @@ class AnsPress_Actions
 		add_action( 'comment_approved_to_unapproved', array($this, 'comment_unapproved'));
 		add_action( 'trashed_comment', array($this, 'comment_trash'));
 		add_action( 'delete_comment ', array($this, 'comment_trash'));
-		add_action( 'publish_comment', array($this, 'publish_comment'));
-		add_action( 'unpublish_comment', array($this, 'unpublish_comment'));
+		add_action( 'ap_publish_comment', array($this, 'publish_comment'));
+		add_action( 'ap_unpublish_comment', array($this, 'unpublish_comment'));
 		add_filter( 'wp_get_nav_menu_items', array($this, 'update_menu_url'));
 		add_filter( 'nav_menu_css_class', array($this, 'fix_nav_current_class'), 10, 2 );
 
 		add_action( 'wp_loaded', array( $this, 'flush_rules' ) );
+
+		add_filter( 'teeny_mce_buttons', array($this, 'editor_buttons'), 10, 2 );
+		add_filter( 'wp_insert_post_data', array($this, 'wp_insert_post_data'), 10, 2 );
+
 	}
 
-	/**
-     * Actions to do after after theme setup
-     * @return void
-     * @since 2.0.0-alpha2
-     */
-    public function init()
-    {
-    	/*ap_register_menu('ANSPRESS_BASE_PAGE_URL', __('Questions', 'ap'), ap_base_page_link());
-    	ap_register_menu('ANSPRESS_ASK_PAGE_URL', __('Ask', 'ap'), ap_get_link_to('ask'));*/
-    }
 
 	/**
 	 * Things to do after creating a question
@@ -76,7 +69,7 @@ class AnsPress_Actions
 		update_post_meta($post_id, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
 		update_post_meta($post_id, ANSPRESS_SELECTED_META, false);
 		
-		ap_add_parti($post_id, $user_id, 'question');
+		//ap_add_parti($post_id, $user_id, 'question');
 
 		// subscribe to current question
 		ap_add_question_subscriber($post_id);
@@ -99,7 +92,6 @@ class AnsPress_Actions
 	public function after_new_answer($post_id, $post)
 	{
 		
-		$user_id = get_current_user_id();	
 		$question = get_post($post->post_parent);
 		// set default value for meta
 		update_post_meta($post_id, ANSPRESS_VOTE_META, '0');
@@ -107,8 +99,6 @@ class AnsPress_Actions
 		// set updated meta for sorting purpose
 		update_post_meta($question->ID, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
 		update_post_meta($post_id, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
-		
-		ap_add_parti($question->ID, $user_id, 'answer', $post_id);	
 
 		// subscribe to current question
 		ap_add_question_subscriber($question->ID);	
@@ -161,7 +151,7 @@ class AnsPress_Actions
 
 		if( $post->post_type == 'question') {
 			do_action('ap_trash_question', $post);
-			ap_remove_parti($post->ID, $post->post_author, 'question');
+			//ap_remove_parti($post->ID, $post->post_author, 'question');
 			ap_delete_meta(array('apmeta_type' => 'flag', 'apmeta_actionid' => $post->ID));
 			$arg = array(
 			  'post_type' => 'answer',
@@ -172,7 +162,7 @@ class AnsPress_Actions
 			$ans = get_posts($arg);
 			if($ans>0){
 				foreach( $ans as $p){					
-					ap_remove_parti($p->post_parent, $p->post_author, 'answer');
+					//ap_remove_parti($p->post_parent, $p->post_author, 'answer');
 					do_action('ap_trash_multi_answer', $post);
 					ap_delete_meta(array('apmeta_type' => 'flag', 'apmeta_actionid' => $p->ID));
 					wp_trash_post($p->ID);
@@ -182,10 +172,11 @@ class AnsPress_Actions
 
 		if( $post->post_type == 'answer') {
 			$ans = ap_count_published_answers($post->post_parent);
+			$ans = $ans > 0 ? $ans - 1 : 0;
 			do_action('ap_trash_answer', $post);
-			ap_remove_parti($post->post_parent, $post->post_author, 'answer');
+			//ap_remove_parti($post->post_parent, $post->post_author, 'answer');
 			ap_delete_meta(array('apmeta_type' => 'flag', 'apmeta_actionid' => $post->ID));
-			ap_remove_question_subscriber($post->ID, $post->post_author);
+			ap_remove_question_subscriber($post->post_parent, $post->post_author);
 			//update answer count
 			update_post_meta($post->post_parent, ANSPRESS_ANS_META, $ans);
 		}
@@ -202,7 +193,7 @@ class AnsPress_Actions
 		
 		if( $post->post_type == 'question') {
 			do_action('ap_untrash_question', $post->ID);
-			ap_add_parti($post->ID, $post->post_author, 'question');
+			//ap_add_parti($post->ID, $post->post_author, 'question');
 			
 			$arg = array(
 			  'post_type' => 'answer',
@@ -214,7 +205,7 @@ class AnsPress_Actions
 			if($ans>0){
 				foreach( $ans as $p){
 					do_action('ap_untrash_answer', $p->ID);
-					ap_add_parti($p->ID, $p->post_author, 'answer');
+					//ap_add_parti($p->ID, $p->post_author, 'answer');
 					wp_untrash_post($p->ID);
 				}
 			}
@@ -223,7 +214,7 @@ class AnsPress_Actions
 		if( $post->post_type == 'answer') {
 			$ans = ap_count_published_answers( $post->post_parent );
 			do_action('untrash_answer', $post->ID, $post->post_author);
-			ap_add_parti($post->post_parent, $post->post_author, 'answer');
+			//ap_add_parti($post->post_parent, $post->post_author, 'answer');
 			
 			//update answer count
 			update_post_meta($post->post_parent, ANSPRESS_ANS_META, $ans+1);
@@ -259,37 +250,46 @@ class AnsPress_Actions
 	 * @return null|integer   
 	 */
 	public function publish_comment($comment){
+		$comment = (object) $comment;
 
-		$post_type = get_post_type( $comment['comment_post_ID'] );
+		$post_type = get_post_type( $comment->comment_post_ID );
 
 		if ($post_type == 'question') {
 			// set updated meta for sorting purpose
-			update_post_meta($comment['comment_post_ID'], ANSPRESS_UPDATED_META, current_time( 'mysql' ));
+			update_post_meta($comment->comment_post_ID, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
 
 			// add participant
-			ap_add_parti($comment['comment_post_ID'], $comment['user_ID'], 'comment');
+			//ap_add_parti($comment->comment_post_ID, $comment->user_id, 'comment');
+
+			// subscribe to current question
+			ap_add_question_subscriber($comment->comment_post_ID, $comment->user_id);
 
 		}elseif($post_type == 'answer'){
-			$post_id = wp_get_post_parent_id($comment['comment_post_ID']);
+
+			$post_id = wp_get_post_parent_id($comment->comment_post_ID);
 			// set updated meta for sorting purpose
 			update_post_meta($post_id, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
 			// add participant only
-			ap_add_parti($post_id, $comment['user_ID'], 'comment');
+			//ap_add_parti($post_id, $comment->user_id, 'comment');
+
+			ap_add_question_subscriber($post_id, $comment->user_id);
 		}
 
 	}
 
 	public function unpublish_comment($comment){
-		$post_type = get_post_type( $comment['comment_post_ID'] );
+		$comment = (object) $comment;
+		$post = get_post( $comment->comment_post_ID );
 
-		if ($post_type == 'question') {
-			ap_remove_parti($comment['comment_post_ID'], $comment['user_ID'], 'comment');
+		if ($post->post_type == 'question') {
+			//ap_remove_parti($comment->comment_post_ID, $comment->user_id, 'comment');
+			ap_remove_question_subscriber($post->ID, $comment->user_id);
 
-		}elseif($post_type == 'answer'){
-			$post_id = wp_get_post_parent_id($comment['comment_post_ID']);
-			ap_remove_parti($post_id, $comment['user_ID'], 'comment');
+		}elseif($post->post_type == 'answer'){
+			$post_id = wp_get_post_parent_id($comment->comment_post_ID);
+			//ap_remove_parti($post_id, $comment->user_id, 'comment');
+			ap_remove_question_subscriber($post_id, $comment->user_id);
 		}
-
 	}
 
 	/**
@@ -351,4 +351,31 @@ class AnsPress_Actions
 			ap_opt('ap_flush', 'false');
 		}
 	}
+
+	public function editor_buttons( $buttons, $editor_id )
+	{
+		if(is_anspress() && $editor_id == 'description')
+	    	return array( 'bold', 'italic', 'underline', 'strikethrough', 'bullist', 'numlist', 'link', 'unlink', 'blockquote' );
+
+	   	return $buttons;
+	}
+
+	/**
+	 * Filter post so that anonymous author should not be replaced
+	 * @param  array $data
+	 * @param  array $args
+	 * @return array
+	 * @since 2.2 
+	 */
+	public function wp_insert_post_data( $data, $args )
+	{
+
+		if($args['post_type'] == 'question' || $args['post_type'] == 'answer'){
+			if($args['post_author'] == '0')
+				$data['post_author'] = '0';
+		}
+
+		return $data;
+	}
+
 }

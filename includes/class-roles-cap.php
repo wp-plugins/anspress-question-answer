@@ -167,7 +167,7 @@ function ap_user_can_answer($question_id){
 	
 	$question = get_post($question_id);
 
-	if(!ap_opt('disallow_op_to_answer') && $question->post_author == get_current_user_id())
+	if(!ap_opt('disallow_op_to_answer') && $question->post_author == get_current_user_id() && get_current_user_id() > 0)
 		return false;
 
 	if($question->post_type == 'closed' )
@@ -229,6 +229,11 @@ function ap_user_can_edit_ans($post_id){
 	return false;
 }
 
+/**
+ * Check if user can edit a question
+ * @param  boolean|integer $post_id
+ * @return boolean
+ */
 function ap_user_can_edit_question($post_id = false){
 	if(is_super_admin() || current_user_can('ap_edit_others_question') )
 		return true;
@@ -301,6 +306,13 @@ function ap_user_can_delete($postid){
 	return false;
 }
 
+function ap_user_can_permanent_delete(){
+	if(is_super_admin())
+		return true;
+
+	return false;
+}
+
 function ap_user_can_upload_cover(){
 	if(is_super_admin() || current_user_can('ap_upload_cover'))
 		return true;
@@ -363,6 +375,11 @@ function ap_user_can_view_moderate_post($question_id){
 	return false;
 }
 
+/**
+ * Check if user can view post
+ * @param  boolean|integer $post_id
+ * @return boolean
+ */
 function ap_user_can_view_post($post_id = false){
 	if(is_super_admin())
 		return true;
@@ -378,7 +395,7 @@ function ap_user_can_view_post($post_id = false){
 	if( $post->post_status == 'moderate' && ap_user_can_view_moderate_post($post_id))
 		return true;
 	
-	if( $post->post_status == 'publish')
+	if( $post->post_status == 'publish' || $post->post_status == 'closed')
 		return true;
 	
 	return false;
@@ -418,5 +435,12 @@ function ap_user_can_change_status_to_moderate(){
 	if(is_super_admin() || current_user_can('ap_change_status_other'))
 		return true;
 	
+	return false;
+}
+
+function ap_user_can_upload_image(){
+	if(is_user_logged_in() && ap_opt('allow_upload_image') && get_question_id() > 0)
+		return true;
+
 	return false;
 }

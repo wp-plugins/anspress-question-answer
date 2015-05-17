@@ -112,6 +112,7 @@ class AnsPress_Admin
 	 */
 	public function enqueue_admin_styles() {
 		wp_enqueue_style( 'ap-admin-css', ANSPRESS_URL.'assets/ap-admin.css');
+		wp_enqueue_style( 'ap-fonts', ap_get_theme_url('fonts/style.css'), array(), AP_VERSION);
 	}
 
 	/**
@@ -125,7 +126,7 @@ class AnsPress_Admin
 			wp_enqueue_script('masonry');
 
 		wp_enqueue_script( 'jquery-form', array('jquery'), false, true );
-		wp_enqueue_script( 'ap-admin-js', ANSPRESS_URL.'assets/ap-admin.js');
+		wp_enqueue_script( 'ap-admin-js', ANSPRESS_URL.'assets/prod/ap-admin.min.js');
 	}
 
 	/**
@@ -179,6 +180,8 @@ class AnsPress_Admin
 		add_submenu_page('anspress', __( 'AnsPress Options', 'ap' ), __( 'Options', 'ap' ),	'manage_options', 'anspress_options', array( $this, 'display_plugin_admin_page' ));
 		
 		//add_submenu_page('anspress', __( 'Extensions', 'ap' ), __( 'Extensions', 'ap' ),	'manage_options', 'anspress_ext', array( $this, 'display_plugin_addons_page' ));
+		
+		add_submenu_page('anspress-sub', __( 'About AnsPress', 'ap' ), __( 'About AnsPress', 'ap' ),	'manage_options', 'anspress_about', array( $this, 'display_plugin_about_page' ));
 
 		 add_submenu_page('ap_post_flag', __( 'Post flag', 'ap' ), __( 'Post flag', 'ap' ), 'delete_pages', 'ap_post_flag', array( $this, 'display_post_flag' ));
 		 add_submenu_page('ap_select_question', __( 'Select question', 'ap' ), __( 'Select question', 'ap' ), 'delete_pages', 'ap_select_question', array( $this, 'display_select_question' ));
@@ -227,6 +230,10 @@ class AnsPress_Admin
 	
 	public function display_plugin_addons_page() {
 		include_once( 'views/addons.php' );
+	}
+
+	public function display_plugin_about_page() {
+		include_once( 'views/about.php' );
 	}
 	
 	public function display_reputation_page() {

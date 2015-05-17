@@ -91,8 +91,8 @@ class Question_Query extends WP_Query {
             case 'unsolved' :
                 $this->args['orderby'] = 'meta_value_num';
                 $this->args['meta_key'] = ANSPRESS_SELECTED_META;
-                $this->args['meta_compare'] = '!=';
-                $this->args['meta_value'] = 1;
+                $this->args['meta_compare'] = '==';
+                $this->args['meta_value'] = false;
 
  
             break;
@@ -370,6 +370,7 @@ function ap_question_the_answer_form(){
  */
 function ap_question_the_answers(){              
     include(ap_get_theme_location('best_answer.php'));
+    
     ap_get_answers();
 
     include(ap_get_theme_location('answers.php'));

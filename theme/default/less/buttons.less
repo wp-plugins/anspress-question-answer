@@ -4,12 +4,13 @@
 
 #anspress{
     .ap-btn{
-        background: none repeat scroll 0 0 #f9f9f9;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        border-radius: 2px;
-        box-shadow: 0 0 3px rgba(0, 0, 0, 0.02);
-        line-height: 25px;
-        padding: 5px 10px;
+        background-image: linear-gradient(#ffffff, #fcfcfc);
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        border-radius: 3px;
+        color: @default-color;
+        font-weight: 600;
+        line-height: 1.6;
+        padding: 4px 10px;
         text-decoration: none;
         vertical-align: middle;
 
@@ -20,8 +21,8 @@
             text-transform: uppercase;
         }
         &:hover{
-            background: none repeat scroll 0 0 #eee;
-            border-color: #ddd;
+            background: none repeat scroll 0 0 #f5f5f5;
+            border-color: rgba(0, 0, 0, 0.20);
         }
         &.active{
             background: #eee;
@@ -41,18 +42,18 @@
 
         }
         a{
-            background-image: linear-gradient(#fff, #fcfcfc);
+            background-image: linear-gradient(#ffffff, #fcfcfc);
             border: 1px solid #ddd;
             border-radius: 3px;
-            color: @default-color;
+            color: #777;
             display: block;
-            font-size: 13px;
-            height: 25px;
-            line-height: 22px;
+            font-size: 15px;
+            height: 27px;
+            line-height: 26px;
             padding: 0;
             text-align: center;
             text-decoration: none;
-            width: 25px;
+            width: 27px;
             &:focus{
                 outline: none;
             }
@@ -119,26 +120,7 @@
         }
             
     }
-    .ap-subscribe{
-        text-align:center;
-        .ap-subscribe-label{
-            display: block;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            font-size: 12px;
-        }
-        .ap-btn{
-            margin: 0 auto;
-            display: block;
-            i{
-                font-size: 16px;
-                margin-right: 10px;
-                vertical-align: middle;
-            }
-        }
 
-    }
     .ap-dropdown{
         position: relative;
 
@@ -169,6 +151,40 @@
         }
         &.open .ap-dropdown-menu{
             display: block;
+        }
+    }
+    .ap-btn-toggle{
+        display: inline-block;
+        span{
+            font-size: 25px;
+            color: #888;
+            line-height: 1.6;
+        }
+        .apicon-toggle-on{
+            display: none;
+        }
+        .apicon-toggle-off{
+            display: inline;
+        }
+        &.active{
+            .apicon-toggle-on{
+                display: inline;
+                color: @main-color;
+            }
+            .apicon-toggle-off{
+                display: none;
+            }
+        } 
+        &:focus{
+            outline: none;
+        }      
+    }
+    .ap-subscribe{
+        b{
+            display: inline-block;
+            font-weight: normal;
+            line-height: 30px;
+            vertical-align: super;
         }
     }
 }

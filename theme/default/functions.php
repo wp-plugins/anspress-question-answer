@@ -20,7 +20,7 @@ function init_scripts_front(){
 	//if(is_anspress()){
 		wp_enqueue_script( 'jquery');				
 		wp_enqueue_script( 'jquery-form', array('jquery'), false, true );			
-		//wp_enqueue_script( 'ap-functions-js', ANSPRESS_URL.'assets/ap-functions.js', 'jquery');		
+		wp_enqueue_script( 'ap-functions-js', ANSPRESS_URL.'assets/ap-functions.js', 'jquery');		
 		wp_enqueue_script( 'waypoints', ap_get_theme_url('js/jquery.waypoints.min.js'), 'jquery', AP_VERSION);	
 		wp_enqueue_script( 'anspress_acript', ANSPRESS_URL.'assets/prod/anspress_site.min.js', 'jquery', AP_VERSION);		
 		wp_enqueue_script( 'tooltipster', ap_get_theme_url('js/jquery.tooltipster.min.js'), 'jquery', AP_VERSION);
@@ -188,6 +188,26 @@ function ap_widgets_positions(){
 		'before_widget' => '<div id="%1$s" class="ap-widget-pos %2$s">',
 		'after_widget' 	=> '</div>',
 		'description'  	=> __( 'Widgets in this area will be shown in question page sidebar.', 'ap' ),
+		'before_title' 	=> '<h3 class="ap-widget-title">',
+		'after_title'  	=> '</h3>',
+	) );
+
+	register_sidebar( array(
+		'name'         	=> __( 'AP Category Page', 'ap' ),
+		'id'           	=> 'ap-category',
+		'before_widget' => '<div id="%1$s" class="ap-widget-pos %2$s">',
+		'after_widget' 	=> '</div>',
+		'description'  	=> __( 'Widgets in this area will be shown in category listing page.', 'ap' ),
+		'before_title' 	=> '<h3 class="ap-widget-title">',
+		'after_title'  	=> '</h3>',
+	) );
+
+	register_sidebar( array(
+		'name'         	=> __( 'AP Tag page', 'ap' ),
+		'id'           	=> 'ap-tag',
+		'before_widget' => '<div id="%1$s" class="ap-widget-pos %2$s">',
+		'after_widget' 	=> '</div>',
+		'description'  	=> __( 'Widgets in this area will be shown in tag listing page.', 'ap' ),
 		'before_title' 	=> '<h3 class="ap-widget-title">',
 		'after_title'  	=> '</h3>',
 	) );

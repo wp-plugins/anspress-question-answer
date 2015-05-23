@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_
 Tags: question, answer, q&a, forum, profile, stackoverflow, quora, buddypress
 Requires at least: 4.1.1
 Tested up to: 4.2
-Stable tag: 2.2
+Stable tag: 2.2.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -62,45 +62,12 @@ Use this shortcode in base to AnsPress work properly
 
 == Installation ==
 
-Its very easy to install the plugin.
-
-* Install plugin (WP -> Plugins -> Install new -> Anspress)
-* Activate plugin (Plugins -> Installed Plugins -> Activate)
-* Create an AnsPress page (mine had done it automatically, but incase it doesnt) Pages -> Add New -> Type [anspress] in the page and publish (the name can be changed to whatever you like, but there must be `[anspress]` shortcode in content.
-* Add AnsPress links in your menu, Appearance -> Menus, and then drag AnsPress links in your menu, and save.
-* Your page should have the Ask, Categories, Tags, Users etc wherever you placed your menu!
-
-
-= Page Template =
-
-As AnsPress output its content based on shortcode, so you must edit you page template to avoid double title. So create a page template without title and set it for AnsPress base page. or simply create a page template with this name `page-YOUR_BASE_PAGE_ID.php`. Change the YOUR_BASE_PAGE_ID to the id of the base page.
-
-That's all. enjoy :)
+Read full documentation here http://anspress.io/documents/
 
 
 == Frequently Asked Questions ==
 
-**Page Shortcodes**
-
-`[anspress]` add anspress shortcode to your base page for anspress to work properly
-
-= Can I override theme ? =
-
-Yes, you can override the theme file easily. Simply follow below steps:
-
-1. Create a `anspress` dir inside your currently active wordpress theme directory.
-	
-2. Copy file which you want to override from AnsPress theme dir to currently created dir in your WordPress theme folder.
-
-**Social login**
-
-For activating social login install [WordPress Social Login](http://wordpress.org/plugins/wordpress-social-login/ "WordPress Social Login") and activate it. Then add API keys of providers.
-And thats all, rest of things will be handled by AnsPress.
-
-**Syntax highlighter**
-
-For activating social login install [Crayon Syntax Highlighter](http://wordpress.org/plugins/crayon-syntax-highlighter/ "Crayon Syntax Highlighter") and activate it.
-
+Read full FAQ here http://anspress.io/documents/doc_page=faq
 
 == Screenshots ==
 
@@ -132,6 +99,8 @@ For activating social login install [Crayon Syntax Highlighter](http://wordpress
 
 
 == Changelog ==
+
+= 2.2.0.1 =
 
 = 2.2 =
 

@@ -150,6 +150,38 @@ function is_ap_users(){
 	return false;
 }
 
+/**
+ * Check if anspress categories page
+ * @return boolean
+ * @since  1.0
+ */
+if(!function_exists('is_question_categories')){
+    function is_question_categories(){
+        if('categories' == get_query_var( 'ap_page' ))
+            return true;
+            
+        return false;
+    }
+}
+
+if(!function_exists('is_question_category')){
+	function is_question_category(){
+	    if('category' == get_query_var( 'ap_page' ))
+	        return true;
+	        
+	    return false;
+	}
+}
+
+if(!function_exists('is_question_tag')){
+	function is_question_tag(){
+	    if('tag' == get_query_var( 'ap_page' ))
+	        return true;
+	        
+	    return false;
+	}
+}
+
 function get_question_id(){
 	if(is_question() && get_query_var('question_id')){
 		return (int)get_query_var('question_id');
@@ -732,6 +764,8 @@ function ap_responce_message($id, $only_message = false)
 		'post_image_uploaded' => array('type' => 'success', 'message' => __('Image uploaded successfully', 'ap')),
 		'question_deleted_permanently' => array('type' => 'success', 'message' => __('Question has been deleted permanently', 'ap')),
 		'answer_deleted_permanently' => array('type' => 'success', 'message' => __('Answer has been deleted permanently', 'ap')),
+		'set_featured_question' => array('type' => 'success', 'message' => __('Question is marked as featured.', 'ap')),
+		'unset_featured_question' => array('type' => 'success', 'message' => __('Question is unmarked as featured.', 'ap')),
 		);
 
 	/**
@@ -917,7 +951,7 @@ function ap_link_to($sub){
 			}
 		}
 
-		return $base. $args ;
+		return apply_filters( 'ap_link_to', $base. $args, $sub );
 	}
 
 
@@ -1164,4 +1198,19 @@ function ap_upload_user_file( $file = array(), $question_id ) {
 		}
 	}
 	return false;
+}
+
+
+function ap_featured_post_btn( $post_id = false ){
+	if(!is_user_logged_in())
+		return;
+
+	if($post_id == false)
+		$post_id = get_question_id();
+
+	if(is_super_admin( )){		
+		$output = '<a href="#" class="ap-btn-set-featured" id="set_featured_'.$post_id.'" data-action="set_featured" data-query="ap_ajax_action=set_featured&post_id='.$post_id.'&__nonce='.wp_create_nonce( 'set_featured_'.$post_id ).'" title="'.__('Make this question featured', 'ap').'">'.(ap_is_featured_question($post_id) ? __('Unset as featured', 'ap') : __('Set as featured', 'ap')).'</a>';
+	}
+	
+	return $output;
 }

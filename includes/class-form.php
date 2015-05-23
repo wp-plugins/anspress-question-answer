@@ -373,7 +373,7 @@ class AnsPress_Form {
         if(isset($field['label']))
             $this->label();
         $this->output .= '<div class="ap-form-fields-in">';
-        $this->output .= wp_dropdown_pages( array('selected'=> @$field['value'],'name'=> @$field['name'],'post_type'=> 'page', 'echo' => false) );
+        $this->output .= wp_dropdown_pages( array('show_option_none' => __('Select a page', 'ap'), 'selected'=> @$field['value'],'name'=> @$field['name'],'post_type'=> 'page', 'echo' => false) );
         $this->error_messages();
         if(!$this->field['show_desc_tip'])
             $this->desc();
@@ -410,16 +410,20 @@ class AnsPress_Form {
         if(isset($field['label']))
             $this->label();
 
+        if($field['settings']['tinymce'] !== false)
+            $field['settings']['tinymce'] = array( 
+                'content_css' => ap_get_theme_url('css/editor.css') 
+            );
+
         /**
          * FILTER: ap_pre_editor_settings
          * Can be used to mody wp_editor settings
          * @var array
          * @since 2.0.1
          */
-        $field['settings']['tinymce'] = array( 
-            'content_css' => ap_get_theme_url('css/editor.css') 
-       );
+        
         $settings = apply_filters('ap_pre_editor_settings', $field['settings'] );
+
         $this->output .= '<div class="ap-form-fields-in">';
         // Turn on the output buffer
         ob_start();

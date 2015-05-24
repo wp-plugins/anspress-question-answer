@@ -7,7 +7,6 @@ Tested up to: 4.2
 Stable tag: 2.2.0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
-GitHub Plugin URI: anspress/anspress
 
 AnsPress - Best question and answer plugin for WordPress. Made with developers in mind, highly customizable
 

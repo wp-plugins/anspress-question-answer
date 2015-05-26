@@ -117,12 +117,13 @@ function ap_default_options(){
 		'users_page_avatar_size'=> 80,
 		'users_per_page' 		=> 20,		
 		'enable_users_directory'=> true,		
-		'question_permalink_follow' 	=> false,		
+		'question_permalink_follow' 	=> true,		
 		'show_question_sidebar' => true,		
 		'allow_upload_image' 	=> true,		
 		'question_help_page' 	=> '',		
 		'answer_help_page' 		=> '',		
 		'disable_answer_nav' 	=> false,		
+		'image_per_post' 		=> 3,		
 	);
 	
 	/**

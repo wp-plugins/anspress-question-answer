@@ -12,9 +12,6 @@ Free question and answer plugin for WordPress. Made with developers in mind, hig
 
 == Description ==
 
-NOTICE: Before updating to version 2.2 make sure all extensions are updated else you may get 
-`Fatal error: Cannot redeclare`
-
 Demo & support forum: http://anspress.io/
 GitHub repo: [Git AnsPress](https://github.com/anspress/anspress/)
 

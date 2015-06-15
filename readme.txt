@@ -12,7 +12,7 @@ Free question and answer plugin for WordPress. Made with developers in mind, hig
 
 == Description ==
 
-=== Try new beta version, [Download 2.3-beta.zip](http://anspress.io/questions/question/2-3-beta-is-here-try-and-let-us-know/)
+**Try new beta version, [Download 2.3-beta.zip](http://anspress.io/questions/question/2-3-beta-is-here-try-and-let-us-know/)**
 
 Demo & support forum: http://anspress.io/
 GitHub repo: [Git AnsPress](https://github.com/anspress/anspress/)

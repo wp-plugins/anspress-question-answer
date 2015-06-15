@@ -71,31 +71,18 @@ Read full FAQ here http://anspress.io/documents/doc_page=faq
 
 == Screenshots ==
 
-1. List of question in home page, category, or tags page.
+1. Question list page.
 
-2. Single page layout with selected answer
+2. Single question page.
 
 3. User profile
 
-4. User's messages and conversations
+4. User hover card
 
-5. Users page
+5. Users directory
 
-6. Tags suggestion in ask form
+6. Notifications
 
-7. Categories page with sub categories
-
-8. Tags page
-
-9. AnsPress options page
-
-10. AnsPress admin menu
-
-11. AnsPress labels
-
-12. AnsPress auto installation page
-
-13. User pages
 
 
 == Changelog ==

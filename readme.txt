@@ -1,4 +1,4 @@
-=== AnsPress - Question and answer plugin ===
+=== AnsPress - Question and answer ===
 Contributors: nerdaryan
 Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
 Tags: question, answer, q&a, forum, profile, stackoverflow, quora, buddypress

@@ -18,7 +18,6 @@ class AnsPress_Ajax
      */
     public function __construct()
     {
-
 		add_action('ap_ajax_suggest_similar_questions', array($this, 'suggest_similar_questions'));
 		add_action('ap_ajax_load_comment_form', array($this, 'load_comment_form'));
 		add_action('ap_ajax_delete_comment', array($this, 'delete_comment'));
@@ -28,11 +27,13 @@ class AnsPress_Ajax
 		add_action('ap_ajax_change_post_status', array($this, 'change_post_status'));
 		add_action('ap_ajax_load_user_field_form', array($this, 'load_user_field_form'));
 		add_action('ap_ajax_set_featured', array($this, 'set_featured'));
+		add_action('ap_ajax_follow', array($this, 'follow'));
 		
 		add_action('wp_ajax_ap_suggest_tags', array($this, 'ap_suggest_tags'));
 		add_action('wp_ajax_nopriv_ap_suggest_tags', array($this, 'ap_suggest_tags'));
-
-
+		add_action('ap_ajax_user_cover', array($this, 'ap_user_cover'));
+		add_action('ap_ajax_delete_notification', array($this, 'delete_notification'));
+		add_action('ap_ajax_markread_notification', array($this, 'markread_notification'));
     }
 
     
@@ -208,17 +209,22 @@ class AnsPress_Ajax
 		$user_id = get_current_user_id();
 		
 		if(ap_question_best_answer_selected($post->post_parent)){
+			
 			do_action('ap_unselect_answer', $user_id, $post->post_parent, $post->ID);
+
 			update_post_meta($post->ID, ANSPRESS_BEST_META, 0);
+
 			update_post_meta($post->post_parent, ANSPRESS_SELECTED_META, false);
+
 			update_post_meta($post->post_parent, ANSPRESS_UPDATED_META, current_time( 'mysql' ));
 
 			if(ap_opt('close_after_selecting'))
 				wp_update_post( array('ID' => $post->post_parent, 'post_status' => 'publish') );
 
+			ap_update_user_best_answers_count_meta($user_id);
+			ap_update_user_solved_answers_count_meta($user_id);
+
 			ap_send_json( ap_ajax_responce(array('message' => 'unselected_the_answer', 'action' => 'unselected_answer', 'do' => 'reload')));
-
-
 
 		}else{
 			do_action('ap_select_answer', $user_id, $post->post_parent, $post->ID);
@@ -228,6 +234,11 @@ class AnsPress_Ajax
 
 			if(ap_opt('close_after_selecting'))
 				wp_update_post( array('ID' => $post->post_parent, 'post_status' => 'closed') );
+
+			ap_update_user_best_answers_count_meta($user_id);
+			ap_update_user_solved_answers_count_meta($user_id);
+
+			ap_insert_notification( $user_id, $post->post_author, 'answer_selected', array('post_id' => $post->ID) );
 
 			$html = ap_select_answer_btn_html($answer_id);
 			ap_send_json( ap_ajax_responce(array('message' => 'selected_the_answer', 'action' => 'selected_answer', 'do' => 'reload', 'html' => $html)));
@@ -397,19 +408,6 @@ class AnsPress_Ajax
 		ap_send_json( ap_ajax_responce('something_wrong'));
 		die();
 	}
-
-	
-	public function check_email(){
-	   $email = sanitize_text_field($_POST['email']);
-
-	   /* use the email as the username */
-       if ( email_exists( $email ) || username_exists($email) )
-           echo 'false' ;
-		else
-			echo 'true';
-		
-		die();
-	}
 	
 	public function ap_suggest_tags(){
 		$keyword = sanitize_text_field($_POST['q']);
@@ -490,4 +488,125 @@ class AnsPress_Ajax
 		die();
 	}
 
+	public function follow()
+	{
+		
+		$user_to_follow 	= (int)$_POST['user_id'];
+		$current_user_id 	= get_current_user_id();
+
+		if(!wp_verify_nonce( $_POST['__nonce'], 'follow_'. $user_to_follow . '_' . $current_user_id ) ){
+			ap_send_json(ap_ajax_responce('something_wrong'));
+			return;
+		}
+
+		if(!is_user_logged_in()){
+			ap_send_json(ap_ajax_responce('please_login'));
+			return;
+		}
+
+		if($user_to_follow == $current_user_id){
+			ap_send_json(ap_ajax_responce('cannot_follow_yourself'));
+			return;
+		}
+
+		$is_following = ap_is_user_following($user_to_follow, $current_user_id);
+
+		if($is_following){
+			
+			ap_remove_follower($current_user_id, $user_to_follow);			
+
+			ap_send_json(ap_ajax_responce(array('message' => 'unfollow', 'action' => 'unfollow', 'container' => '#follow_'.$user_to_follow, 'do' => 'updateText', 'text' =>__('Follow', 'ap'))));
+
+			return;
+
+		}else{
+			
+			ap_add_follower($current_user_id, $user_to_follow);
+
+			ap_send_json(ap_ajax_responce(array('message' => 'follow', 'action' => 'follow', 'container' => '#follow_'.$user_to_follow, 'do' => 'updateText', 'text' => __('Unfollow', 'ap'))));
+
+		}
+
+	}
+
+	public function ap_user_cover()
+	{
+		if(ap_opt('disable_hover_card'))
+			ap_send_json(ap_ajax_responce('something_wrong'));
+
+		$user_id = (int)$_POST['user_id'];
+		
+		if(!wp_verify_nonce( $_POST['ap_ajax_nonce'], 'ap_ajax_nonce') ){
+			ap_send_json(ap_ajax_responce('something_wrong'));
+			return;
+		}
+
+		global $ap_user_query;        
+        $ap_user_query = ap_has_users(array('ID' => $user_id ) );
+
+        if($ap_user_query->has_users()){
+
+        	while ( ap_users() ) : ap_the_user();
+            	ap_get_template_part('user/user-card');
+            endwhile;
+
+        }else{
+            ap_send_json(ap_ajax_responce('something_wrong'));
+        }
+
+		die();
+	}
+
+	public function delete_notification()
+	{
+		if(!wp_verify_nonce( $_POST['__nonce'], 'delete_notification') && !is_user_logged_in()){
+			ap_send_json(ap_ajax_responce('something_wrong'));
+			return;
+		}
+
+		$notification = ap_get_notification_by_id((int)$_POST['id']);
+
+		if($notification && ($notification['apmeta_userid'] == get_current_user_id() || is_super_admin( )) ){
+			$row = ap_delete_notification($notification['apmeta_id']);
+			
+			if($row !== false)
+				ap_send_json(ap_ajax_responce(array('message' => 'delete_notification', 'action' => 'delete_notification', 'container' => '#ap-notification-'.$notification['apmeta_id'])));
+		}
+
+		//if process reached here then there must be something wrong
+		ap_send_json(ap_ajax_responce('something_wrong'));
+	}
+
+	public function markread_notification()
+	{
+		$id = (int)$_POST['id'];
+
+		if(isset($_POST['id']) && !wp_verify_nonce( $_POST['__nonce'], 'ap_markread_notification_'.$id) && !is_user_logged_in()){
+			ap_send_json(ap_ajax_responce('something_wrong'));
+			return;
+		}elseif(!wp_verify_nonce( $_POST['__nonce'], 'ap_markread_notification_'.get_current_user_id()) && !is_user_logged_in()) {
+			ap_send_json(ap_ajax_responce('something_wrong'));
+			return;
+		}
+
+		if(isset($_POST['id'])){
+
+			$notification = ap_get_notification_by_id($id);
+
+			if($notification && ($notification['apmeta_actionid'] == get_current_user_id() || is_super_admin( )) ){
+				$row = ap_update_meta(array('apmeta_type' => 'notification'), array('apmeta_id' => $notification['apmeta_id']));
+				
+				if($row !== false)
+					ap_send_json(ap_ajax_responce(array('message' => 'mark_read_notification', 'action' => 'mark_read_notification', 'container' => '.ap-notification-'.$notification['apmeta_id'], 'view' => array('notification_count' => ap_get_total_unread_notification()))));
+			}
+		}else{
+			$row = ap_notification_mark_all_read(get_current_user_id());
+
+			if($row !== false)
+				ap_send_json(ap_ajax_responce(array('message' => 'mark_read_notification', 'action' => 'mark_all_read', 'container' => '#ap-notification-dropdown', 'view' => array('notification_count' => '0'))));
+		}
+
+		//if process reached here then there must be something wrong
+		ap_send_json(ap_ajax_responce('something_wrong'));
+	}
 }

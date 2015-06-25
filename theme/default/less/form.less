@@ -3,13 +3,11 @@
 // --------------------------------------------------
 #anspress{
 	.ap-form-control {
-	    .border-radius(2px);
-	    .box-shadow(0 0 2px #fbfbfb inset);
-        background-clip: padding-box;
 	    border: 1px solid #ddd;
-	    border-radius: 2px;
-	    box-shadow: 0 0 2px rgba(0,0,0,0.05) inset;
+	    border-radius: 1px;
+	    box-shadow: 0 0 2px rgba(0, 0, 0, 0.02) inset;
 	    display: block;
+	    height: 33px;
 	    margin-bottom: 15px;
 	    padding: 5px 10px;
 	    width: 100%;
@@ -294,11 +292,16 @@
 	}
 	.ap-avatar-upload-form{
 		.ap-upload-o{
+		    background: none repeat scroll 0 0 rgba(0, 0, 0, 0.89);
+		    border: 2px solid #fff;
+		    border-radius: 50%;
+		    color: #fff;
 		    font-size: 17px;
 		    height: 30px;
-		    line-height: 18px;
-		    padding: 6px;
+		    line-height: 26px;
+		    padding: 1px;
 		    position: relative;
+		    text-align: center;
 		    width: 30px;
 			> span{
 				display: none;
@@ -406,6 +409,9 @@
 			    z-index: 999999;
 			}
 	    }
+	}
+	.ap-field-description.ap-have-error .ap-form-error-message{
+		margin-bottom: 30px;
 	}
 }
 

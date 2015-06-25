@@ -26,6 +26,7 @@ class AnsPress_Query_Filter
 		
 		add_action( 'posts_clauses', array($this, 'main_question_query'), 10, 2 );
 		add_action( 'posts_clauses', array($this, 'ap_answers_query'), 10, 2 );
+		add_action( 'posts_clauses', array($this, 'ap_question_subscription_query'), 10, 2 );
 
     }
 
@@ -107,24 +108,73 @@ class AnsPress_Query_Filter
 		 }
 	}
 	
+	/**
+	 * Filter WP_Query query to include current users private posts
+	 * Also order featured post to top.
+	 * 
+	 * @param  array 	$sql   WP_Query sql query parts
+	 * @param  array 	$query WP_Query class reference
+	 * @return array
+	 */
 	public function main_question_query($sql, $query){
-		global $wpdb;
 		
-		if(isset($query->query['ap_query']) && $query->query['ap_query'] == 'featured_post'){
+		// First check if this is right query to append filters
+		if(isset($query->query['ap_query']) && $query->query['ap_query'] == 'featured_post' ){
+			global $wpdb;
+			
+			$post_status = '';
+
+			$query_status = $query->query['post_status'];
+			
+			//Build the post_status mysql query
+			if(!empty($query_status)){
+				
+				if(is_array($query_status)){
+					
+					$i = 1;
+					
+					foreach($query_status as $status){
+						$post_status .= $wpdb->posts.".post_status = '".$status."'";
+						
+						if(count($query_status) != $i)
+							$post_status .= " OR ";
+						else
+							$post_status .= ")";
+						
+						$i++;
+					}
+
+				}else{
+					$post_status .= $wpdb->posts.".post_status = '".$query_status."' ";
+				}
+			}
+
+			//Replace post_status query
+			if(($pos = strpos($sql['where'], $post_status)) !== false){
+				
+				$pos = $pos + strlen($post_status);
+
+				$author_query = $wpdb->prepare(" OR ( ".$wpdb->posts.".post_author = %d AND ".$wpdb->posts.".post_status NOT IN ('draft','trash','auto-draft','inherit') ) ", get_current_user_id());
+				
+				$sql['where'] = substr_replace($sql['where'],$author_query, $pos, 0);
+
+				
+			}
 
 			$featured = get_option('featured_questions');
 
 			if(is_array($featured) && !empty($featured)){
 				$post_ids = implode(', ', $featured);
 				$sql['orderby'] = " $wpdb->posts.ID IN ($post_ids) DESC, ". $sql['orderby'];
-			}
+			}	
 		}
+
 		return $sql;
 	}
 
 	public function ap_answers_query($sql, $query){		
 		
-		if( isset($query->query['ap_answers_query']) && @$query->args['only_best_answer'] !== true && is_user_logged_in() && isset($query->args['meta_query'])){
+		if( !isset($query->query['ap_query']) && isset($query->query['ap_answers_query']) && @$query->args['only_best_answer'] !== true && is_user_logged_in() && isset($query->args['meta_query'])){
 			
 			global $wpdb;
 
@@ -144,6 +194,19 @@ class AnsPress_Query_Filter
 	
 	public function question_feed(){
 		include ap_get_theme_location('feed-question.php');
+	}
+
+	public function ap_question_subscription_query($sql, $query)
+	{
+		// First check if this is right query to append filters
+		if(isset($query->query['ap_query']) && $query->query['ap_query'] == 'ap_subscription_query' ){
+			global $wpdb;
+
+			$sql['join'] = "JOIN ".$wpdb->prefix."ap_meta apmeta ON $wpdb->posts.ID = apmeta.apmeta_actionid";
+			$sql['where'] = $sql['where']." AND apmeta.apmeta_type='subscriber' AND apmeta.apmeta_userid='".$query->query['user_id']."'";
+		}
+
+		return $sql;
 	}
 
 }

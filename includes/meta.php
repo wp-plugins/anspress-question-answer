@@ -159,8 +159,9 @@ function ap_get_meta($where){
 /**
  * @param string $type
  */
-function ap_meta_total_count($type, $actionid=false, $userid = false, $group = false){
+function ap_meta_total_count($type, $actionid=false, $userid = false, $group = false, $value = false){
 	global $wpdb;
+
 	$where_query = '';
 	$group_query = '';
 	
@@ -170,28 +171,33 @@ function ap_meta_total_count($type, $actionid=false, $userid = false, $group = f
 	if($userid)
 		$where_query .= " apmeta_userid = $userid";
 	
-	if($group){
+	if($group)
 		$group_query .= 'GROUP BY '.$group;
-	}
+
+	if($value)
+		$where_query .= " apmeta_value = '$value'";
+	
 		
 	$query = "SELECT IFNULL(count(*), 0) FROM " .$wpdb->prefix ."ap_meta where apmeta_type = '$type' and $where_query $group_query";
 
 	$key = md5($query);
 	
 	$cache = wp_cache_get($key, 'count');
-	if($cache !== FALSE)
-		return $cache;
 	
+	if($cache !== FALSE)
+		return $cache;	
 
 	$count = $wpdb->get_var($query);
-	wp_cache_set( $key, $count, 'count');	
+
+	wp_cache_set( $key, $count, 'count');
+	
 	return $count;	
 }
 
 /**
  * @param string $type
  */
-function ap_meta_user_done($type, $userid, $actionid, $param = false, $value = false){	
+function ap_meta_user_done($type, $userid = false, $actionid, $param = false, $value = false){	
 	global $wpdb;
 	
 	$where = "";
@@ -210,8 +216,11 @@ function ap_meta_user_done($type, $userid, $actionid, $param = false, $value = f
 	}else{
 		$where .= "apmeta_type = '$type'";
 	}
+
+	if($userid !== false)
+		$where .= $wpdb->prepare("and apmeta_userid = %d", $userid);
 	
-	$query = $wpdb->prepare('SELECT IFNULL(count(*), 0) FROM ' .$wpdb->prefix .'ap_meta where '.$where.' and apmeta_userid = %d and apmeta_actionid = %d ', $userid, $actionid);
+	$query = $wpdb->prepare('SELECT IFNULL(count(*), 0) FROM ' .$wpdb->prefix .'ap_meta where '.$where.' and apmeta_actionid = %d ', $actionid);
 	
 	if($value)
 		$query = $query. $wpdb->prepare('and apmeta_value = "%s"', $value);

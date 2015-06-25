@@ -23,9 +23,8 @@ class AnsPress_Process_Form
 	 */
 	public function __construct()
 	{
-
 		add_action('init', array($this, 'non_ajax_form'), 0);
-		add_action( 'save_post', array($this, 'action_on_new_post'), 10, 3 );
+		add_action('save_post', array($this, 'action_on_new_post'), 10, 3 );
 		add_action('wp_ajax_ap_ajax', array($this, 'ap_ajax'));
 		add_action('wp_ajax_nopriv_ap_ajax', array($this, 'ap_ajax'));
 	}
@@ -103,8 +102,8 @@ class AnsPress_Process_Form
 				$this->options_form();
 				break;
 
-			case 'ap_user_profile_field':
-				$this->ap_user_profile_field();
+			case 'ap_user_profile_form':
+				$this->ap_user_profile_form();
 				break;
 
 			case 'upload_post_image':
@@ -247,12 +246,6 @@ class AnsPress_Process_Form
 			
 			// Update Custom Meta
 			
-			/**
-			 * TODO: EXTENSTION - move to tags extension
-			 */
-			//if(isset($fields['tags']))
-				//wp_set_post_terms( $post_id, $fields['tags'], 'question_tags' );
-				
 			if (!is_user_logged_in() && ap_opt('allow_anonymous') && !empty($fields['name']))
 				update_post_meta($post_id, 'anonymous_name', $fields['name']);
 			
@@ -267,6 +260,7 @@ class AnsPress_Process_Form
 			);
 		}
 
+		$this->process_image_uploads($post_id, $user_id);
 
 	}
 
@@ -324,6 +318,8 @@ class AnsPress_Process_Form
 				'redirect_to'	=> $this->redirect
 			);
 		}
+
+		$this->process_image_uploads($post->ID, $post->post_author);
 	}
 
 	/**
@@ -525,6 +521,8 @@ class AnsPress_Process_Form
 				
 			}
 		}
+
+		$this->process_image_uploads($post_id, $user_id);
 	}
 
 	public function edit_answer($question)
@@ -570,6 +568,8 @@ class AnsPress_Process_Form
 
 			$this->redirect = get_permalink($post_id);
 		}
+
+		$this->process_image_uploads($post_id, $answer->post_author);
 	}
 
 	public function comment_form()
@@ -685,38 +685,72 @@ class AnsPress_Process_Form
 		
 	}
 
-	public function ap_user_profile_field(){
+	public function ap_user_profile_form(){
+		
 		$user_id = get_current_user_id();
+		$group = sanitize_text_field( $_POST['group'] );
 		
 		if(!is_user_logged_in()){
 			$this->result  = array('message' => 'no_permission');
 			return;
 		}
 
-		if(!isset($_POST['__nonce']) || !wp_verify_nonce( $_POST['__nonce'], 'nonce_user_profile_'.$user_id ) )
+		if(!isset($_POST['__nonce']) || !wp_verify_nonce( $_POST['__nonce'], 'nonce_user_profile_'.$user_id.'_'.$group ) )
 			ap_send_json( ap_ajax_responce('something_wrong'));
 
-		if(ap_has_users(array('ID' => $user_id ) )){
-			while ( ap_users() ) : ap_the_user();
-				
-				$form = ap_user_get_fields(array('form' => array('field_hidden' => true, 'hide_footer' => true)));
+		$user_fields = ap_get_user_fields($group, $user_id);
 
-				$field = array_values(array_intersect($form->fields_name, array_keys($_POST)));
-				$field_name = $field[0];
+		$validate_fields = array();
 
-				if(!empty($_POST[$field_name]))
-					$form->update_field($field_name);
+		foreach($user_fields as $field){
+			if(isset($field['sanitize']))
+				$validate_fields[$field['name']]['sanitize'] = $field['sanitize'];
 
-				$form = ap_user_get_fields(array('show_only' => $field_name, 'form' => array('field_hidden' => true, 'hide_footer' => true)));
-
-				$this->result  = array(
-					'action' 		=> 'updated_user_field',
-					'do'			=> 'updateHtml',
-					'container'		=> '#user_field_form_'.$field_name,
-					'html'			=> $form->get_form()
-				);
-			endwhile;
+			if($field['validate'])
+				$validate_fields[$field['name']]['validate'] = $field['validate'];
 		}
+
+		$validate = new AnsPress_Validation($validate_fields);
+
+		$ap_errors = $validate->get_errors();
+		
+		// if error in form then return
+		if($validate->have_error()){
+			ap_send_json( ap_ajax_responce(array(
+				'form' 			=> $_POST['ap_form_action'],
+				'message_type' 	=> 'error',
+				'message'		=> __('Check missing fields and then re-submit.', 'ap'),
+				'errors'		=> $ap_errors
+			)));
+			return;
+		}
+
+		$fields = $validate->get_sanitized_fields();
+
+		if(is_array($user_fields) && !empty($user_fields))
+			foreach($user_fields as $field){
+				if(!empty($fields[$field['name']]) && ($field['name'] == 'first_name' || $field['name'] == 'last_name' || $field['name'] == 'nickname' || $field['name'] == 'display_name'|| $field['name'] == 'user_email'|| $field['name'] == 'description'|| $field['name'] == 'password') ){
+					
+					if($field['name'] == 'password' && $fields['password'] == $_POST['password-1'])
+						wp_set_password( $fields['password'], $user_id );
+					else
+						wp_update_user( array( 'ID' => $user_id, $field['name'] => $fields[$field['name']] ) );
+
+				}elseif(!empty($fields[$field['name']])){
+					
+					update_user_meta( $user_id, $field['name'], $fields[$field['name']] );
+
+				}
+
+			}
+
+		$this->result  = array(
+			'message' 		=> 'profile_updated_successfully',
+			'action' 		=> 'updated_user_field',
+			'do'			=> 'updateHtml',
+			'container'		=> '#ap_user_profile_form',
+			'html'			=> ap_user_get_fields('', $group)
+		);
 	}
 
 	public function upload_post_image(){
@@ -729,24 +763,51 @@ class AnsPress_Process_Form
 		$user_id = get_current_user_id();
 		
 		$file = $_FILES['post_upload_image'];
-		$question_id = (int)$_POST['question_id'];
+
+		if($file['size'] > ap_opt('max_upload_size')){
+			$this->result  = array('message_type' => 'error', 'message' => sprintf(__('File cannot be uploaded, size is bigger then %d Byte'), ap_opt('max_upload_size')) );
+			return;
+		}
+
+		if(ap_user_upload_limit_crossed($user_id)){
+			$this->result  = array('message' => 'upload_limit_crossed');
+			return;
+		}
 
 		if(!is_user_logged_in()){
 			$this->result  = array('message' => 'no_permission');
 			return;
 		}
 
-		if(!isset($_POST['__nonce']) || !wp_verify_nonce( $_POST['__nonce'], 'upload_image_'.$user_id.'_'. $question_id ) )
+		if(!isset($_POST['__nonce']) || !wp_verify_nonce( $_POST['__nonce'], 'upload_image_'.$user_id ) )
 			ap_send_json( ap_ajax_responce('something_wrong'));
 
-		if( ! empty( $file ) && is_array( $file ) && $file['error'] === 0 ) {
+		if( ! empty( $file ) && is_array( $file ) && $file['error'] == 0 ) {
 			
-			$attachment_id = ap_upload_user_file( $file, $question_id );
-			
+			$attachment_id = ap_upload_user_file( $file );
+
 			if($attachment_id !== false)
-				ap_send_json( ap_ajax_responce( array('action' => 'upload_post_image', 'html' => wp_get_attachment_image($attachment_id, 'full'), 'message' => 'post_image_uploaded' ) ));
+				ap_send_json( ap_ajax_responce( array('action' => 'upload_post_image', 'html' => wp_get_attachment_image($attachment_id, 'full'), 'message' => 'post_image_uploaded', 'attachment_id' => $attachment_id ) ));
 		}
 
 		ap_send_json( ap_ajax_responce('something_wrong'));
+	}
+
+	public function process_image_uploads($post_id, $user_id)
+	{
+		$attachment_ids = $_POST['attachment_ids'];
+
+		//If attchment ids present then user have uploaded images
+		if(is_array($attachment_ids) && count($attachment_ids) > 0){
+			foreach($attachment_ids as $id){
+				$attach = get_post($id);
+				
+				if($attach && 'attachment' == $attach->post_type && $user_id == $attach->post_author)
+					ap_set_attachment_post_parent($attach->ID, $post_id);
+			}
+		}
+
+		//remove all unused atthements by user
+		ap_clear_unused_attachments($user_id);
 	}
 }

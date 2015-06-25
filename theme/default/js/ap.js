@@ -106,11 +106,14 @@
     }
 })(jQuery);
 
+jq = jQuery;
+
 jQuery(document).ready(function() {
     jQuery(document).click(function(e) {
         var target = e.target;
+        console.log(!jQuery(target).is('.ap-dropdown-toggle'));
         if (!jQuery(target).is('.ap-dropdown-toggle') && !jQuery(target).parent().is('.open')) {
-            jQuery('.ap-dropdown').removeClass('open');
+           jQuery('.ap-dropdown').removeClass('open');
         }
     });
 
@@ -121,19 +124,21 @@ jQuery(document).ready(function() {
         jQuery(this).closest('.ap-dropdown').addClass('open');
     });
 
-    jQuery('.ap-tip').tooltipster({
-        contentAsHTML: true,
-        animation: 'fade',
-        theme: 'tooltipster-default ap-tip-style',
-        interactive: true,
-        functionBefore: function(origin, continueTooltip) {
-            var pos = ap_default(origin.data('tipposition'), 'top');
-            var theme = ap_default(origin.data('tipclass'), 'top');
-            jQuery(this).tooltipster('option', 'position', pos);
-            jQuery(this).tooltipster('option', 'theme', 'tooltipster-default ap-tip-style ' + theme);
-            continueTooltip();
-        }
-    });
+    if(typeof tooltipster !== 'undefined')
+        jQuery('.ap-tip').tooltipster({
+            contentAsHTML: true,
+            animation: 'fade',
+            theme: 'tooltipster-default ap-tip-style',
+            interactive: true,
+            functionBefore: function(origin, continueTooltip) {
+                var pos = ap_default(origin.data('tipposition'), 'top');
+                var theme = ap_default(origin.data('tipclass'), 'top');
+                jQuery(this).tooltipster('option', 'position', pos);
+                jQuery(this).tooltipster('option', 'theme', 'tooltipster-default ap-tip-style ' + theme);
+                continueTooltip();
+            }
+        });
+    
     jQuery('#ap-conversation-scroll').scrollTop(0);
 
     jQuery('textarea.autogrow, textarea#post_content').autogrow({
@@ -173,58 +178,70 @@ jQuery(document).ready(function() {
         jQuery(this).css(width, 'auto');
     });
 
-
-    jQuery('.ap-dynamic-avatar').initial({fontSize:15, fontWeight:600});
-    jQuery( document ).ajaxComplete(function( event, data, settings ) {
-        jQuery('.ap-dynamic-avatar').initial({fontSize:15, fontWeight:600});
+    jQuery('body').delegate('#ap-question-sorting select', 'change', function(e) {        
+        jQuery(this).closest('form').submit();
     });
 
-
-    jQuery('#answers .answer').waypoint(function(direction, pos) {
-        jQuery('#answers .answer').removeClass('active');
-        var total = parseInt(jQuery('[data-view="ap_answer_nav_total"]').text());
-        var index = parseInt(jQuery(this.element).data('index'));
-        var nav = jQuery('.ap-answers-nav');
-
-        if((index == 1 && direction == 'up') || (index == total) )
-            nav.hide();
-        else
-            nav.show();
-
-        jQuery('[data-view="ap_answer_nav_cur"]').text(index);
-        jQuery(this.element).addClass('active');
-    }, {
-        offset: '100'
-    });
-
-    jQuery('[data-acton="ap_answer_prev"]').click(function(e) {
-        e.preventDefault();
-        var cur = parseInt(jQuery('[data-view="ap_answer_nav_cur"]').text()) - 1;
-        jQuery('html, body').animate({
-            scrollTop: (jQuery('#answers .answer:nth-child('+cur+')').offset().top) - 100
-        }, 500);
-    });
-
-    jQuery('[data-acton="ap_answer_next"]').click(function(e) {
-        e.preventDefault();
-        var cur = parseInt( jQuery('[data-view="ap_answer_nav_cur"]').text()) + 1;
-        jQuery('html, body').animate({
-            scrollTop: (jQuery('#answers .answer:nth-child('+cur+')').offset().top) - 99
-        }, 500);
-    });
-
-    jQuery('body').delegate('#ap-question-tab a', 'click', function(e) {
-        e.preventDefault();
-        var load = AnsPress.site.showLoading(this);
-        var link = jQuery(this).attr('href');
-        var anc = this;
-        jQuery('#anspress').load(link + ' #anspress', function(){jQuery(load).hide()});
+    jQuery('body').delegate('#ap-question-sorting', 'submit', function(){
+        AnsPress.site.showLoading(this);
+        jQuery.ajax({
+            type: 'GET',
+            dataType: 'html',
+            data: jQuery(this).serializeArray(),
+            success: function(data){
+                AnsPress.site.hideLoading('#ap-question-sorting');
+                var html = jQuery(data);
+                window.history.pushState(null, null, this.url);
+                
+                jQuery('#anspress').html(html.find('#anspress'));
+            }
+        });
+        
+        return false;
     });
 
     jQuery('body').delegate('.ap-notify-item', 'click', function(e) {
         e.preventDefault();
         jQuery(this).hide();
     });
+
+    if(jQuery('[data-action="ap_chart"]').length > 0){
+        jQuery('[data-action="ap_chart"]').each(function(index, el) {
+            var type = jQuery(this).data('type');
+            jQuery(this).peity(type);
+        });
+
+    }
+
+    jQuery('.ap-dynamic-avatar').initial({fontSize:14, fontWeight:600});
+    jQuery( document ).ajaxComplete(function( event, data, settings ) {
+        jQuery('.ap-dynamic-avatar').initial({fontSize:14, fontWeight:600});
+    });
+
+    if(jq('.ap_collapse_menu').length > 0){
+        var menu = jq('.ap_collapse_menu'),
+            menuwidth = menu.width(),
+            dropdown = menu.find('.ap-dropdown .ap-dropdown-menu');
+        
+        var itemwidth = 0;
+        var start_moving = false;
+
+        menu.find('.ap-dropdown').hide();
+        
+        menu.find('li').each(function(index, el) {            
+            itemwidth = parseInt(itemwidth) + parseInt(jq(this).outerWidth());
+            if((itemwidth + parseInt(jq(this).next().outerWidth())) > menuwidth)
+                start_moving = true;
+                
+            if(start_moving && !jq(this).is('.ap-user-menu-more')){
+                dropdown.append(jq(this).clone());
+                jq(this).remove();
+                menu.find('.ap-dropdown').show();
+            }
+            
+        });
+    }
+    jQuery('.ap-notification-scroll').scrollbar();
 });
 
 function ap_chk_activity_scroll(e) {

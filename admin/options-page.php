@@ -65,12 +65,29 @@ class AnsPress_Options_Page
 			),
 			array(
 				'name' => 'anspress_opt[question_permalink_follow]',
-				'label' => __('Show question permalink under base page', 'ap') ,
+				'label' => __('Base page slug before question permalink', 'ap') ,
 				'desc' => __('i.e. '.home_url('/BASE_PAGE/question/QUESTION_TITLE'), 'ap') ,
 				'type' => 'checkbox',
 				'value' => @$settings['question_permalink_follow'],
 				'show_desc_tip' => false,
 			),
+			array(
+				'name' => 'anspress_opt[base_before_user_perma]',
+				'label' => __('Base page slug before user page permalink', 'ap') ,
+				'desc' => __('i.e. '.home_url('/BASE_PAGE/user/USER_NAME'), 'ap') ,
+				'type' => 'checkbox',
+				'value' => @$settings['base_before_user_perma'],
+				'show_desc_tip' => false,
+			),
+			array(
+				'name' => 'anspress_opt[disable_hover_card]',
+				'label' => __('Disable hover card', 'ap') ,
+				'desc' => __('Dont show user hover card on mouseover.', 'ap') ,
+				'type' => 'checkbox',
+				'value' => @$settings['disable_hover_card'],
+				'show_desc_tip' => false,
+			),
+			
 		));
 		
 		//Register layout settings
@@ -79,15 +96,6 @@ class AnsPress_Options_Page
 				'name' => '__sep',
 				'type' => 'custom',
 				'html' => '<span class="ap-form-separator">' . __('Avatar') . '</span>',
-			) ,
-			array(
-				'name' => 'anspress_opt[theme]',
-				'label' => __('Theme', 'ap') ,
-				'desc' => __('Select theme for AnsPress.', 'ap') ,
-				'type' => 'select',
-				'options' => ap_theme_list() ,
-				'value' => $settings['theme'],
-				'show_desc_tip' => false,
 			) ,
 			array(
 				'name' => 'anspress_opt[avatar_size_list]',
@@ -196,7 +204,48 @@ class AnsPress_Options_Page
 				'type' => 'checkbox',
 				'value' => $settings['show_question_sidebar'],
 				'show_desc_tip' => false,
-			) ,
+			),			
+		));
+
+		//Register pages settings
+		ap_register_option_group('pages', __('Pages', 'ap') , array(
+			array(
+				'name' => '__sep',
+				'type' => 'custom',
+				'html' => '<span class="ap-form-separator">' . __('Page slug') . '</span>',
+			),
+			array(
+				'name' => 'anspress_opt[ask_page_slug]',
+				'label' => __('Ask page slug', 'ap') ,
+				'desc' => __('Enter slug for ask page.', 'ap') ,
+				'type' => 'text',
+				'value' => @$settings['ask_page_slug'],
+				'show_desc_tip' => false,
+			),
+			array(
+				'name' => 'anspress_opt[question_page_slug]',
+				'label' => __('Question page slug', 'ap') ,
+				'desc' => __('Enter slug for question page.', 'ap') ,
+				'type' => 'text',
+				'value' => @$settings['question_page_slug'],
+				'show_desc_tip' => false,
+			),
+			array(
+				'name' => 'anspress_opt[users_page_slug]',
+				'label' => __('Users page slug', 'ap') ,
+				'desc' => __('Enter slug for users page.', 'ap') ,
+				'type' => 'text',
+				'value' => @$settings['users_page_slug'],
+				'show_desc_tip' => false,
+			),
+			array(
+				'name' => 'anspress_opt[user_page_slug]',
+				'label' => __('User page slug', 'ap') ,
+				'desc' => __('Enter slug for user page, make sure no page or post exists with same slug.', 'ap') ,
+				'type' => 'text',
+				'value' => @$settings['user_page_slug'],
+				'show_desc_tip' => false,
+			),
 			array(
 				'name' => '__sep',
 				'type' => 'custom',
@@ -226,8 +275,14 @@ class AnsPress_Options_Page
 				'value' => $settings['ask_page_title'],
 				'show_desc_tip' => false,
 			) ,
-			
-			/* TODO: Add question sorting*/
+			array(
+				'name' => 'anspress_opt[users_page_title]',
+				'label' => __('Users page title', 'ap') ,
+				'desc' => __('Title of the users page', 'ap') ,
+				'type' => 'text',
+				'value' => $settings['users_page_title'],
+				'show_desc_tip' => false,
+			)
 		));
 		
 		// Register question settings
@@ -270,6 +325,14 @@ class AnsPress_Options_Page
 				'desc' => __('Disable voting on questions.', 'ap') ,
 				'type' => 'checkbox',
 				'value' => $settings['disable_voting_on_question'],
+				'show_desc_tip' => false,
+			) ,
+			array(
+				'name' => 'anspress_opt[close_selected]',
+				'label' => __('Close question after selecting answer', 'ap') ,
+				'desc' => __('If enabled this will prevent user to submit answer on solved question.', 'ap') ,
+				'type' => 'checkbox',
+				'value' => $settings['close_selected'],
 				'show_desc_tip' => false,
 			) ,
 		));
@@ -352,7 +415,7 @@ class AnsPress_Options_Page
 			
 			array(
 				'name' => 'anspress_opt[users_page_avatar_size]',
-				'label' => __('Users avatar size', 'ap') ,
+				'label' => __('Users page avatar size', 'ap') ,
 				'desc' => __('Set user avatar size for users page item.', 'ap') ,
 				'type' => 'number',
 				'value' => $settings['users_page_avatar_size'],
@@ -474,6 +537,22 @@ class AnsPress_Options_Page
 				'desc' => __('Allow logged-in users to upload image.', 'ap') ,
 				'type' => 'checkbox',
 				'value' => $settings['allow_upload_image'],
+				'show_desc_tip' => false,
+			),
+			array(
+				'name' => 'anspress_opt[image_per_post]',
+				'label' => __('Max images per post', 'ap') ,
+				'desc' => __('Set how many images user can upload for each post.', 'ap') ,
+				'type' => 'number',
+				'value' => $settings['image_per_post'],
+				'show_desc_tip' => false,
+			),
+			array(
+				'name' => 'anspress_opt[max_upload_size]',
+				'label' => __('Max upload size', 'ap') ,
+				'desc' => __('Set maximum upload size.', 'ap') ,
+				'type' => 'text',
+				'value' => $settings['max_upload_size'],
 				'show_desc_tip' => false,
 			),
 		));

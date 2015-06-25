@@ -371,8 +371,7 @@ function ap_add_item_to_menu(menuItem, callback) {
 	});
 }
 jQuery(document).ready(function (jQuery){  
-
-		
+	
 	jQuery('#select-question-for-answer').on('keyup', function(){
 		if(jQuery.trim(jQuery(this).val()) == '')
 			return;
@@ -396,39 +395,42 @@ jQuery(document).ready(function (jQuery){
 	
 	ap_option_flag_note();
 	ap_submit_menu();
-	//wpNavMenu.init();
 
-	
-  /*  var frame;
+	jQuery('.ap-dynamic-avatar').initial({fontSize:14, fontWeight:600});
+    jQuery( document ).ajaxComplete(function( event, data, settings ) {
+        jQuery('.ap-dynamic-avatar').initial({fontSize:14, fontWeight:600});
+    });
 
-    jQuery('#default_avatar_upload').on('click', function( event ) {
-        var $el = jQuery(this);
-        event.preventDefault();
+    jQuery('#ap-category-upload').click(function(e) {
+    	e.preventDefault();
+		var image = wp.media({
+			title: 'Upload Image',
+			// mutiple: true if you want to upload multiple files at once
+			multiple: false
+		}).open().on('select', function(e){
+			// This will return the selected image from the Media Uploader, the result is an object
+			var uploaded_image = image.state().get('selection').first();
+			// We convert uploaded_image to a JSON object to make accessing it easier
+			// Output to the console uploaded_image
+			console.log(uploaded_image);
+			var image_url = uploaded_image.toJSON().url;
+			var image_id = uploaded_image.toJSON().id;
+			// Let's assign the url value to the input field
+			jQuery('#ap_category_media_url').val(image_url);
+			jQuery('#ap_category_media_id').val(image_id);
+			jQuery('#ap_category_media_url').before('<img id="ap_category_media_preview" src="'+image_url+'" />');
+		});       
+	});
 
-        // Create the media frame.
-        frame = wp.media.frames.customHeader = wp.media({
-            title: $el.data('choose'),
-            library: { // remove these to show all
-                type: 'image', // specific mime
-                author: userSettings.uid // specific user-posted attachment
-            },
-            button: {
-                text: $el.data('update'), // button text
-                close: true // whether click closes 
-            }
-        });
-
-        // When an image is selected, run a callback.
-        frame.on( 'select', function() {
-            // Grab the selected attachment.
-            var attachment = frame.state().get('selection').first(),
-                link = $el.data('updateLink');
-
-            $el.prev('input').val( attachment.attributes.id );
-        });
-
-        frame.open();
-    }); */
+	jQuery('#ap-category-upload-remove').click(function(e){
+		e.preventDefault();
+		jQuery('#ap_category_media_url').val('');
+		jQuery('#ap_category_media_id').val('');
+		jQuery('#ap_category_media_preview').remove();
+	});
+	jQuery(document).ready(function($){
+	    $('#ap-category-color').wpColorPicker();
+	});
 	
 }); 
 

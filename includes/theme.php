@@ -24,7 +24,7 @@ function ap_page_title() {
 	$current_page  = get_query_var('ap_page');
 
 	if(is_question())
-		$new_title = get_the_title(get_question_id());
+		$new_title = ap_question_title_with_solved_prefix();
 
 	elseif(is_ap_edit())
 		$new_title = __('Edit post', 'ap');
@@ -34,6 +34,9 @@ function ap_page_title() {
 
 	elseif(is_ask())
 		$new_title = ap_opt('ask_page_title');
+
+	elseif(is_ap_users())
+		$new_title = ap_opt('users_page_title');
 
 	elseif($current_page == '' && !is_question() && get_query_var('question_name') == '')
 		$new_title = ap_opt('base_page_title');
@@ -212,7 +215,8 @@ function ap_have_parent_post($post_id = false){
  * @param  string  $format 
  * @return string
  */
-function ap_pagination( $current = false, $total = false, $format = '?paged=%#%'){
+function ap_pagination( $current = false, $total = false, $format = '?paged=%#%'){	
+	
 	global $ap_max_num_pages, $ap_current;
 
 	$big = 999999999; // need an unlikely integer
@@ -233,6 +237,9 @@ function ap_pagination( $current = false, $total = false, $format = '?paged=%#%'
 		$total = $questions->max_num_pages;
 	}
 	$page_num_link = str_replace(array('&amp;', '&#038;'), '&', get_pagenum_link( $big ));
+
+	if($total == '1')
+		return;
 
 	echo '<div class="ap-pagination clearfix">';
 	echo paginate_links( array(
@@ -258,7 +265,7 @@ function ap_display_question_metas($question_id =  false){
 	$metas = array();
 	if(!is_question()){
 		if(ap_question_best_answer_selected())
-			$metas['solved'] = '<span class="ap-best-answer-label ap-tip" title="'.__('answer accepted', 'ap').'">'.__('Selected', 'ap').'</span>';
+			$metas['solved'] = '<span class="ap-best-answer-label ap-tip" title="'.__('answer accepted', 'ap').'">'.__('Solved', 'ap').'</span>';
 
 		$view_count = ap_get_qa_views();
 		$metas['views'] = sprintf( __('<i>%d views</i>', 'ap'), $view_count) ;
@@ -308,30 +315,18 @@ function ap_icon($name, $html = false){
 		'vote_down'			=> 'apicon-thumb-down',
 		'favorite'			=> 'apicon-heart',
 		'delete'			=> 'apicon-trashcan',
-		'flag'				=> 'apicon-flag',
 		'edit'				=> 'apicon-pencil',
 		'comment'			=> 'apicon-comments',
-		'answer'			=> 'apicon-answer',
 		'view'				=> 'apicon-eye',
 		'vote'				=> 'apicon-triangle-up',
 		'cross'				=> 'apicon-x',
 		'more'				=> 'apicon-ellipsis',
-		'category'			=> 'apicon-category',
-		'home'				=> 'apicon-home',
-		'question'			=> 'apicon-comment-discussion',
 		'upload'			=> 'apicon-cloud-upload',
 		'link'				=> 'apicon-link',
 		'help'				=> 'apicon-question',
 		'error'				=> 'apicon-x',
 		'warning'			=> 'apicon-alert',
 		'success'			=> 'apicon-check',
-		'history'			=> 'apicon-history',
-		'mail'				=> 'apicon-mail',
-		'link'				=> 'apicon-link',
-		'mute'				=> 'apicon-mute',
-		'unmute'			=> 'apicon-unmute',
-		'tag'				=> 'apicon-tag',
-		'history'				=> 'apicon-history',
 		'image'				=> 'apicon-image',
 	);
 	
@@ -340,13 +335,13 @@ function ap_icon($name, $html = false){
 
 	if(isset($icons[$name]))
 		$icon = $icons[$name];
+	else
+		$icon = 'apicon-'.$name;
 
 	if($html)
 		return '<i class="'.$icon.'"></i> ';
 
 	return $icon;
-		
-	return '';
 }
 
 /**
@@ -372,7 +367,7 @@ function ap_page(){
 	$current_page  = get_query_var('ap_page');
 
 	if(is_question())
-		$current_page = 'question';
+		$current_page = ap_opt('question_page_slug');
 	
 	elseif($current_page == '' && !is_question() && get_query_var('question_name') == '')
 		$current_page = 'base';
@@ -465,10 +460,12 @@ function ap_post_actions_buttons($disable = array())
 }
 
 /**
- * Output questions list tab
- * @return string
+ * Output question list sorting dropdown
+ * @param  string 		$current_url
+ * @return void
+ * @since 2.3
  */
-function ap_questions_tab($current_url = ''){
+function ap_question_sorting($current_url = ''){
 	if(is_home() || is_front_page())
 		$current_url = home_url('/');
 
@@ -484,32 +481,30 @@ function ap_questions_tab($current_url = ''){
 	$link = add_query_arg($param, $current_url);
 	
 	$navs = array(
-		'active' => array('link' => add_query_arg(array('ap_sort' => 'active'), $link), 'title' => __('Active', 'ap')), 
-		'newest' => array('link' => add_query_arg(array('ap_sort' => 'newest'), $link), 'title' => __('Newest', 'ap'))
+		'active' 		=> array('title' => __('Active', 'ap')), 
+		'newest' 		=> array('title' => __('Newest', 'ap'))
 	);
 
 	if(!ap_opt('disable_voting_on_question'))
-		$navs['voted'] =  array('link' => add_query_arg(array('ap_sort' => 'voted'), $link), 'title' => __('Voted', 'ap'));
+		$navs['voted'] 	=  array('title' => __('Voted', 'ap'));
 
-	$navs['answers'] = array('link' => add_query_arg(array('ap_sort' => 'answers'), $link), 'title' => __('Answered', 'ap'));
-	$navs['unanswered'] = array('link' => add_query_arg(array('ap_sort' => 'unanswered'), $link), 'title' => __('Unanswered', 'ap'));
-	$navs['unsolved'] = array('link' => add_query_arg(array('ap_sort' => 'unsolved'), $link), 'title' => __('Unsolved', 'ap')); 
+	$navs['answers'] 	= array('title' => __('Answered', 'ap'));
+	$navs['unanswered'] = array('title' => __('Unanswered', 'ap'));
+	$navs['unsolved'] 	= array('title' => __('Unsolved', 'ap')); 
 
 	
 	/**
-	 * FILTER: ap_questions_tab
+	 * FILTER: ap_question_sorting
 	 * Before prepering questions list tab.
 	 * @var array
-	 * @since 2.0.1
+	 * @since 2.3
 	 */
-	$navs = apply_filters('ap_questions_tab', $navs );
-
-	echo '<ul id="ap-question-tab" class="ap-questions-tab ap-ul-inline clearfix">';
-	foreach ($navs as $k => $nav) {
-		echo '<li class="ap-questions-tab-'.esc_attr($k).( $sort == $k ? ' active' : '') .'"><a href="'. esc_url($nav['link']) .'">'. $nav['title'] .'</a></li>';
-	}
-	echo '</ul>';
-
+	$navs = apply_filters('ap_question_sorting', $navs );
+		echo '<select class="ap-form-control" name="ap_sort">';
+		foreach ($navs as $k => $nav) {
+			echo '<option '.selected( $sort, $k, false ).' value="'.$k.'">'. $nav['title'] .'</option>';
+		}
+		echo '</select>';
 	?>
 	<?php
 }
@@ -725,8 +720,14 @@ function ap_breadcrumbs(){
 		elseif(is_question()){			
 			$a['page'] = array( 'title' => substr($title, 0, 30). (strlen($title)>30 ? __('..', 'ap') : ''), 'link' => get_permalink( get_question_id() ), 'order' => 10 );
 		}
-		else{
-			$a['page'] = array( 'title' => substr($title, 0, 30). (strlen($title)>30 ? __('..', 'ap') : ''), 'link' => ap_get_link_to($current_page), 'order' => 10 );
+		elseif($current_page != 'base' && $current_page != ''){
+
+			if($current_page == 'user'){				
+				$a['page'] = array( 'title' => __('User', 'ap'), 'link' => ap_user_link(ap_get_displayed_user_id()), 'order' => 10 );
+				$a['user_page'] = array( 'title' => substr($title, 0, 30). (strlen($title)>30 ? __('..', 'ap') : ''), 'link' => ap_user_link(ap_get_displayed_user_id(), get_query_var('user_page')), 'order' => 10 );
+			}else{
+				$a['page'] = array( 'title' => substr($title, 0, 30). (strlen($title)>30 ? __('..', 'ap') : ''), 'link' => ap_get_link_to($current_page), 'order' => 10 );
+			}
 		}
 
 		$a = apply_filters('ap_breadcrumbs', $a );

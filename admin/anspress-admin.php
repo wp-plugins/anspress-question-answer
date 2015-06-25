@@ -126,6 +126,7 @@ class AnsPress_Admin
 			wp_enqueue_script('masonry');
 
 		wp_enqueue_script( 'jquery-form', array('jquery'), false, true );
+		wp_enqueue_script('ap-initial.js', ap_get_theme_url('js/initial.min.js'), 'jquery', AP_VERSION);
 		wp_enqueue_script( 'ap-admin-js', ANSPRESS_URL.'assets/prod/ap-admin.min.js');
 	}
 
@@ -175,23 +176,24 @@ class AnsPress_Admin
 		
 		add_submenu_page('anspress', __( 'Flagged question & answer', 'ap' ), __( 'Flagged', 'ap' ).$Flagcount,	'delete_pages', 'anspress_flagged', array( $this, 'display_flagged_page' ));		
 		
-		add_submenu_page('anspress', __( 'Reputation', 'ap' ), __( 'Reputation', 'ap' ),	'manage_options', 'anspress_reputation', array( $this, 'display_reputation_page' ));
-
-		add_submenu_page('anspress', __( 'AnsPress Options', 'ap' ), __( 'Options', 'ap' ),	'manage_options', 'anspress_options', array( $this, 'display_plugin_admin_page' ));
+		add_submenu_page('anspress', __( 'Reputation', 'ap' ), __( 'Reputation', 'ap' ),	'manage_options', 'anspress_reputation', array( $this, 'display_reputation_page' ));		
 		
 		//add_submenu_page('anspress', __( 'Extensions', 'ap' ), __( 'Extensions', 'ap' ),	'manage_options', 'anspress_ext', array( $this, 'display_plugin_addons_page' ));
 		
-		add_submenu_page('anspress-sub', __( 'About AnsPress', 'ap' ), __( 'About AnsPress', 'ap' ),	'manage_options', 'anspress_about', array( $this, 'display_plugin_about_page' ));
 
 		 add_submenu_page('ap_post_flag', __( 'Post flag', 'ap' ), __( 'Post flag', 'ap' ), 'delete_pages', 'ap_post_flag', array( $this, 'display_post_flag' ));
+		 
 		 add_submenu_page('ap_select_question', __( 'Select question', 'ap' ), __( 'Select question', 'ap' ), 'delete_pages', 'ap_select_question', array( $this, 'display_select_question' ));
 
 		/**
 		 * ACTION: ap_admin_menu
 		 * @since unknown
 		 */
-		do_action('ap_admin_menu');		
+		do_action('ap_admin_menu');
+
+		add_submenu_page('anspress', __( 'About AnsPress', 'ap' ), __( 'About AnsPress', 'ap' ),	'manage_options', 'anspress_about', array( $this, 'display_plugin_about_page' ));
 		
+		add_submenu_page('anspress', __( 'AnsPress Options', 'ap' ), __( 'Options', 'ap' ),	'manage_options', 'anspress_options', array( $this, 'display_plugin_admin_page' ));
 	}
 	
 	/**
@@ -846,6 +848,10 @@ class AnsPress_Admin
 		echo '<div class="aplinks" id="aplinks">';
 		echo '<input type="hidden" value="custom" name="menu-item['.$_nav_menu_placeholder.'][menu-item-type]" />';
 		echo '<ul>';
+
+		$pages['profile'] 		= array('title' => __('User profile', 'ap'), 'show_in_menu' => true);
+		$pages['notification'] 	= array('title' => __('User notification', 'ap'), 'show_in_menu' => true);
+
 		foreach($pages as $k => $args){
 			if($args['show_in_menu']){
 				echo '<li>';
@@ -854,6 +860,7 @@ class AnsPress_Admin
 				echo '</li>';
 			}
 		}
+
 		echo '</ul><p class="button-controls">
 					<span class="add-to-menu">
 						<input type="submit"'.wp_nav_menu_disabled_check( $nav_menu_selected_id ).' class="button-secondary submit-add-to-menu right" value="'.__('Add to Menu', 'ap').'" name="add-custom-menu-item" id="submit-aplinks" />
@@ -866,7 +873,6 @@ class AnsPress_Admin
 
 	public function taxonomy_rename()
 	{
-
 		global $pagenow;
 
 		if(ap_opt('tags_taxo_renamed') == 'true' || !taxonomy_exists('question_tag'))

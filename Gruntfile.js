@@ -6,6 +6,7 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-csscomb');
 	grunt.loadNpmTasks('grunt-contrib-copy');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
+	grunt.loadNpmTasks('grunt-wp-readme-to-markdown');
 
 	grunt.initConfig({
 	    makepot: {
@@ -76,6 +77,13 @@ module.exports = function(grunt) {
 			    'theme/default/prod/ap.min.js': ['theme/default/js/ap.js']
 			  }
 			}
+		},
+		wp_readme_to_markdown: {
+			your_target: {
+				files: {
+				  'README.md': 'readme.txt'
+				},
+			},
 		},
 		watch: {
 			less: {

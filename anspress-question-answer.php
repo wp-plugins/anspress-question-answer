@@ -15,7 +15,7 @@
  * Plugin URI:        http://anspress.io
  * Description:       The most advance community question and answer system for WordPress
  * Donate link: https://www.paypal.com/cgi-bin/webscr?business=support@anspress.io&cmd=_xclick&item_name=Donation%20to%20AnsPress%20development
- * Version:           2.2.0.2
+ * Version:           2.3
  * Author:            Rahul Aryan
  * Author URI:        http://anspress.io
  * Text Domain:       ap
@@ -39,7 +39,7 @@ if (!class_exists('AnsPress')) {
     class AnsPress
     {
 
-        private $_plugin_version = '2.2.0.1';
+        private $_plugin_version = '2.3';
 
         public static $instance = null;
 
@@ -54,6 +54,7 @@ if (!class_exists('AnsPress')) {
         public $questions;
         public $answers;
         public $form;
+        public $reputations;
 
         /**
          * Filter object
@@ -107,7 +108,7 @@ if (!class_exists('AnsPress')) {
                 self::$instance->anspress_query_filter       = new AnsPress_Query_Filter();
                 self::$instance->anspress_theme              = new AnsPress_Theme();
                 self::$instance->anspress_cpt                = new AnsPress_PostTypes();
-                self::$instance->anspress_reputation         = new AnsPress_Reputation();
+                self::$instance->anspress_reputation         = new AP_Reputation();
                 self::$instance->anspress_users              = new AnsPress_User();
 
                 /**
@@ -129,81 +130,26 @@ if (!class_exists('AnsPress')) {
           */
          private function _setup_constants()
          {
-             if (!defined('AP_VERSION')) {
-                 define('AP_VERSION', $this->_plugin_version);
-             }
-
-             if (!defined('AP_DB_VERSION')) {
-                 define('AP_DB_VERSION', '12');
-             }
-
-             if (!defined('DS')) {
+            if (!defined('DS'))
                  define('DS', DIRECTORY_SEPARATOR);
-             }
 
-             if (!defined('ANSPRESS_DIR')) {
-                 define('ANSPRESS_DIR', plugin_dir_path(__FILE__));
-             }
-
-             if (!defined('ANSPRESS_URL')) {
-                 define('ANSPRESS_URL', plugin_dir_url(__FILE__));
-             }
-
-             if (!defined('ANSPRESS_WIDGET_DIR')) {
-                 define('ANSPRESS_WIDGET_DIR', ANSPRESS_DIR.'widgets'.DS);
-             }
-
-             if (!defined('ANSPRESS_ADDON_DIR')) {
-                 define('ANSPRESS_ADDON_DIR', ANSPRESS_DIR.'addons'.DS);
-             }
-
-             if (!defined('ANSPRESS_THEME_DIR')) {
-                 define('ANSPRESS_THEME_DIR', plugin_dir_path(__FILE__).'theme');
-             }
-
-             if (!defined('ANSPRESS_THEME_URL')) {
-                 define('ANSPRESS_THEME_URL', plugin_dir_url(__FILE__).'theme');
-             }
-
-             if (!defined('ANSPRESS_VOTE_META')) {
-                 define('ANSPRESS_VOTE_META', '_ap_vote');
-             }
-
-             if (!defined('ANSPRESS_SUBSCRIBER_META')) {
-                 define('ANSPRESS_SUBSCRIBER_META', '_ap_subscriber');
-             }
-
-             if (!defined('ANSPRESS_CLOSE_META')) {
-                 define('ANSPRESS_CLOSE_META', '_ap_close');
-             }
-
-             if (!defined('ANSPRESS_FLAG_META')) {
-                 define('ANSPRESS_FLAG_META', '_ap_flag');
-             }
-
-             if (!defined('ANSPRESS_VIEW_META')) {
-                 define('ANSPRESS_VIEW_META', '_views');
-             }
-
-             if (!defined('ANSPRESS_UPDATED_META')) {
-                 define('ANSPRESS_UPDATED_META', '_ap_updated');
-             }
-
-             if (!defined('ANSPRESS_ANS_META')) {
-                 define('ANSPRESS_ANS_META', '_ap_answers');
-             }
-
-             if (!defined('ANSPRESS_SELECTED_META')) {
-                 define('ANSPRESS_SELECTED_META', '_ap_selected');
-             }
-
-             if (!defined('ANSPRESS_BEST_META')) {
-                 define('ANSPRESS_BEST_META', '_ap_best_answer');
-             }
-
-             if (!defined('ANSPRESS_PARTI_META')) {
-                 define('ANSPRESS_PARTI_META', '_ap_participants');
-             }
+            define('AP_VERSION', $this->_plugin_version);
+            define('AP_DB_VERSION', '12');
+            define('ANSPRESS_DIR', plugin_dir_path(__FILE__));
+            define('ANSPRESS_URL', plugin_dir_url(__FILE__));
+            define('ANSPRESS_WIDGET_DIR', ANSPRESS_DIR.'widgets'.DS);
+            define('ANSPRESS_THEME_DIR', plugin_dir_path(__FILE__).'theme');
+            define('ANSPRESS_THEME_URL', plugin_dir_url(__FILE__).'theme');
+            define('ANSPRESS_VOTE_META', '_ap_vote');
+            define('ANSPRESS_SUBSCRIBER_META', '_ap_subscriber');
+            define('ANSPRESS_CLOSE_META', '_ap_close');
+            define('ANSPRESS_FLAG_META', '_ap_flag');
+            define('ANSPRESS_VIEW_META', '_views');
+            define('ANSPRESS_UPDATED_META', '_ap_updated');
+            define('ANSPRESS_ANS_META', '_ap_answers');
+            define('ANSPRESS_SELECTED_META', '_ap_selected');
+            define('ANSPRESS_BEST_META', '_ap_best_answer');
+            define('ANSPRESS_PARTI_META', '_ap_participants');
          }
 
         /**
@@ -247,9 +193,9 @@ if (!class_exists('AnsPress')) {
             require_once ANSPRESS_DIR.'widgets/subscribe.php';
             require_once ANSPRESS_DIR.'widgets/question_stats.php';
             require_once ANSPRESS_DIR.'widgets/related_questions.php';
-            require_once ANSPRESS_DIR.'widgets/categories.php';
             require_once ANSPRESS_DIR.'widgets/questions.php';
             require_once ANSPRESS_DIR.'widgets/breadcrumbs.php';
+            require_once ANSPRESS_DIR.'widgets/followers.php';
             require_once ANSPRESS_DIR.'includes/rewrite.php';            
             require_once ANSPRESS_DIR.'includes/reputation.php';            
             require_once ANSPRESS_DIR.'vendor/autoload.php';
@@ -259,7 +205,9 @@ if (!class_exists('AnsPress')) {
             require_once ANSPRESS_DIR.'includes/deprecated.php';
             require_once ANSPRESS_DIR.'includes/user-fields.php';
             require_once ANSPRESS_DIR.'includes/subscriber.php';
-             
+            require_once ANSPRESS_DIR.'includes/follow.php';
+            require_once ANSPRESS_DIR.'includes/notification.php';
+            require_once ANSPRESS_DIR.'widgets/user.php'; 
         }
 
         /**

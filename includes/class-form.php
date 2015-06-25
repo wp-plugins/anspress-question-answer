@@ -410,10 +410,12 @@ class AnsPress_Form {
         if(isset($field['label']))
             $this->label();
 
-        if($field['settings']['tinymce'] !== false)
+        if($field['settings']['tinymce'] !== false){
             $field['settings']['tinymce'] = array( 
-                'content_css' => ap_get_theme_url('css/editor.css') 
+                'content_css' => ap_get_theme_url('css/editor.css'),
+                'wp_autoresize_on' => true
             );
+        }
 
         /**
          * FILTER: ap_pre_editor_settings
@@ -456,7 +458,7 @@ class AnsPress_Form {
      * @since 2.0.1
      */
     private function have_error(){
-        if(isset($this->errors[$this->field['name']]))
+        if(isset($this->field['name']) && isset($this->errors[$this->field['name']]))
             return true;
 
         return false;
@@ -509,55 +511,55 @@ class AnsPress_Form {
                 switch ($field['type']) {
 
                     case 'text':
-                        $this->output .= '<div class="ap-form-fields'.$error_class.'">';
+                        $this->output .= '<div class="ap-field-'.@$field['name'].' ap-form-fields'.$error_class.'">';
                         $this->text_field($field, 'text');
                         $this->output .= '</div>';
                         break;
 
                     case 'password':
-                        $this->output .= '<div class="ap-form-fields'.$error_class.'">';
+                        $this->output .= '<div class="ap-field-'.@$field['name'].' ap-form-fields'.$error_class.'">';
                         $this->text_field($field, 'password');
                         $this->output .= '</div>';
                         break;
 
                     case 'number':
-                        $this->output .= '<div class="ap-form-fields'.$error_class.'">';
+                        $this->output .= '<div class="ap-field-'.@$field['name'].' ap-form-fields'.$error_class.'">';
                         $this->number_field($field);
                         $this->output .= '</div>';
                         break;
 
                     case 'checkbox':
-                        $this->output .= '<div class="ap-form-fields'.$error_class.'">';
+                        $this->output .= '<div class="ap-field-'.@$field['name'].' ap-form-fields'.$error_class.'">';
                         $this->checkbox_field($field);
                         $this->output .= '</div>';
                         break;
 
                     case 'select':
-                        $this->output .= '<div class="ap-form-fields'.$error_class.'">';
+                        $this->output .= '<div class="ap-field-'.@$field['name'].' ap-form-fields'.$error_class.'">';
                         $this->select_field($field);
                         $this->output .= '</div>';
                         break;
 
                     case 'taxonomy_select':
-                        $this->output .= '<div class="ap-form-fields'.$error_class.'">';
+                        $this->output .= '<div class="ap-field-'.@$field['name'].' ap-form-fields'.$error_class.'">';
                         $this->taxonomy_select_field($field);
                         $this->output .= '</div>';
                         break;
 
                     case 'page_select':
-                        $this->output .= '<div class="ap-form-fields'.$error_class.'">';
+                        $this->output .= '<div class="ap-field-'.@$field['name'].' ap-form-fields'.$error_class.'">';
                         $this->page_select_field($field);
                         $this->output .= '</div>';
                         break;
 
                     case 'textarea':
-                        $this->output .= '<div class="ap-form-fields'.$error_class.'">';
+                        $this->output .= '<div class="ap-field-'.@$field['name'].' ap-form-fields'.$error_class.'">';
                         $this->textarea_field($field);
                         $this->output .= '</div>';
                         break;
 
                     case 'editor':
-                        $this->output .= '<div class="ap-form-fields'.$error_class.'">';
+                        $this->output .= '<div class="ap-field-'.@$field['name'].' ap-form-fields'.$error_class.'">';
                         $this->editor_field($field);
                         $this->output .= '</div>';
                         break;

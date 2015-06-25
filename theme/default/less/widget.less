@@ -1,11 +1,58 @@
 //
 // widget styles
 // --------------------------------------------------
-
-.ap-widget-pos {
-    margin-bottom: 25px;
+#anspress .ap-widget-title {
+	font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    margin-top: 0;
 }
-.ap-stats-widget{
+#anspress .ap-user-widget{
+	border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 5px;
+	.ap-user-cover{
+	    display: block;
+	    height: 90px;
+	    margin-bottom: 0;
+	    width: 100%;
+	}
+	.ap-user-cover-img{
+	    background-position: center center;
+	    border-radius: 3px;
+	}
+	.ap-user-head .ap-user-avatar{
+		margin-top: -30px;
+	}
+	.ap-user-head .ap-user-name {
+	    font-size: 16px;
+	    margin-top: 5px;
+	}
+	.ap-user-head {
+	    border-bottom: medium none;
+	    margin-bottom: 10px;
+    }
+    .ap-user-widget-links{
+    	padding: 0;
+    	list-style: none;
+    	margin: 0;
+    	li{
+    		display: block;
+    		padding: 0;
+    		margin:0;
+    	}
+    	a{
+		    border-top: 1px solid #f8f8f8;
+		    display: block;
+		    font-size: 13px;
+		    padding: 10px 15px;
+		    &:before{
+		    	margin-right: 10px;
+		    }
+    	}
+    }
+}
+.widget .ap-stats-widget, .ap-widget-pos .ap-stats-widget{
 	padding: 0;
 	margin:0;
 	list-style: none;
@@ -14,10 +61,10 @@
 
 	li{
 	    border-bottom: 1px solid #eee;
+	    font-size: 14px;
 	    list-style: outside none none;
 	    margin: 0;
-	    padding: 10px;
-	    font-size: 13px;
+	    padding: 15px;
 	    .stat-value{
 		    color: #888;
 		    float: right;
@@ -37,58 +84,7 @@
 	}
 
 }
-.ap-rq-widget{
-	.ap-rq-post {
-	    border-bottom: 1px solid #f7f7f7;
-	    color: #888;
-	    display: block;
-	    margin-bottom: 0;
-	    padding: 10px 0;
-
-	    a{
-	    	margin-bottom: 5px;
-	    	display: block;
-	    }
-	}
-}
-
-.ap-questions-widget{
-	.ap-question-item{
-	    border-bottom: 1px solid #f8f8f8;
-	    margin-bottom: 10px;
-	    padding-bottom: 10px;
-	}
-	.ap-question-title{
-	    display: block;
-	    margin-bottom: 5px;
-	}
-}
-.ap-cat-wid{
-	list-style: none;
-	padding: 0;
-	margin: 0;
-	> li{
-	    border-bottom: 1px solid #eee;
-	    margin: 0;
-	    padding: 0;
-	    &:last-child{
-	    	border-bottom:none;
-	    }
-	    > a{
-		    display: block;
-		    padding: 7px 2px;
-		    >span{
-		    	float: right;
-		    }
-		    > i{
-			    display: block;
-			    font-size: 13px;
-			    font-style: normal;
-		    }
-	    }
-	}
-}
-.ap-question-subscribers{
+.widget .ap-question-subscribers, .ap-widget-pos .ap-question-subscribers{
 	&-inner{
 		margin: -5px;
 	}
@@ -99,5 +95,62 @@
 			margin: 0;
 			display: block;
 		}
+	}
+}
+.ap-widget-pos, .widget{
+	margin-bottom: 25px;
+	
+	.ap-rq-widget{
+		.ap-rq-post {
+		    border-bottom: 1px solid #f7f7f7;
+		    color: #888;
+		    display: block;
+		    margin-bottom: 0;
+		    padding: 10px 0;
+
+		    a{
+		    	margin-bottom: 5px;
+		    	display: block;
+		    }
+		}
+	}
+
+	.ap-questions-widget{
+		.ap-question-item{
+		    border-bottom: 1px solid #f8f8f8;
+		    margin-bottom: 10px;
+		    padding-bottom: 10px;
+		}
+		.ap-question-title{
+		    display: block;
+		    margin-bottom: 5px;
+		}
+	}
+		
+	.ap-followers-widget{
+	    border: 1px solid #eee;
+	    border-radius: 2px;
+	    padding: 10px;
+		ul{
+			margin: -5px -5px 0;
+		}
+		li{
+		    margin: 0;
+		    width: 20%;
+			a{
+			    display: block;
+			    padding: 5px;
+			}
+		}
+
+		img{
+		    box-shadow: none;
+		    display: block;
+		    max-width: 47px;
+		}
+	}
+	.ap-widget-all-link{
+	    display: block;
+	    padding: 4px;
 	}
 }

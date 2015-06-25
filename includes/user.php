@@ -18,8 +18,8 @@
  * @since 2.0.1
  */
 
-function ap_register_user_page($page_slug, $page_title, $func, $show_in_menu = true){
-    anspress()->user_pages[$page_slug] = array('title' => $page_title, 'func' => $func, 'show_in_menu' => $show_in_menu);
+function ap_register_user_page($page_slug, $page_title, $func, $show_in_menu = true, $public = true){
+    anspress()->user_pages[$page_slug] = array('title' => $page_title, 'func' => $func, 'show_in_menu' => $show_in_menu, 'public' => $public);
 }
 /**
  * Count user posts by post type
@@ -89,6 +89,24 @@ function ap_user_best_answer_count($user_id)
     return apply_filters('ap_user_best_answer_count', $count, $user_id);
 }
 
+function ap_user_solved_answer_count($user_id)
+{
+    global $wpdb;
+    $query = $wpdb->prepare("SELECT count(DISTINCT pm.post_id) FROM $wpdb->postmeta pm JOIN $wpdb->posts p ON (p.ID = pm.post_id) WHERE pm.meta_key = '".ANSPRESS_SELECTED_META."' AND pm.meta_value is not null AND pm.meta_value != 0 AND p.post_type = 'question' AND p.post_author = %d", $user_id);
+
+    $key = md5($query);
+    $cache = wp_cache_get($key, 'count');
+
+    if ($cache === false) {
+        $count = $wpdb->get_var($query);
+        wp_cache_set($key, $count, 'count');
+    } else {
+        $count = $cache;
+    }
+
+    return apply_filters('ap_user_best_answer_count', $count, $user_id);
+}
+
 /**
  * For user display name
  * It can be filtered for adding cutom HTML
@@ -99,6 +117,7 @@ function ap_user_best_answer_count($user_id)
 function ap_user_display_name($args = array())
 {
     global $post;
+
     $defaults = array(
         'user_id'            => get_the_author_meta('ID'),
         'html'                => false,
@@ -163,9 +182,9 @@ function ap_user_display_name($args = array())
 }
 
 /**
- * Link to user user pages
- * @param  int $user_id 	user id
- * @param  string $sub 		page slug
+ * Return Link to user pages
+ * @param  boolean|integer      $user_id 	user id
+ * @param  string               $sub 		page slug
  * @return string
  * @since  unknown
  */
@@ -177,53 +196,80 @@ function ap_user_link($user_id = false, $sub = false)
     }
 
     if($user_id <1)
-        return '#';
+        return '#AnonymousUser';
 
     $is_enabled = apply_filters('ap_user_profile_active', true);
 
     if(function_exists('bp_core_get_userlink') && !$is_enabled)
         return bp_core_get_userlink($user_id, false, true);
+
     elseif(!$is_enabled)
         return get_author_posts_url($user_id);
     
     if ($user_id == 0)
         return false;
 
-    $user = get_userdata($user_id);
+    $user = get_user_by('id', $user_id);
 
-    if($sub === false){
-        $sub = array('ap_page' => 'user', 'user' => $user->user_login);
-    }
-    elseif(is_array($sub)){
-       $sub['ap_page']  = 'user';
-       $sub['user']     = $user->user_login;
-    }
-    elseif(!is_array($sub)){
-        $sub = array('ap_page' => 'user', 'user' => $user->user_login, 'user_page' => $sub);
+    if(!ap_opt('base_before_user_perma') && get_option('permalink_structure') != ''){
+        $base = home_url( '/'.ap_opt('user_page_slug').'/' );
+
+        if($sub === false){
+            $link = $base. $user->user_login.'/';
+        }
+        elseif(is_array($sub)){
+            $link = $base . $user->user_login.'/';
+            
+            if(!empty($sub)){
+                foreach($sub as $s)
+                    $link .= $s.'/';
+            }
+        }
+        elseif(!is_array($sub)){
+            $link = $base. $user->user_login.'/'.$sub.'/';
+        }        
+
+    }else{
+        if($sub === false){
+            $sub = array('ap_page' => 'user', 'ap_user' => $user->user_login);
+        }
+        elseif(is_array($sub)){
+           $sub['ap_page']  = 'user';
+           $sub['ap_user']     = $user->user_login;
+        }
+        elseif(!is_array($sub)){
+            $sub = array('ap_page' => 'user', 'ap_user' => $user->user_login, 'user_page' => $sub);
+        }
+
+        $link = ap_get_link_to($sub);
     }
 
-    return apply_filters('ap_user_link', ap_get_link_to($sub), $user_id);
+    return apply_filters('ap_user_link', $link, $user_id);
 }
 
 /**
- * Output user menu
- * Extract menu from registered user pages
- * @return void
- * @since 2.0.1
+ * Get user menu array items
+ * @param  boolean|integer  $user_id
+ * @return array
  */
-function ap_user_menu()
-{
-    $user_pages = anspress()->user_pages;
+function ap_get_user_menu($user_id = false){
 
-    $userid             = ap_get_displayed_user_id();
-    $active_user_page   = get_query_var('user_page');
-    $active_user_page   = $active_user_page ? $active_user_page : 'profile';
+    if($user_id === false)
+        $user_id = ap_get_displayed_user_id();
+
+    $user_pages = anspress()->user_pages;
 
     $menus = array();
 
+    $i = 1;
     foreach ($user_pages as $k => $args) {
-        $link        = ap_user_link($userid, $k);
-        $menus[$k]    = array( 'slug' => $k, 'title' => $args['title'], 'link' => $link, 'order' => 10);
+        $link        = ap_user_link($user_id, $k);
+
+        $title = $k == 'notification' ? $args['title'].ap_get_the_total_unread_notification($user_id, false): $args['title'];
+
+        $menus[$k]    = array( 'slug' => $k, 'title' => $title, 'link' => $link, 'order' => 5+$i, 'show_in_menu' => $args['show_in_menu'], 'public' => $args['public']);
+
+        $i++;
     }
 
     /**
@@ -236,40 +282,36 @@ function ap_user_menu()
 
     $menus = ap_sort_array_by_order($menus);
 
-    if (!empty($menus) && is_array($menus)) {
-        $o = '<ul id="ap-user-menu" class="ap-user-menu clearfix">';
-        foreach ($menus as $m) {            
-            //if(!((isset($m['own']) && $m['own']) && $userid != get_current_user_id()))
-            $class = !empty($m['class']) ? ' '.$m['class'] : '';
-            $o .= '<li'.($active_user_page == $m['slug'] ? ' class="active"' : '').'><a href="'.$m['link'].'" class="ap-user-menu-'.$m['slug'].$class.'">'.$m['title'].'</a></li>';
-        }
-        $o .= '</ul>';
-        echo $o;
+    foreach ($menus as $k => $m) {
+        if( (!$m['public'] && !ap_is_my_profile()))
+            unset($menus[$k]);
     }
+
+    return $menus;
 }
 
-function ap_user_page_menu()
+/**
+ * Output user menu
+ * Extract menu from registered user pages
+ * @return void
+ * @since 2.0.1
+ */
+function ap_user_menu()
 {
-    if (!is_my_profile()) {
-        return;
-    }
+    $menus = ap_get_user_menu();
+    $active_user_page   = get_query_var('user_page');
+    $active_user_page   = $active_user_page ? $active_user_page : 'about';
 
-    $userid = ap_get_displayed_user_id();
-    $user_page = get_query_var('user_page');
-    $user_page = $user_page ? $user_page : 'profile';
+    if (!empty($menus) && is_array($menus)) {
+        $o = '<ul id="ap-user-menu" class="ap-user-menu ap_collapse_menu clearfix">';
+        foreach ($menus as $m) {
+            $class = !empty($m['class']) ? ' '.$m['class'] : '';
+            $o .= '<li'.($active_user_page == $m['slug'] ? ' class="active"' : '').'><a href="'.$m['link'].'" class="ap-user-menu-'.$m['slug'].$class.'">'.$m['title'].'</a></li>';
 
-    $menus = array();
-
-    /* filter for overriding menu */
-    $menus = apply_filters('ap_user_page_menu', $menus, $userid);
-
-    if (!empty($menus)) {
-        $o = '<ul class="ap-user-personal-menu ap-inline-list clearfix">';
-        foreach ($menus as $k => $m) {
-            $o .= '<li'.($user_page == $k ? ' class="active"' : '').'><a href="'.$m['link'].'" class="'.$m['icon'].' ap-user-menu-'.$k.'"'.(isset($m['attributes']) ? ' '.$m['attributes'] : '').'>'.$m['name'].'</a></li>';
         }
+        
+        $o .= '<li class="ap-user-menu-more ap-dropdown"><a href="#" class="ap-dropdown-toggle">'.__('More', 'ap').ap_icon('chevron-down', true).'</a><ul class="ap-dropdown-menu"></ul></li>';
         $o .= '</ul>';
-
         echo $o;
     }
 }
@@ -313,7 +355,7 @@ function ap_user_page()
 function ap_active_user_page()
 {
     $user_page        = sanitize_text_field(get_query_var('user_page'));
-    return  $user_page ? $user_page : 'profile';
+    return  $user_page ? $user_page : 'about';
 }
 
 /**
@@ -370,15 +412,17 @@ function ap_check_if_photogenic($user_id)
 function ap_users_tab(){
     $active = isset($_GET['ap_sort']) ? $_GET['ap_sort'] : 'reputation';
     
-    $link = '?ap_sort=';
-
+    $link = ap_get_link_to('users').'?ap_sort=';
     
     ?>
     <ul class="ap-questions-tab ap-ul-inline clearfix" role="tablist">
         <?php if(!ap_opt('disable_reputation')): ?>
             <li class="<?php echo $active == 'reputation' ? ' active' : ''; ?>"><a href="<?php echo $link.'reputation'; ?>"><?php _e('Reputation', 'ap'); ?></a></li>
         <?php endif; ?>
-        <li class="<?php echo $active == 'newest' ? ' active' : ''; ?>"><a href="<?php echo $link.'newest'; ?>"><?php _e('Newest', 'ap'); ?></a></li>
+        <li class="<?php echo $active == 'active' ? ' active' : ''; ?>"><a href="<?php echo $link.'active'; ?>"><?php _e('Active', 'ap'); ?></a></li>
+        <li class="<?php echo $active == 'best_answer' ? ' active' : ''; ?>"><a href="<?php echo $link.'best_answer'; ?>"><?php _e('Best answer', 'ap'); ?></a></li>
+        <li class="<?php echo $active == 'answer' ? ' active' : ''; ?>"><a href="<?php echo $link.'answer'; ?>"><?php _e('Answer', 'ap'); ?></a></li>
+        <li class="<?php echo $active == 'newest' ? ' active' : ''; ?>"><a href="<?php echo $link.'newest'; ?>"><?php _e('Newest', 'ap'); ?></a></li>        
         <?php 
             /**
              * ACTION: ap_users_tab
@@ -410,7 +454,7 @@ function ap_displayed_user_id(){
         if($user_id > 0)
             return $user_id;
 
-        return 0;
+        return get_current_user_id();
     }
 
 
@@ -457,6 +501,33 @@ function ap_user_top_posts_tab(){
              * @since 2.1.0
              */
             do_action('ap_users_tab', $active); 
+        ?>
+    </ul>
+    <?php
+}
+
+/**
+ * User's subscription tab
+ * @return void
+ * @since 2.1
+ */
+function ap_user_subscription_tab(){
+    $active = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'question';
+    
+    $link = '?tab=';
+
+    printf(__('My subscriptions', 'ap'), $active);
+    
+    ?>
+    <ul id="ap-user-posts-tab" class="ap-flat-tab ap-ul-inline clearfix" role="tablist">
+        <li class="<?php echo $active == 'question' ? ' active' : ''; ?>"><a href="<?php echo $link.'question'; ?>"><?php _e('Questions', 'ap'); ?></a></li>        
+        <?php 
+            /**
+             * ACTION: ap_user_subscription_tab
+             * Used to hook into users page tab
+             * @since 2.3
+             */
+            do_action('ap_user_subscription_tab', $active); 
         ?>
     </ul>
     <?php
@@ -511,7 +582,7 @@ function ap_avatar_upload_form(){
     if(ap_get_displayed_user_id() == get_current_user_id()){
         ?>
         <form method="post" action="#" enctype="multipart/form-data" data-action="ap_upload_form" class="ap-avatar-upload-form">
-            <div class="ap-btn ap-tip ap-upload-o <?php echo ap_icon('upload'); ?>" title="<?php _e('Upload an avatar', 'ap'); ?>">
+            <div class="ap-btn ap-upload-o <?php echo ap_icon('upload'); ?>" title="<?php _e('Upload an avatar', 'ap'); ?>">
                 <span><?php _e('Upload avatar', 'ap'); ?></span>
                 <input type="file" name="thumbnail" class="ap-upload-input" data-action="ap_upload_field">
             </div>
@@ -520,4 +591,211 @@ function ap_avatar_upload_form(){
         </form>
         <?php
     }
+}
+
+/**
+ * Output user profile tab
+ * @return string
+ */
+function ap_user_profile_tab(){
+    $param = array();
+
+    $group = isset($_GET['group']) ? $_GET['group'] : 'basic';
+
+    $link = ap_user_link(false, 'profile');
+    
+    $navs = array(
+        'basic' => array('link' => add_query_arg(array('group' => 'basic'), $link), 'title' => __('Basic', 'ap')), 
+        'account' => array('link' => add_query_arg(array('group' => 'account'), $link), 'title' => __('Account', 'ap'))
+    );
+
+    
+    /**
+     * FILTER: ap_questions_tab
+     * Before prepering questions list tab.
+     * @var array
+     * @since 2.0.1
+     */
+    $navs = apply_filters('ap_user_profile_tab', $navs );
+
+    echo '<ul id="ap-profile-tab" class="ap-questions-tab ap-ul-inline clearfix">';
+    foreach ($navs as $k => $nav) {
+        echo '<li class="ap-profile-tab-'.esc_attr($k).( $group == $k ? ' active' : '') .'"><a href="'. esc_url($nav['link']) .'">'. $nav['title'] .'</a></li>';
+    }
+    echo '</ul>';
+
+    ?>
+    <?php
+}
+
+function ap_is_my_profile($user_id = false){
+    if(!$user_id)
+        $user_id = get_current_user_id();
+
+    if(is_user_logged_in() && $user_id == ap_get_displayed_user_id())
+        return true;
+
+    return false;
+}
+
+function ap_is_user_page_public($page){
+    $user_pages = anspress()->user_pages;
+
+    if(isset($user_pages[$page]) && $user_pages[$page]['public'])
+        return true;
+
+    return false;
+}
+
+/**
+ * Update users question count meta
+ * @param  integer $question_id     WordPress post ID
+ * @return void
+ * @since 2.3
+ */
+function ap_update_user_questions_count_meta($question_id){
+    $post = get_post( $question_id );
+    
+    if($post->post_type == 'question')
+        update_user_meta( $post->post_author, '__total_questions', ap_user_question_count($post->post_author) );
+}
+
+/**
+ * Update users answer count meta
+ * @param  integer $answer_id     WordPress post ID
+ * @return void
+ * @since 2.3
+ */
+function ap_update_user_answers_count_meta($answer_id){
+    $post = get_post( $answer_id );
+    
+    if($post->post_type == 'answer')
+        update_user_meta( $post->post_author, '__total_answers', ap_user_answer_count($post->post_author) );
+}
+
+/**
+ * Update users best answer count
+ * @param  integer $user_id     WordPress user ID
+ * @return void
+ * @since 2.3
+ */
+function ap_update_user_best_answers_count_meta($user_id = false){
+    if(!$user_id)
+        $user_id = get_current_user_id();
+
+    update_user_meta( $user_id, '__best_answers', ap_user_best_answer_count($user_id) );
+}
+
+function ap_update_user_solved_answers_count_meta($user_id = false){
+    if(!$user_id)
+        $user_id = get_current_user_id();
+
+    update_user_meta( $user_id, '__solved_answers', ap_user_solved_answer_count($user_id) );
+}
+
+/**
+ * Get last 28 days reputation earned by user group by day.
+ * This data is used in bard chart
+ * 
+ * @param  boolean|integer      $user_id    WordPress user ID if false @see ap_get_displayed_user_id() will be used
+ * @param  boolean              $object     Return object or string
+ * @return string|object
+ */
+function ap_user_get_28_days_reputation($user_id = false, $object = false){
+
+    if($user_id === false)
+        $user_id = ap_get_displayed_user_id();
+
+    global $wpdb;
+    
+    $current_time = current_time('mysql');
+
+    $query = $wpdb->prepare("SELECT sum(v.apmeta_value) as points, date_format(v.apmeta_date, '%%m.%%d') as day FROM ".$wpdb->prefix."ap_meta v WHERE v.apmeta_type='reputation' AND v.apmeta_userid = %d AND v.apmeta_date BETWEEN %s - INTERVAL 28 DAY AND %s group by date_format(v.apmeta_date,'%%m.%%d')", $user_id, $current_time, $current_time);
+
+    $key = md5($query);
+
+    $result = wp_cache_get( $key, 'ap');
+
+    if($result === false){
+        $result = $wpdb->get_results($query);
+        wp_cache_set( $key, $result, 'ap' );
+    }
+    
+    $days = array();
+    
+    for ($i=0; $i<28; $i++)
+    {
+        $days[date("m.d", strtotime($i." days ago"))] = 0;
+    }
+
+    if($result)
+        foreach ($result as $reputation) {
+            $days[$reputation->day]  = $reputation->points;
+        }
+
+    $days = array_reverse($days);
+
+    if($object === false)
+        return implode(',', $days);
+    
+    return (object) $days;
+}
+
+function ap_cover_upload_form(){
+    if(ap_get_displayed_user_id() == get_current_user_id()){
+        ?>
+        <form method="post" action="#" enctype="multipart/form-data" data-action="ap_upload_form" class="ap-avatar-upload-form">
+            <div class="ap-btn ap-upload-o <?php echo ap_icon('upload'); ?>" title="<?php _e('Upload a cover photo', 'ap'); ?>">
+                <span><?php _e('Upload cover', 'ap'); ?></span>
+                <input type="file" name="image" class="ap-upload-input" data-action="ap_upload_field">
+            </div>
+            <input type='hidden' value='<?php echo wp_create_nonce( 'upload_cover_'.get_current_user_id() ); ?>' name='__nonce' />
+            <input type="hidden" name="action" id="action" value="ap_cover_upload">
+        </form>
+        <?php
+    }
+}
+
+function ap_get_cover_src($user_id = false, $small = false) {
+
+    if($user_id === false)
+        $user_id = ap_get_displayed_user_id();
+
+    $cover = get_user_meta( $user_id, '_ap_cover', true );
+
+    if(is_array($cover) && !empty($cover)){
+
+        if($small && file_exists($cover['small_file']))
+            return $cover['small_url'];
+
+        if(file_exists($cover['file']))
+            return $cover['url'];
+    }
+
+    return false;
+}
+
+function ap_hover_card_ajax_query($user_id = false){
+    if($user_id === false)
+        $user_id = ap_get_displayed_user_id();
+    return 'action=ap_ajax&ap_ajax_action=user_cover&user_id='.$user_id;
+}
+
+function ap_hover_card_attributes($user_id, $echo = true){
+    if($user_id > 0){
+        $attr = ' data-userid="'.$user_id.'" data-action="ap_hover_card" data-query="'.ap_hover_card_ajax_query($user_id).'"';
+
+        if($echo)
+            echo $attr;
+        else
+            return $attr;
+    }
+}
+
+function ap_user_link_avatar($user_id, $size = 30){
+    echo '<a href="'.ap_user_link($user_id).'"';
+    ap_hover_card_attributes($user_id);
+    echo '>';
+    echo get_avatar($user_id, $size);
+    echo '</a>';
 }

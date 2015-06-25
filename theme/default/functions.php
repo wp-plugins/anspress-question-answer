@@ -15,19 +15,23 @@
  * Enqueue scripts
  *
  */
-add_action('wp_enqueue_scripts', 'init_scripts_front', 11);
-function init_scripts_front(){
+add_action('wp_enqueue_scripts', 'ap_scripts_front', 1);
+function ap_scripts_front(){
 	//if(is_anspress()){
-		wp_enqueue_script( 'jquery');				
-		wp_enqueue_script( 'jquery-form', array('jquery'), false, true );			
-		wp_enqueue_script( 'ap-functions-js', ANSPRESS_URL.'assets/ap-functions.js', 'jquery');		
-		wp_enqueue_script( 'waypoints', ap_get_theme_url('js/jquery.waypoints.min.js'), 'jquery', AP_VERSION);	
-		wp_enqueue_script( 'anspress_acript', ANSPRESS_URL.'assets/prod/anspress_site.min.js', 'jquery', AP_VERSION);		
-		wp_enqueue_script( 'tooltipster', ap_get_theme_url('js/jquery.tooltipster.min.js'), 'jquery', AP_VERSION);
-		wp_enqueue_script( 'initial-js', ap_get_theme_url('js/initial.min.js'), 'jquery', AP_VERSION);
-		wp_enqueue_script( 'ap-js', ap_get_theme_url('prod/ap.min.js'), 'jquery', AP_VERSION);
-		wp_enqueue_style( 'tooltipster', ap_get_theme_url('css/tooltipster.css'), array(), AP_VERSION);
-		wp_enqueue_style( 'ap-style', ap_get_theme_url('css/main.css'), array(), AP_VERSION);
+		wp_enqueue_script('jquery');				
+		wp_enqueue_script('jquery-form', array('jquery'), false );			
+		wp_enqueue_script('ap-functions-js', ANSPRESS_URL.'assets/ap-functions.js', 'jquery');		
+		//wp_enqueue_script('ap-waypoints', ap_get_theme_url('js/jquery.waypoints.min.js'), 'jquery', AP_VERSION);
+		wp_enqueue_script('ap-tooltipster', ap_get_theme_url('js/jquery.tooltipster.min.js'), 'jquery', AP_VERSION);	
+		wp_enqueue_script('ap-anspress_script', ANSPRESS_URL.'assets/prod/anspress_site.min.js', 'jquery', AP_VERSION);		
+		
+		wp_enqueue_script('ap-peity-js', ap_get_theme_url('js/jquery.peity.min.js'), 'jquery', AP_VERSION);
+		wp_enqueue_script('ap-initial.js', ap_get_theme_url('js/initial.min.js'), 'jquery', AP_VERSION);
+		wp_enqueue_script('ap-scrollbar.js', ap_get_theme_url('js/jquery.scrollbar.min.js'), 'jquery', AP_VERSION);
+		wp_enqueue_script('ap-js', ap_get_theme_url('prod/ap.min.js'), 'jquery', AP_VERSION);
+		
+		wp_enqueue_style('tooltipster', ap_get_theme_url('css/tooltipster.css'), array(), AP_VERSION);
+		wp_enqueue_style('ap-style', ap_get_theme_url('css/main.css'), array(), AP_VERSION);
 
 		$custom_css = "
                 #anspress .ap-q-cells{
@@ -49,12 +53,14 @@ function init_scripts_front(){
 		
 		?>
 			<script type="text/javascript">
-				var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>',
+				var ajaxurl 	= '<?php echo admin_url('admin-ajax.php'); ?>',
+				    ap_nonce 	= '<?php echo wp_create_nonce( "ap_ajax_nonce" ); ?>',
 				    ap_max_tags = '<?php echo ap_opt('max_tags'); ?>';
+				    disable_hover_card = <?php echo ap_opt('disable_hover_card') ? 'true' : 'false'; ?>;
 			</script>
 		<?php
 
-		wp_localize_script( 'anspress_acript', 'aplang', array(
+		wp_localize_script( 'ap-anspress_script', 'aplang', array(
 			'password_field_not_macthing' 	=> __( 'Password not matching', 'ap' ),
 			'password_length_less' 			=> __( 'Password length must be 6 or higher', 'ap' ),
 			'not_valid_email' 				=> __( 'Not a valid email', 'ap' ),
@@ -131,7 +137,7 @@ if ( ! function_exists( 'ap_comment' ) ) :
 						?>
 					</div>
 					<div class="ap-comment-texts">
-						<?php echo get_comment_text(); ?>						
+						<?php comment_text(); ?>						
 					</div>
 					<?php
 						/**
@@ -208,6 +214,16 @@ function ap_widgets_positions(){
 		'before_widget' => '<div id="%1$s" class="ap-widget-pos %2$s">',
 		'after_widget' 	=> '</div>',
 		'description'  	=> __( 'Widgets in this area will be shown in tag listing page.', 'ap' ),
+		'before_title' 	=> '<h3 class="ap-widget-title">',
+		'after_title'  	=> '</h3>',
+	) );
+
+	register_sidebar( array(
+		'name'         	=> __( 'AP about user', 'ap' ),
+		'id'           	=> 'ap-user-about',
+		'before_widget' => '<div id="%1$s" class="ap-widget-pos %2$s">',
+		'after_widget' 	=> '</div>',
+		'description'  	=> __( 'Widgets in this area will be shown in about user page.', 'ap' ),
 		'before_title' 	=> '<h3 class="ap-widget-title">',
 		'after_title'  	=> '</h3>',
 	) );

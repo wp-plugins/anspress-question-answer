@@ -4,16 +4,13 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_
 Tags: question, answer, q&a, forum, profile, stackoverflow, quora, buddypress
 Requires at least: 4.1.1
 Tested up to: 4.2
-Stable tag: 2.2.0.2
+Stable tag: 2.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 Free question and answer plugin for WordPress. Made with developers in mind, highly customizable.
 
 == Description ==
-
-**Try new beta version, [Download 2.3-beta2.zip](http://anspress.io/questions/question/2-3-beta2-released-try-and-let-us-know/)**
-
 Demo & support forum: http://anspress.io/
 GitHub repo: [Git AnsPress](https://github.com/anspress/anspress/)
 
@@ -32,6 +29,8 @@ Developers tool
 
 List of features:
 
+  * Notification
+  * Featured Question
   * Sorting question and answer by many options.
   * Ajax based form submission
   * Theme system

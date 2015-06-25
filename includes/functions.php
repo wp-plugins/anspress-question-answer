@@ -150,6 +150,13 @@ function is_ap_users(){
 	return false;
 }
 
+function is_ap_user(){
+	if(is_anspress() && get_query_var('ap_page')=='user')
+		return true;
+		
+	return false;
+}
+
 /**
  * Check if anspress categories page
  * @return boolean
@@ -655,6 +662,9 @@ function ap_is_ajax(){
  * @since 0.9
  */
 function ap_form_allowed_tags(){
+	global $ap_kses_check;
+    $ap_kses_check = true;
+    
 	$allowed_style = array(
 		'align' => true
 	);
@@ -766,6 +776,13 @@ function ap_responce_message($id, $only_message = false)
 		'answer_deleted_permanently' => array('type' => 'success', 'message' => __('Answer has been deleted permanently', 'ap')),
 		'set_featured_question' => array('type' => 'success', 'message' => __('Question is marked as featured.', 'ap')),
 		'unset_featured_question' => array('type' => 'success', 'message' => __('Question is unmarked as featured.', 'ap')),
+		'upload_limit_crossed' => array('type' => 'warning', 'message' => __('You have already attached maximum numbers of allowed uploads.', 'ap')),
+		'profile_updated_successfully' => array('type' => 'success', 'message' => __('Your profile has been updated successfully.', 'ap')),
+		'unfollow' => array('type' => 'success', 'message' => __('Successfully unfollowed.', 'ap')),
+		'follow' => array('type' => 'success', 'message' => __('Successfully followed.', 'ap')),
+		'cannot_follow_yourself' => array('type' => 'warning', 'message' => __('You cannot follow yourself.', 'ap')),
+		'delete_notification' => array('type' => 'success', 'message' => __('Notification deleted successfully.', 'ap')),
+		'mark_read_notification' => array('type' => 'success', 'message' => __('Notification is marked as read.', 'ap')),
 		);
 
 	/**
@@ -920,12 +937,25 @@ function ap_link_to($sub){
 	 * @param string|array $sub
 	 */
 	function ap_get_link_to($sub){
-		
+
+		$default_pages = array(
+			'question' 	=> ap_opt('question_page_slug'),
+			'ask' 		=> ap_opt('ask_page_slug'),
+			'users' 	=> ap_opt('users_page_slug'),
+			'user' 		=> ap_opt('user_page_slug'),
+		);
+
+		if(is_array($sub) && isset($sub['ap_page']) && @isset($default_pages[$sub]) )
+			$sub['ap_page'] = $default_pages[$sub['ap_page']];
+
+		elseif(!empty($sub) && @isset($default_pages[$sub]))
+			$sub = $default_pages[$sub];
+
 		$base = rtrim(get_permalink(ap_opt('base_page')), '/');
 		$args = '';
 
 		if(get_option('permalink_structure') != ''){		
-			if(!is_array($sub))
+			if(!is_array($sub) && $sub != 'base')
 				$args = $sub ? '/'.$sub : '';
 
 			elseif(is_array($sub)){
@@ -934,9 +964,9 @@ function ap_link_to($sub){
 				if(!empty($sub))
 					foreach($sub as $s)
 						$args .= $s.'/';
-				}
+			}
 
-				$args = rtrim($args, '/').'/';
+			$args = rtrim($args, '/').'/';
 		}else{
 
 			if(!is_array($sub))
@@ -1135,10 +1165,10 @@ function ap_post_upload_form($post_id = false){
         	<span>'.__('Add image to editor', 'ap').'</span>';
         	if(ap_user_can_upload_image())
 	        	$html .= '	
-	            <span class="ap-upload-link">
+	            <a class="ap-upload-link" href="#" data-action="ap_post_upload_field">
 	            	'.__('upload', 'ap').'
-	            	<input type="file" name="post_upload_image" class="ap-upload-input" data-action="ap_post_upload_field">
-	            </span> '.__('or', 'ap');
+	            	
+	            </a> '.__('or', 'ap');
 
             $html .= '<span class="ap-upload-remote-link">
             	'.__('add image from link', 'ap').'            	
@@ -1148,12 +1178,8 @@ function ap_post_upload_form($post_id = false){
         		<a data-action="post_image_ok" class="apicon-check ap-btn" href="#"></a>
         		<a data-action="post_image_close" class="apicon-x ap-btn" href="#"></a>
         	</div>
+        	<input type="hidden" name="attachment_ids[]" value="" />
         </div>';
-        
-        if(ap_user_can_upload_image())
-	        	$html .= '<script id="ap_post_upload_field" type="application/json">
-        	'.json_encode(array( '__nonce' => wp_create_nonce( 'upload_image_'.get_current_user_id().'_'.get_question_id() ), 'post_id' => $post_id, 'question_id' => get_question_id() )).'
-        	</script>';
 
     $html .= '</div>';
 
@@ -1164,35 +1190,60 @@ function ap_post_upload_form($post_id = false){
 function ap_post_upload_hidden_form(){
 	if(ap_opt('allow_upload_image'))
 		return '<form id="hidden-post-upload" enctype="multipart/form-data" method="POST" style="display:none">
+			<input type="file" name="post_upload_image" class="ap-upload-input">
 			<input type="hidden" name="ap_ajax_action" value="upload_post_image" />
 			<input type="hidden" name="ap_form_action" value="upload_post_image" />
+			<input type="hidden" name="__nonce" value="'.wp_create_nonce( 'upload_image_'.get_current_user_id()).'" />
 			<input type="hidden" name="action" value="ap_ajax" />
 		</form>';
 }
 
-function ap_upload_user_file( $file = array(), $question_id ) {
+/**
+ * Upload and create an attachment. Set attachment meta _ap_temp_image, 
+ * later it will be removed when post parent is set.
+ *
+ * If no post parent is set then probably user canceled form submission hence we 
+ * don't need to keep this attachment and will removed while saving question or answer.
+ * 
+ * @param  array  			$file    	$_FILE variable
+ * @param  integer 			$post_id 	question or answer or base page ID
+ * @return integer|boolean
+ */
+function ap_upload_user_file( $file = array() ) {
+
 	require_once( ABSPATH . 'wp-admin/includes/admin.php' );
+	
 	$file_return = wp_handle_upload( $file, array('test_form' => false, 'mimes' => array (
-                'jpg|jpeg'=>'image/jpeg',
-                'gif'=>'image/gif',
-                'png'=>'image/png'
-            ) ) );
+        'jpg|jpeg'	=>	'image/jpeg',
+        'gif'		=>	'image/gif',
+        'png'		=>	'image/png'
+    )));
+
 	if( isset( $file_return['error'] ) || isset( $file_return['upload_error_handler'] ) ) {
 		return false;
 	} else {
+		
 		$filename = $file_return['file'];
+
 		$attachment = array(
-			'post_parent' => $question_id,
-			'post_mime_type' => $file_return['type'],
-			'post_title' => preg_replace( '/\.[^.]+$/', '', basename( $filename ) ),
-			'post_content' => '',
-			'post_status' => 'inherit',
-			'guid' => $file_return['url']
-			);
+			//'post_parent' 		=> $post_id,
+			'post_mime_type' 	=> $file_return['type'],
+			'post_title' 		=> preg_replace( '/\.[^.]+$/', '', basename( $filename ) ),
+			'post_content' 		=> '',
+			'post_status' 		=> 'inherit',
+			'guid' 				=> $file_return['url']
+		);
+
 		$attachment_id = wp_insert_attachment( $attachment, $file_return['url'] );
+
+		update_post_meta( $attachment_id, '_ap_temp_image', true );
+
 		require_once(ABSPATH . 'wp-admin/includes/image.php');
+
 		$attachment_data = wp_generate_attachment_metadata( $attachment_id, $filename );
+
 		wp_update_attachment_metadata( $attachment_id, $attachment_data );
+
 		if( 0 < intval( $attachment_id ) ) {
 			return $attachment_id;
 		}
@@ -1232,4 +1283,128 @@ function ap_replace_square_bracket($contents){
 
 	return $contents;
 	
+}
+
+function ap_clear_unused_attachments(){
+	$attach = get_posts(array('post_type' => 'attachment', 'orderby' => 'meta_value', 'meta_key' => '_ap_temp_image'));
+
+	if($attach)
+		foreach($attach as $a){
+			//delete unused attachments permanently
+			wp_delete_attachment($a->ID, true);
+		}
+}
+
+function ap_set_attachment_post_parent($attachment_id, $post_parent){
+	
+	$attach = get_post($attachment_id);
+	
+	if($attach && $attach->post_type == 'attachment'){
+		
+		$postarr = array(
+			'ID' 			=> $attach->ID,
+			'post_parent' 	=> $post_parent
+		);
+
+		wp_update_post( $postarr );
+
+		delete_post_meta( $attach->ID, '_ap_temp_image' );
+
+		return true;
+	}
+
+	return false;
+}
+
+function ap_count_users_temproary_attachments($user_id){
+	$attachments = get_posts(array('post_type' => 'attachment', 'orderby' => 'meta_value', 'meta_key' => '_ap_temp_image', 'author' => $user_id));
+	
+	return count($attachments);	
+}
+
+function ap_user_upload_limit_crossed($user_id){	
+	if( ap_count_users_temproary_attachments($user_id) >= ap_opt('image_per_post') )
+		return true;
+
+	return false;
+}
+
+/**
+ * Create base page for AnsPress
+ * 
+ * This function is called in plugin activation. This function checks if base page already exists,
+ * if not then it create a new one and update the option.
+ *
+ * @see anspress_activate 
+ * @since 2.3
+ */
+function ap_create_base_page(){
+	// check if page already exists
+	$page_id = ap_opt("base_page");
+	
+	$post = get_post($page_id);
+	
+	if(!$post){
+		$args = array();
+		$args['post_type']    		= "page";
+		$args['post_content'] 		= "[anspress]";
+		$args['post_status']  		= "publish";
+		$args['post_title']   		= "ANSPRESS_TITLE";
+		$args['post_name']   		= "questions";
+		$args['comment_status']   	= 'closed';
+		
+		// now create post
+		$new_page_id = wp_insert_post ($args);
+	
+		if($new_page_id){
+			$page = get_post($new_page_id);
+			ap_opt("base_page", $page->ID);
+			ap_opt("base_page_id", $page->post_name);
+		}
+	}
+}
+
+/**
+ * vsprintf, sprintf, and printf do not allow for associative arrays to perform replacements `sprintf_assoc` 
+ * resolves this by using the key of the array in the lookup for string replacement. 
+ * http://php.net/manual/en/function.vsprintf.php
+ * 
+ * @param  string 		$string           	hey stack
+ * @param  array  		$replacement_vars 	needles
+ * @param  string 		$prefix_character
+ * @return string
+ * @author codearachnid <https://gist.github.com/codearachnid/4462713>
+ * 
+ */
+function ap_sprintf_assoc( $string = '', $replacement_vars = array(), $prefix_character = '##' ) {
+	
+	if ( ! $string ) return '';
+
+	if ( is_array( $replacement_vars ) && count( $replacement_vars ) > 0 ) {
+		foreach ( $replacement_vars as $key => $value ) {
+			$string = str_replace( $prefix_character . $key, $value, $string );
+		}
+	}
+
+	return $string;
+}
+
+
+function ap_printf_assoc( $string = '', $replacement_vars = array(), $prefix_character = '##' ) {	
+	echo sprintf_assoc( $string, $replacement_vars, $prefix_character );
+}
+
+/**
+ * Return question id with solved prefix if answer is accepted
+ * @param  	boolean|integer 		$question_id
+ * @return 	string
+ * @since  	2.3 [@see ap_page_title]
+ */
+function ap_question_title_with_solved_prefix($question_id = false){	
+	if($question_id === false)
+		$question_id = get_question_id();
+
+	$solved = ap_question_best_answer_selected($question_id);
+
+	return ($solved ? __('[Solved] ', 'ap'): '') .  get_the_title($question_id);
 }

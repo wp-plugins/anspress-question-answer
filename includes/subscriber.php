@@ -30,7 +30,7 @@ function ap_add_subscriber($user_id, $action_id, $type = false, $sub_id = false)
 	
 	$row = ap_add_meta($user_id, 'subscriber', $action_id, $sub_id, $subscribe_type);
 
-	if($row === false)
+	if($row !== false)
 		do_action('ap_added_subscriber', $action_id, $subscribe_type, $sub_id);
 
 	return $row;
@@ -168,7 +168,9 @@ function ap_question_subscribers($action_id = false, $type = '', $avatar_size = 
 		echo '<div class="ap-question-subscribers clearfix">';
 			echo '<div class="ap-question-subscribers-inner">';
 			foreach($subscribers as $subscriber){
-				echo '<a href="'.ap_user_link($subscriber->apmeta_userid).'">'.get_avatar($subscriber->apmeta_userid, $avatar_size).'</a>';
+				echo '<a href="'.ap_user_link($subscriber->apmeta_userid).'"';
+				ap_hover_card_attributes($subscriber->apmeta_userid);
+				echo '>'.get_avatar($subscriber->apmeta_userid, $avatar_size).'</a>';
 			}
 			echo '</div>';
 		echo '</div>';

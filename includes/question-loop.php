@@ -80,7 +80,7 @@ class Question_Query extends WP_Query {
                 $this->args[ 'meta_key' ] = ANSPRESS_ANS_META;
             break;
             case 'unanswered' :
-                $this->args[ 'orderby' ] = 'meta_value_num';
+                $this->args[ 'orderby' ] = 'meta_value_num date';
                 $this->args[ 'meta_key' ] = ANSPRESS_ANS_META ;
                 $this->args[ 'meta_value' ] = 0 ;
             break;
@@ -89,9 +89,9 @@ class Question_Query extends WP_Query {
                 $this->args['meta_key'] = ANSPRESS_VOTE_META;
             break;
             case 'unsolved' :
-                $this->args['orderby'] = 'meta_value_num';
+                $this->args['orderby'] = 'meta_value_num date';
                 $this->args['meta_key'] = ANSPRESS_SELECTED_META;
-                $this->args['meta_compare'] = '==';
+                $this->args['meta_compare'] = '=';
                 $this->args['meta_value'] = false;
 
  
@@ -135,6 +135,9 @@ function ap_get_questions($args = array()){
 
     if(is_super_admin() || current_user_can('ap_view_moderate'))
         $args['post_status'][] = 'moderate';
+
+    if(is_super_admin())
+        $args['post_status'][] = 'trash';
 
     $args = wp_parse_args( $args, array(
         'showposts'     => ap_opt('question_per_page'),
@@ -216,6 +219,10 @@ function ap_question_the_post_parent(){
 
         return $question->post_parent;
     }
+
+function ap_question_get_the_author_id(){
+    echo ap_question_get_author_id();
+}
 
 function ap_question_get_author_id(){
     $question = ap_question_the_object();

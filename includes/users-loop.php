@@ -11,7 +11,7 @@
  * @copyright 2014 Rahul Aryan
  */
 
-class AP_Users_Query
+class AP_user_query
 {
 /**
      * The loop iterator.
@@ -109,6 +109,49 @@ class AP_Users_Query
                         $args['order']      = 'DESC';
                         break;
                     
+                    case 'active':                   
+                        $args['ap_query']    = 'user_sort_by_active';
+                        $args['orderby']    = 'meta_value date';
+                        $args['order']      = 'ASC';
+                        $args['meta_query'] = array(
+                            array(
+                                'key' => '__last_active'                            
+                            )
+                        );
+                        
+                        break;
+
+                    case 'best_answer':                   
+                        $args['ap_query']    = 'user_sort_by_best_answer';
+                        $args['orderby']    = 'meta_value date';
+                        $args['order']      = 'ASC';
+                        $args['meta_query'] = array(
+                            array(
+                                'key' => '__best_answers'                            
+                            )
+                        );
+                        
+                        break;
+
+                    case 'answer':                   
+                        $args['ap_query']    = 'user_sort_by_answer';
+                        $args['orderby']    = 'meta_value date';
+                        $args['order']      = 'ASC';
+                        $args['meta_query'] = array(
+                            array(
+                                'key' => '__total_answers'                            
+                            )
+                        );                        
+                        break;
+
+                    case 'followers':                   
+                        $args['ap_query']    = 'user_sort_by_followers';                        
+                        break;
+
+                    case 'following':                   
+                        $args['ap_query']    = 'user_sort_by_following';                        
+                        break;
+
                     default:                   
                         $args['ap_query']    = 'user_sort_by_reputation';
                         $args['orderby']    = 'meta_value';
@@ -128,11 +171,11 @@ class AP_Users_Query
                 }
             }
 
-            $users_query = new WP_User_Query( $args );
-            $this->users = $users_query->results;        
+            $ap_user_query = new WP_User_Query( $args );
+            $this->users = $ap_user_query->results;        
 
             // count the number of users found in the query
-            $this->total_user_count = $users_query->get_total();
+            $this->total_user_count = $ap_user_query->get_total();
             $this->total_pages = ceil($this->total_user_count / $this->per_page);
 
             $this->user_count = count($this->users);
@@ -192,9 +235,11 @@ class AP_Users_Query
      * Set up the current user inside the loop.
      */
     public function the_user() {
+        global $ap_the_user;
 
-        $this->in_the_loop = true;
-        $this->user      = $this->next_user();
+        $this->in_the_loop  = true;
+        $this->user         = $this->next_user();
+        $ap_the_user        = $this->user;
 
         // loop has just started
         if ( 0 == $this->current_user ) {
@@ -206,6 +251,17 @@ class AP_Users_Query
         }
 
     }
+
+    public function is_main_query(){
+        global $ap_user_query;
+        return $ap_user_query === $this;
+    }
+
+    public function the_pagination()
+    {
+        $base = ap_get_link_to('users') . '/%_%';
+        ap_pagination($this->paged, $this->total_pages, $base);
+    }
 }
 
 /**
@@ -214,30 +270,30 @@ class AP_Users_Query
  * @return object
  */
 function ap_has_users($args = ''){
-    global $users_query;
-
     $sortby = ap_get_sort() != '' ? ap_get_sort() : 'reputation';
 
     $args = wp_parse_args( $args, array( 'sortby' => $sortby ) );
 
-    $users_query = new AP_Users_Query($args);
-
-    return $users_query->has_users();
+    return new AP_user_query($args);
 }
 
 function ap_users(){
-    global $users_query;    
-    return $users_query->users();
+    global $ap_user_query;    
+    return $ap_user_query->users();
 }
 
 function ap_the_user(){
-    global $users_query;     
-    return $users_query->the_user();  
+    global $ap_user_query;     
+    return $ap_user_query->the_user();  
 }
 
-function ap_user_the_object(){
-    global $users_query; 
-    return $users_query->user;
+function ap_user_the_object($user_id = false){
+    global $ap_the_user;
+
+    if(!isset($ap_the_user) && $user_id)
+        return get_user_by( 'id', $user_id );
+
+    return $ap_the_user;
 }
 
 /**
@@ -252,12 +308,11 @@ function ap_user_the_ID(){
      * @return integer
      */
     function ap_user_get_the_ID(){
-        global $users_query;
+        $user = ap_user_the_object();
 
-        if(!isset($users_query))
-            return;
+        if(!isset($user))
+            return ap_get_displayed_user_id();
 
-        $user = $users_query->user;
         return $user->data->ID;
     }
 
@@ -298,11 +353,11 @@ function ap_user_the_avatar($size = 40){
 
     /**
      * Retrive active user avatar
-     * @param  integer $size height and width of avatar
-     * @return string return avatar <img> tag
+     * @param  integer      $size       height and width of avatar
+     * @return string       return avatar <img> tag
      */
     function ap_user_get_the_avatar($size = 40){
-        if(is_ap_users() && 40 == $size)
+        if(is_ap_users())
             $size = ap_opt('users_page_avatar_size');
 
         return get_avatar( ap_user_get_the_ID(), $size );
@@ -310,7 +365,7 @@ function ap_user_the_avatar($size = 40){
 
 /**
  * Echo active user reputation
- * @param  boolean $short Shorten count like 2.8k
+ * @param  boolean      $short      Shorten count like 2.8k
  */
 function ap_user_the_reputation($short = true){
     echo ap_user_get_the_reputation($short);
@@ -330,25 +385,108 @@ function ap_user_the_reputation($short = true){
  * @return string pagination html tag
  */
 function ap_users_the_pagination(){
-    global $users_query;
-
-    $base = ap_get_link_to('users') . '/%_%';
-    ap_pagination($users_query->paged, $users_query->total_pages, $base);
+    global $ap_user_query;
+    $ap_user_query->the_pagination();    
 }
 
-function ap_user_get_the_meta($key = false){
-    $meta = array_map('ap_meta_array_map', get_user_meta( ap_user_get_the_ID() )) ;
-    
-    $meta['user_login']         = ap_user_the_object()->user_login;
-    $meta['user_nicename']      = ap_user_the_object()->user_nicename;
-    $meta['user_email']         = ap_user_the_object()->user_email;
-    $meta['user_registered']    = ap_user_the_object()->user_registered;
-    $meta['display_name']       = ap_user_the_object()->display_name;
+/**
+ * Echo user meta
+ * @param  string           $key        user meta key
+ * @param  boolean|integer  $user_id    user id
+ */
+function ap_user_the_meta($key, $user_id = false){
+    $meta = ap_user_get_the_meta($key, $user_id);
 
-    if($key !== false && !empty($meta[$key]))
-        return $meta[$key];
+    if(!is_array($meta))
+        echo $meta;
+}
     
-    return $meta;
+    /**
+     * Get the user meta by key
+     * if key is false then all metas of user will be returned.
+     * 
+     * @param  boolean|string   $key        meta key
+     * @param  boolean|integer  $user_id    user id
+     * @return array|string     
+     */
+    function ap_user_get_the_meta($key = false, $user_id = false){
+        if(!$user_id)
+            $user_id = ap_user_get_the_ID();
+
+        $meta = get_user_meta( $user_id );
+        
+        if(is_array($meta))
+            $meta = array_map('ap_meta_array_map', $meta) ;
+
+        $obj = ap_user_the_object($user_id);
+
+        $meta['user_login']         = $obj->user_login;
+        $meta['user_nicename']      = $obj->user_nicename;
+        $meta['user_email']         = $obj->user_email;
+        $meta['user_registered']    = $obj->user_registered;
+        $meta['display_name']       = $obj->display_name;
+
+        if(!isset($meta['__total_questions']))
+            $meta['__total_questions'] = 0;
+
+        if(!isset($meta['__total_answers']))
+            $meta['__total_answers'] = 0;
+
+        if(!isset($meta['__profile_views']))
+            $meta['__profile_views'] = 0;
+
+        if(!isset($meta['__last_active']))
+            $meta['__last_active'] = $obj->user_registered;
+
+        if(!isset($meta['__total_followers']))
+            $meta['__total_followers'] = 0;
+
+        if(!isset($meta['__total_following']))
+            $meta['__total_following'] = 0;
+
+        if(empty($meta['__up_vote_casted']))
+            $meta['__up_vote_casted'] = 0;
+
+        if(empty($meta['__down_vote_casted']))
+            $meta['__down_vote_casted'] = 0;
+
+        if(empty($meta['__up_vote_received']))
+            $meta['__up_vote_received'] = 0;
+
+        if(empty($meta['__down_vote_received']))
+            $meta['__down_vote_received'] = 0;
+
+        if($key !== false && isset($meta[$key]))
+            return $meta[$key];
+        else
+            return;
+        
+        return $meta;
+    }
+
+function ap_user_meta_exists($key, $user_id = false){
+    $meta = ap_user_get_the_meta($key, $user_id);
+    
+    if(!empty($meta))
+        return true;
+
+    return false;
+}
+
+/**
+ * Count total numbers of vote received by current user
+ * @return integer
+ */
+function ap_user_total_votes_received(){
+    return ap_user_get_the_meta('__up_vote_received') + ap_user_get_the_meta('__down_vote_received');
+}
+
+/**
+ * Count total numbers of votes casted by current user
+ * @return integer
+ */
+function ap_user_total_votes_casted(){
+    return ap_user_get_the_meta('__up_vote_casted') + ap_user_get_the_meta('__down_vote_casted');
 }
 
 /**
@@ -359,7 +497,7 @@ function ap_user_get_the_meta($key = false){
  */
 function ap_user_get_display_name_option($user_id = false){
     $user_id = ap_parameter_empty(@$user_id, @ap_user_get_the_ID());
-    $user = ap_user_get_the_meta($user_id);
+    $user = ap_user_get_the_meta(false, $user_id);
 
     $public_display = array();
 
@@ -382,3 +520,37 @@ function ap_user_get_display_name_option($user_id = false){
 
     return $public_display;
 }
+
+function ap_user_get_member_for(){
+    $registered = new DateTime(ap_user_get_registered_date());
+    $now = new DateTime(current_time('mysql'));
+    $diff = date_diff($registered, $now);
+    
+    $time = '';
+
+    if($diff->y > 0)
+        $time .= sprintf(__('%d years, ', 'ap'), $diff->y);
+
+    if($diff->m > 0)
+        $time .= sprintf(__('%d months, ', 'ap'), $diff->m);
+
+    if($diff->d > 0)
+        $time .= sprintf(__('%d days', 'ap'), $diff->d);
+
+    return $time;
+}
+
+/**
+ * Get users registartion date
+ * @return string   Date
+ */
+function ap_user_get_registered_date(){
+    global $ap_user_query;
+
+    if(!isset($ap_user_query->user))
+        return ap_get_displayed_user_id();
+
+    $user = $ap_user_query->user;
+    return $user->data->user_registered;
+}
+

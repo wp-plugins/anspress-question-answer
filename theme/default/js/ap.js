@@ -31,7 +31,7 @@
             var min, clone;
             elem = $(elem);
             //if the element is "invisible", we get an incorrect height value
-            //to get correct value, clone and append to the body. 
+            //to get correct value, clone and append to the body.
             if (elem.is(':visible') || parseInt(elem.css('height'), 10) > 0) {
                 min = parseInt(elem.css('height'), 10) || elem.innerHeight();
             } else {
@@ -45,7 +45,7 @@
                 clone.remove();
             }
             if (opts.fixMinHeight) {
-                elem.data('autogrow-start-height', min); //set min height                                
+                elem.data('autogrow-start-height', min); //set min height
             }
             elem.css('height', min);
             if (opts.onInitialize && elem.length) {
@@ -88,7 +88,7 @@
                         newHeight = clone[0].scrollHeight - 1;
                         clone.innerHeight(newHeight);
                     } while (newHeight === clone[0].scrollHeight);
-                    newHeight++; //adding one back eliminates a wiggle on deletion 
+                    newHeight++; //adding one back eliminates a wiggle on deletion
                     clone.remove();
                     box.focus(); // Fix issue with Chrome losing focus from the textarea.
                     //if user selects all and deletes or holds down delete til beginning
@@ -110,9 +110,7 @@ jq = jQuery;
 
 jQuery(document).ready(function() {
     jQuery(document).click(function(e) {
-        var target = e.target;
-        console.log(!jQuery(target).is('.ap-dropdown-toggle'));
-        if (!jQuery(target).is('.ap-dropdown-toggle') && !jQuery(target).parent().is('.open')) {
+        if (!jQuery(e.target).is('.ap-dropdown-toggle') && !jQuery(e.target).parent().is('.open') && !jQuery(e.target).closest('form').is('form')) {
            jQuery('.ap-dropdown').removeClass('open');
         }
     });
@@ -138,7 +136,7 @@ jQuery(document).ready(function() {
                 continueTooltip();
             }
         });
-    
+
     jQuery('#ap-conversation-scroll').scrollTop(0);
 
     jQuery('textarea.autogrow, textarea#post_content').autogrow({
@@ -178,7 +176,7 @@ jQuery(document).ready(function() {
         jQuery(this).css(width, 'auto');
     });
 
-    jQuery('body').delegate('#ap-question-sorting select', 'change', function(e) {        
+    jQuery('body').delegate('#ap-question-sorting select', 'change', function(e) {
         jQuery(this).closest('form').submit();
     });
 
@@ -192,11 +190,11 @@ jQuery(document).ready(function() {
                 AnsPress.site.hideLoading('#ap-question-sorting');
                 var html = jQuery(data);
                 window.history.pushState(null, null, this.url);
-                
+
                 jQuery('#anspress').html(html.find('#anspress'));
             }
         });
-        
+
         return false;
     });
 
@@ -222,26 +220,33 @@ jQuery(document).ready(function() {
         var menu = jq('.ap_collapse_menu'),
             menuwidth = menu.width(),
             dropdown = menu.find('.ap-dropdown .ap-dropdown-menu');
-        
+
         var itemwidth = 0;
         var start_moving = false;
 
         menu.find('.ap-dropdown').hide();
-        
-        menu.find('li').each(function(index, el) {            
+
+        menu.find('li').each(function(index, el) {
             itemwidth = parseInt(itemwidth) + parseInt(jq(this).outerWidth());
             if((itemwidth + parseInt(jq(this).next().outerWidth())) > menuwidth)
                 start_moving = true;
-                
+
             if(start_moving && !jq(this).is('.ap-user-menu-more')){
                 dropdown.append(jq(this).clone());
                 jq(this).remove();
                 menu.find('.ap-dropdown').show();
             }
-            
+
         });
     }
     jQuery('.ap-notification-scroll').scrollbar();
+
+    jQuery('.ap-label-form-item').click(function(e) {
+        e.preventDefault();
+        jQuery(this).toggleClass('active');
+        var hidden = jQuery(this).find('input[type="hidden"]');
+        hidden.val(hidden.val() == '' ? jQuery(this).data('label') : '');
+    });
 });
 
 function ap_chk_activity_scroll(e) {

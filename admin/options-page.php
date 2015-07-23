@@ -5,12 +5,12 @@ class AnsPress_Options_Page
 	{
 		add_action('init', array($this, 'add_option_groups'), 11 );
 	}
-	
-	public function add_option_groups() 
+
+	public function add_option_groups()
 	{
 
 		$settings = ap_opt();
-		
+
 		// Register general settings
 		ap_register_option_group('general', __('General', 'ap') , array(
 			array(
@@ -87,9 +87,9 @@ class AnsPress_Options_Page
 				'value' => @$settings['disable_hover_card'],
 				'show_desc_tip' => false,
 			),
-			
+
 		));
-		
+
 		//Register layout settings
 		ap_register_option_group('layout', __('Layout', 'ap') , array(
 			array(
@@ -204,7 +204,7 @@ class AnsPress_Options_Page
 				'type' => 'checkbox',
 				'value' => $settings['show_question_sidebar'],
 				'show_desc_tip' => false,
-			),			
+			),
 		));
 
 		//Register pages settings
@@ -284,7 +284,7 @@ class AnsPress_Options_Page
 				'show_desc_tip' => false,
 			)
 		));
-		
+
 		// Register question settings
 		ap_register_option_group('question', __('Question', 'ap') , array(
 			array(
@@ -328,6 +328,14 @@ class AnsPress_Options_Page
 				'show_desc_tip' => false,
 			) ,
 			array(
+				'name' => 'anspress_opt[disable_down_vote_on_question]',
+				'label' => __('Disable down voting', 'ap') ,
+				'desc' => __('Disable down voting on questions.', 'ap') ,
+				'type' => 'checkbox',
+				'value' => $settings['disable_down_vote_on_question'],
+				'show_desc_tip' => false,
+			) ,
+			array(
 				'name' => 'anspress_opt[close_selected]',
 				'label' => __('Close question after selecting answer', 'ap') ,
 				'desc' => __('If enabled this will prevent user to submit answer on solved question.', 'ap') ,
@@ -336,7 +344,7 @@ class AnsPress_Options_Page
 				'show_desc_tip' => false,
 			) ,
 		));
-		
+
 		// Register answer settings
 		ap_register_option_group('answer', __('Answer', 'ap') , array(
 			array(
@@ -380,6 +388,14 @@ class AnsPress_Options_Page
 				'show_desc_tip' => false,
 			) ,
 			array(
+				'name' => 'anspress_opt[disable_down_vote_on_answer]',
+				'label' => __('Disable down voting', 'ap') ,
+				'desc' => __('Disable down voting on answers.', 'ap') ,
+				'type' => 'checkbox',
+				'value' => $settings['disable_down_vote_on_answer'],
+				'show_desc_tip' => false,
+			) ,
+			array(
 				'name' => 'anspress_opt[disable_answer_nav]',
 				'label' => __('Disable navigation', 'ap') ,
 				'desc' => __('Disable answer navigation.', 'ap') ,
@@ -388,7 +404,7 @@ class AnsPress_Options_Page
 				'show_desc_tip' => false,
 			) ,
 		));
-		
+
 		// register user settings
 		ap_register_option_group('users', __('Users', 'ap') , array(
 			array(
@@ -412,7 +428,7 @@ class AnsPress_Options_Page
 				'value' => $settings['disable_reputation'],
 				'show_desc_tip' => false,
 			) ,
-			
+
 			array(
 				'name' => 'anspress_opt[users_page_avatar_size]',
 				'label' => __('Users page avatar size', 'ap') ,
@@ -467,7 +483,7 @@ class AnsPress_Options_Page
 				'show_desc_tip' => false,
 			) ,
 		));
-		
+
 		// register permission settings
 		ap_register_option_group('permission', __('Permission', 'ap') , array(
 			array(
@@ -556,7 +572,7 @@ class AnsPress_Options_Page
 				'show_desc_tip' => false,
 			),
 		));
-		
+
 		// register moderate settings
 		ap_register_option_group('moderate', __('Moderate', 'ap') , array(
 			array(

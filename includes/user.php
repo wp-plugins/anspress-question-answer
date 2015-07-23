@@ -141,7 +141,7 @@ function ap_user_display_name($args = array())
         } else {
             $return = '<span class="who"><a href="'.ap_user_link($user_id).'">'.$user->display_name.'</a></span>';
         }
-    } elseif ($post->post_type == 'question' || $post->post_type == 'answer') {
+    } elseif ($post && $post->post_type == 'question' || $post->post_type == 'answer') {
         $name = get_post_meta($post->ID, 'anonymous_name', true);
 
         if (!$html) {
@@ -205,6 +205,9 @@ function ap_user_link($user_id = false, $sub = false)
 
     elseif(!$is_enabled)
         return get_author_posts_url($user_id);
+
+    elseif(!$is_enabled)
+        return apply_filters('ap_user_custom_profile_link', $user_id, $sub);
 
     if ($user_id == 0)
         return false;
@@ -303,11 +306,12 @@ function ap_user_menu()
     $active_user_page   = $active_user_page ? $active_user_page : 'about';
 
     if (!empty($menus) && is_array($menus)) {
+
         $o = '<ul id="ap-user-menu" class="ap-user-menu ap_collapse_menu clearfix">';
+
         foreach ($menus as $m) {
             $class = !empty($m['class']) ? ' '.$m['class'] : '';
             $o .= '<li'.($active_user_page == $m['slug'] ? ' class="active"' : '').'><a href="'.$m['link'].'" class="ap-user-menu-'.$m['slug'].$class.'">'.$m['title'].'</a></li>';
-
         }
 
         $o .= '<li class="ap-user-menu-more ap-dropdown"><a href="#" class="ap-dropdown-toggle">'.__('More', 'ap').ap_icon('chevron-down', true).'</a><ul class="ap-dropdown-menu"></ul></li>';
@@ -339,7 +343,7 @@ function ap_user_page()
     $user_pages     = anspress()->user_pages;
     $user_id        = ap_get_displayed_user_id();
     $user_page      = ap_active_user_page();
-    $callback       = $user_pages[$user_page]['func'];
+    $callback       = @$user_pages[$user_page]['func'];
 
     if($user_id > 0 && ((is_array($callback) && method_exists($callback[0], $callback[1])) || (!is_array($callback) && function_exists($callback)) ) )
         call_user_func($callback);

@@ -135,6 +135,10 @@
         ap_ajax_form: function() {
             $('body').delegate('[data-action="ap_ajax_form"]', 'submit', function() {
                 AnsPress.site.showLoading(this);
+
+                //Add this to form so this form can be identified as ajax form
+                $(this).append('<input type="hidden" name="ap_ajax_action" value="'+ $(this).attr('name') +'">');
+
                 if (typeof tinyMCE !== 'undefined') tinyMCE.triggerSave();
                 ApSite.doAjax(apAjaxData($(this).formSerialize()), function(data) {
                     AnsPress.site.hideLoading(this);
@@ -207,38 +211,47 @@
             if (typeof tinyMCE !== 'undefined')
                 tinyMCE.activeEditor.setContent('');
         },
+        scrollToCommentForm: function(){
+            if ($('#ap-commentform').length > 0) $('html, body').animate({
+                scrollTop: ($('#ap-commentform').offset().top) - 150
+            }, 500);
+        },
         load_comment_form: function() {
             $('body').delegate('[data-action="load_comment_form"]', 'click', function(e) {
                 e.preventDefault();
-                ApSite.showLoading(this);
-                var q = $(this).attr('data-query');
-                ApSite.doAjax(apAjaxData(q), function(data) {
-                    ApSite.hideLoading(this);
-                    var button = $(this);
 
-                    if(!data.view_default){
-                        if ($(data.html).is('.ap-comment-block')) {
-                            var c = button.closest('.ap-q-inner');
-                            c.find('.ap-comment-block').remove();
-                            c.append(data.html);
-                         } else {
-                            $('.ap-comment-form').remove();
-                            $(this).closest('.ap-q-inner').append(data.html);
+                if(!$(this).is('.loaded')){
+                    ApSite.showLoading(this);
+                    var q = $(this).attr('data-query');
+                    ApSite.doAjax(apAjaxData(q), function(data) {
+                        ApSite.hideLoading(this);
+                        var button = $(this);
+                        $(this).addClass('loaded');
+
+                        if(!data.view_default){
+                            if ($(data.html).is('.ap-comment-block')) {
+                                var c = button.closest('.ap-q-inner');
+                                c.find('.ap-comment-block').remove();
+                                c.append(data.html);
+                             } else {
+                                $('.ap-comment-form').remove();
+                                $(this).closest('.ap-q-inner').append(data.html);
+                            }
+                        }else{
+                            $(data.container).append(data.html);
                         }
-                    }else{
-                        $(data.container).append(data.html);
-                    }
 
-                    if ($(data.container).length > 0) $('html, body').animate({
-                        scrollTop: ($(data.container).offset().top) - 150
-                    }, 500);
+                        ApSite.scrollToCommentForm();
 
-                    jQuery('textarea.autogrow, textarea#post_content').keyup();
+                        jQuery('textarea.autogrow, textarea#post_content').keyup();
 
-                    if (typeof button.attr('data-toggle') !== 'undefined') $(button.attr('data-toggle')).hide();
-                    $('#ap-comment-textarea').focus();
-                    $(button.attr('href')).addClass('have-comments').removeClass('no-comment');
-                }, this, false, true);
+                        if (typeof button.attr('data-toggle') !== 'undefined') $(button.attr('data-toggle')).hide();
+                        $('#ap-comment-textarea').focus();
+                        $(button.attr('href')).addClass('have-comments').removeClass('no-comment');
+                    }, this, false, true);
+                }else{
+                    ApSite.scrollToCommentForm();
+                }
             });
         },
         ap_comment_form: function() {
@@ -250,7 +263,8 @@
                     if (data['action'] == 'new_comment' && data['message_type'] == 'success') {
                         $('#comments-' + data['comment_post_ID'] + ' ul.ap-commentlist').append($(data['html']).hide().slideDown(100));
                     } else if (data['action'] == 'edit_comment' && data['message_type'] == 'success') {
-                        $('#li-comment-' + data.comment_ID).replaceWith($(data['html']).hide().slideDown(100));
+                        $('#li-comment-' + data.comment_ID+ ' .ap-comment-texts').html(data.html);
+                        $('#li-comment-' + data.comment_ID).slideDown(400);
                         $('.ap-comment-form').remove();
                     }
                     $(this)[0].reset();
@@ -581,7 +595,9 @@
                 ApSite.doAjax(apAjaxData(q), function(data) {
                     AnsPress.site.hideLoading(this);
                     if(typeof data.container !== 'undefined')
-                        $(data.container).remove();
+                        $(data.container).slideUp('400', function() {
+                            $(data.container).remove();
+                        });
                 }, this);
             });
         },
@@ -637,11 +653,19 @@
                         ApSite[data.do](data);
                 }
             }
-            console.log(data.view);
+
             if (typeof data.view !== 'undefined') {
+
                 $.each(data.view, function(i, view) {
-                    var html = $(view);
-                    if(typeof data.view_html !== 'undefined' && html.is('[data-view="' + i + '"]')){
+                    console.log(view);
+
+                    try {
+                       var html = $(view);
+                    }catch(err){
+                        console.log(err);
+                    }
+
+                    if(typeof data.view_html !== 'undefined' && typeof html !== 'undefined' && html.is('[data-view="' + i + '"]')){
                         html = html.children();
                         $('[data-view="' + i + '"]').html(html);
                     }else{

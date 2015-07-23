@@ -751,8 +751,8 @@ function ap_responce_message($id, $only_message = false)
 		'comment_success' => array('type' => 'success', 'message' => __('Comment successfully posted.', 'ap')),
 		'comment_edit_success' => array('type' => 'success', 'message' => __('Comment updated successfully.', 'ap')),
 		'comment_delete_success' => array('type' => 'success', 'message' => __('Comment deleted successfully.', 'ap')),
-		'subscribed' => array('type' => 'success', 'message' => __('You are subscribed to this question.', 'ap')),
-		'unsubscribed' => array('type' => 'success', 'message' => __('Successfully unsubscribed.', 'ap')),
+		'subscribed' => array('type' => 'success', 'message' => __('You are following this question.', 'ap')),
+		'unsubscribed' => array('type' => 'success', 'message' => __('Successfully unfollowed.', 'ap')),
 		'question_submitted' => array('type' => 'success', 'message' => __('Question submitted successfully', 'ap')),
 		'question_updated' => array('type' => 'success', 'message' => __('Question updated successfully', 'ap')),
 		'answer_submitted' => array('type' => 'success', 'message' => __('Answer submitted successfully', 'ap')),
@@ -783,6 +783,7 @@ function ap_responce_message($id, $only_message = false)
 		'cannot_follow_yourself' => array('type' => 'warning', 'message' => __('You cannot follow yourself.', 'ap')),
 		'delete_notification' => array('type' => 'success', 'message' => __('Notification deleted successfully.', 'ap')),
 		'mark_read_notification' => array('type' => 'success', 'message' => __('Notification is marked as read.', 'ap')),
+		'voting_down_disabled' => array('type' => 'warning', 'message' => __('Voting down is disabled.', 'ap')),
 		);
 
 	/**

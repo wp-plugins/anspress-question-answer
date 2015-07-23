@@ -87,8 +87,16 @@ class AnsPress_Common_Pages
                 'terms'    => array($cat),
             );
         }
-        ap_get_questions($args);
-		include(ap_get_theme_location('base.php'));
+
+        /**
+         * FILTER: ap_main_questions_args
+         * Filter main question list args
+         * @var array
+         */
+        $args = apply_filters( 'ap_main_questions_args', $args );
+
+        $questions = ap_get_questions($args);
+		ap_get_template_part('base');
     }
 
     /**
@@ -99,14 +107,19 @@ class AnsPress_Common_Pages
     {
         global $questions;
 
-        ap_get_question(get_question_id());
+        $questions = ap_get_question(get_question_id());
 
         if(ap_have_questions()){
-            while ( anspress()->questions->have_posts() ) : anspress()->questions->the_post();
+            /**
+             * Set current question as global post
+             * @since 2.3.3
+             */
+
+            while ( ap_questions() ) : ap_the_question();
                 global $post;
                 setup_postdata( $post );
+                include(ap_get_theme_location('question.php'));
             endwhile;
-            include(ap_get_theme_location('question.php'));
             wp_reset_postdata();
         }else{
             include(ap_get_theme_location('not-found.php'));
@@ -136,11 +149,13 @@ class AnsPress_Common_Pages
 
     public function search_page()
     {
+        global $questions;
+
         $keywords   = sanitize_text_field( get_query_var( 'ap_s' ));
         $type       = sanitize_text_field( @$_GET['type'] );
 
         if($type == ''){
-            ap_get_questions(array('s' => $keywords));
+            $questions = ap_get_questions(array('s' => $keywords));
             include(ap_get_theme_location('base.php'));
         }elseif($type == 'user' && ap_opt('enable_users_directory')){
             global $ap_user_query;

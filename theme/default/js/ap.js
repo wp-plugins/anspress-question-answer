@@ -110,7 +110,8 @@
 
     $(document).ready(function() {
         $(document).click(function(e) {
-            if (!$(e.target).is('.ap-dropdown-toggle') && !$(e.target).parent().is('.open') && !$(e.target).closest('form').is('form')) {
+            e.stopPropagation();
+            if (!$(e.target).is('.ap-dropdown-toggle') && !$(e.target).closest('.open').is('.open') && !$(e.target).closest('form').is('form')) {
                $('.ap-dropdown').removeClass('open');
             }
         });
@@ -178,15 +179,18 @@
         });
 
         $('body').delegate('#ap-question-sorting .ap-dropdown-menu a', 'click', function(e) {
+            e.preventDefault();
             var val = $(this).data('value');
             $(this).closest('.ap-dropdown-menu').find('input[type="hidden"]').val(val);
             $(this).closest('form').submit();
         });
 
         $('body').delegate('#ap-question-sorting-reset', 'click', function(e) {
+            e.preventDefault();
             $('#ap-question-sorting').find('input[type="hidden"]').val('');
             $(this).closest('form').submit();
         });
+
 
         $('body').delegate('#ap-question-sorting', 'submit', function(){
             AnsPress.site.showLoading(this);
@@ -200,6 +204,8 @@
                     window.history.pushState(null, null, this.url);
 
                     $('#anspress').html(html.find('#anspress'));
+
+                    $(document).trigger('apAfterSorting');
                 }
             });
 

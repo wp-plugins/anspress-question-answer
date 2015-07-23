@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?business=rah12@live.com&cmd=_
 Tags: question, answer, q&a, forum, profile, stackoverflow, quora, buddypress
 Requires at least: 4.1.1
 Tested up to: 4.2
-Stable tag: 2.3.2
+Stable tag: 2.3.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -87,6 +87,41 @@ Read full FAQ here http://anspress.io/documents/doc_page=faq
 
 
 == Changelog ==
+
+= 2.3.3 =
+
+* Fallback for form if JS/Ajax fails
+* Moved upload field before filter, so it can be filtered
+* enqueue script dependency
+* Italian translation .mo missing #305
+* Allow empty question description when limit is set to 0
+* Added a filter to disable logging IP for view count
+* Remove notification item after ajax delete
+* Fix for "anonymous ask" and "only admin can answer" option conflict
+* Multiple click on comments open more then one comment field
+* Added responsive styles for question page
+* Fix for Icon fonts are not rendering
+* Added responsive styles for question list
+* Change subscribe to "subscribe" to "follow question"
+* Password cannot be chnaged
+* Fixed warning on buddyPress pages
+* Improved question loop to use global
+* Unsubscribe is not working
+* Added option for disabling vote down
+* Update POT
+* Fixed ago translation
+* Notice: ap_questions_tab is deprecated
+* Comment is not shown after editing
+* Syntax error: unrecognized expression
+* Notice: Trying to get property of non-object
+* Improved login and answer tab UI
+* Moved question.php inside loop
+* Added filter for main question query
+* Wrong variable $ap_rules
+* Added filters for overriding question and answer CPT
+* Added after sorting callback
+* Added french translation by Romain DELOUF
+* Sanitized ap_sort
 
 = 2.3.1 =
 

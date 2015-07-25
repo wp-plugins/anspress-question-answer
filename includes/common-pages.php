@@ -117,9 +117,11 @@ class AnsPress_Common_Pages
 
             while ( ap_questions() ) : ap_the_question();
                 global $post;
-                setup_postdata( $post );
-                include(ap_get_theme_location('question.php'));
             endwhile;
+
+            setup_postdata( $post );
+            include(ap_get_theme_location('question.php'));
+
             wp_reset_postdata();
         }else{
             include(ap_get_theme_location('not-found.php'));

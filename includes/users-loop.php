@@ -13,7 +13,7 @@
 
 class AP_user_query
 {
-/**
+    /**
      * The loop iterator.
      *
      * @access public
@@ -77,9 +77,8 @@ class AP_user_query
     {
         $this->per_page = ap_opt('users_per_page');
 
-
         // grab the current page number and set to 1 if no page number is set
-        $this->paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
+        $this->paged = isset($args['paged']) ? (int)$args['paged'] : (get_query_var('paged') ? get_query_var('paged') : 1);
 
         $this->offset = $this->per_page * ($this->paged - 1);
 
@@ -87,7 +86,7 @@ class AP_user_query
         $args =  wp_parse_args( $args, array(
             'number' => $this->per_page,
             'offset' => $this->offset,
-            'sortby' => 'reputtaion'
+            'sortby' => 'reputation'
         ));
 
         if(isset($args['ID'])){
@@ -440,7 +439,7 @@ function ap_user_the_meta($key, $user_id = false){
 
         // Set the default value for anspress meta
         foreach($ap_metas as $ap_meta){
-            if(!isset($ap_meta[$ap_meta]))
+            if(!isset($meta[$ap_meta]))
                 $meta[$ap_meta] = 0;
         }
 

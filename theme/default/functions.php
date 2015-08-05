@@ -21,7 +21,7 @@ function ap_scripts_front(){
 		wp_enqueue_script('jquery');
 		wp_enqueue_script('jquery-form', array('jquery'), false );
 		wp_enqueue_script('ap-functions-js', ANSPRESS_URL.'assets/ap-functions.js', array('jquery', 'jquery-form') );
-		//wp_enqueue_script('ap-waypoints', ap_get_theme_url('js/jquery.waypoints.min.js'), 'jquery', AP_VERSION);
+
 		wp_enqueue_script('ap-tooltipster', ap_get_theme_url('js/jquery.tooltipster.min.js'), 'jquery', AP_VERSION);
 		wp_enqueue_script('ap-anspress_script', ANSPRESS_URL.'assets/prod/anspress_site.min.js', array('jquery', 'jquery-form'), AP_VERSION);
 
@@ -217,15 +217,15 @@ function ap_widgets_positions(){
 		'description'  	=> __( 'Widgets in this area will be shown in tag listing page.', 'ap' ),
 		'before_title' 	=> '<h3 class="ap-widget-title">',
 		'after_title'  	=> '</h3>',
-	) );
+	));
 
 	register_sidebar( array(
-		'name'         	=> __( 'AP about user', 'ap' ),
-		'id'           	=> 'ap-user-about',
+		'name'         	=> __( 'AP User', 'ap' ),
+		'id'           	=> 'ap-user',
 		'before_widget' => '<div id="%1$s" class="ap-widget-pos %2$s">',
 		'after_widget' 	=> '</div>',
-		'description'  	=> __( 'Widgets in this area will be shown in about user page.', 'ap' ),
+		'description'  	=> __( 'Widgets in this area will be shown in user page.', 'ap' ),
 		'before_title' 	=> '<h3 class="ap-widget-title">',
 		'after_title'  	=> '</h3>',
-	) );
+	));
 }

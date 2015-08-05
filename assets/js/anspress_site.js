@@ -348,9 +348,12 @@
                 ApSite.doAjax(apAjaxData(q), function(data){AnsPress.site.hideLoading(this);});
             });
         },
+
         ap_delete_post: function() {
-            $('body').delegate('[data-action="ap_delete_post"]', 'click', function(e) {
+
+            $('#anspress').delegate('[data-action="ap_delete_post"]', 'click', function(e) {
                 e.preventDefault();
+
                 var q = $(this).attr('data-query');
                 ApSite.doAjax(apAjaxData(q), function(data) {
                     if (typeof data.action !== 'undefined' && data.action == 'delete_answer') $(data.div_id).slideUp(500).fadeOut(300, function() {
@@ -398,14 +401,12 @@
             });
         },
         ap_post_upload_field: function() {
-            $('body').delegate('[data-action="ap_post_upload_field"]', 'click', function(e) {
+            $('body').on('click', '[data-action="ap_post_upload_field"]', function(e) {
                 e.preventDefault();
-                $('[name="post_upload_image"]').click();
+                $('input[name="post_upload_image"]').trigger('click');
             });
 
             $('body').delegate('[name="post_upload_image"]', 'change', function(e) {
-                var clone = $(this).clone();
-                $(clone).appendTo('#hidden-post-upload');
                 $('#hidden-post-upload').submit();
             });
 
@@ -447,7 +448,6 @@
             });
         },
         addImageInEditor: function(html){
-            console.log(html);
             if(typeof tinyMCE !== 'undefined')
                 tinyMCE.activeEditor.execCommand('mceInsertContent',false, html);
             else
@@ -552,7 +552,6 @@
             });
         },
         hoverCard:function(){
-            console.log(!disable_hover_card);
             if(!disable_hover_card)
             $('[data-action="ap_hover_card"]').tooltipster({
                 theme: 'ap-hover-card',
@@ -657,8 +656,6 @@
             if (typeof data.view !== 'undefined') {
 
                 $.each(data.view, function(i, view) {
-                    console.log(view);
-
                     try {
                        var html = $(view);
                     }catch(err){

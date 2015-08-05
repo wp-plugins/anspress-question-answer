@@ -88,6 +88,33 @@ Read full FAQ here http://anspress.io/documents/doc_page=faq
 
 == Changelog ==
 
+= 2.3.6 =
+= 2.3.5 =
+
+* Updated paged variable when in home page
+* Removed unused arg
+* Fixed pagination on home page
+* Restore question history after deleting answer
+* Upload field triggered twice
+* All links of user menu not shown if in other profile page
+* Updated french translation by Shad
+* User active time shown as Last seen 46 years ago
+* Escaped cover photo url
+* Added option for disabling user menu collapse
+* Improved user page and stats
+* Registered user widget position
+* Added widget wrapper div
+* Warning: Illegal string offset ‘file’
+* Get paged args in user loop
+* Fixed infinite loop in question page
+
+= 2.3.4 =
+
+* Added option for toggle [solved] prefix
+* Added custom follow button text
+* Improved user meta function
+* Return default cover when there is not cover photo
+
 = 2.3.3 =
 
 * Fallback for form if JS/Ajax fails

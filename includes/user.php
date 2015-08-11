@@ -628,8 +628,7 @@ function ap_user_profile_tab() {
 }
 
 function ap_is_my_profile($user_id = false) {
-	if ( ! $user_id ) {
-		$user_id = get_current_user_id(); }
+	$user_id = get_current_user_id();
 
 	if ( is_user_logged_in() && $user_id == ap_get_displayed_user_id() ) {
 		return true; }

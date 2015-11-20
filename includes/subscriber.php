@@ -10,116 +10,165 @@
  */
 
 /**
- * Insert subscriber for question or term
- * @param  integer  		$user_id   	WP user ID
- * @param  integer  		$action_id 	Question ID or Term ID
- * @param  boolean|integer 	$sub_id    	Any sub ID
- * @param  boolean|integer 	$type      	Type of subscriber, empty string for question
- * @return bollean|integer
+ * Insert new subscriber.
+ * @param  integer $user_id User id.
+ * @param  integer $item_id Item id i.e. post ID, term ID etc..
+ * @param  string  $activity Activity name.
+ * @return false|integer
  */
-function ap_add_subscriber($user_id, $action_id, $type = false, $sub_id = false){
+function ap_new_subscriber( $user_id, $item_id, $activity, $question_id = 0 ) {
+	global $wpdb;
 
-	if($type === 'category')
-		$subscribe_type =  'category' ;
+	// Bail if user_id or item_id is 0.
+	if ( 0 == $user_id || 0 == $item_id ) {
+		return false;
+	}
 
-	elseif($type === 'tag')
-		$subscribe_type =  'tag' ;
+	$row = $wpdb->insert(
+		$wpdb->ap_subscribers,
+		array(
+			'subs_user_id' => $user_id,
+			'subs_question_id' => $question_id,
+			'subs_item_id' => $item_id,
+			'subs_activity' => $activity,
+		),
+		array(
+			'%d',
+			'%d',
+			'%d',
+			'%s',
+		)
+	);
 
-	else
-		$subscribe_type =  $type ;
-
-	$row = ap_add_meta($user_id, 'subscriber', $action_id, $sub_id, $subscribe_type);
-
-	if($row !== false)
-		do_action('ap_added_subscriber', $action_id, $subscribe_type, $sub_id);
+	if ( false !== $row ) {
+		do_action( 'ap_new_subscriber', $user_id, $question_id, $item_id, $activity );
+		return $wpdb->insert_id;
+	}
 
 	return $row;
 }
 
+
 /**
  * Remove subscriber for question or term
- * @param  integer  		$user_id   	WP user ID
- * @param  integer  		$action_id 	Question ID or Term ID
- * @param  boolean|integer 	$sub_id    	Any sub ID
- * @param  boolean|integer 	$type      	Type of subscriber, empty string for question
+ * @param  integer         $item_id  	Question ID or Term ID
+ * @param  integer         $user_id    	WP user ID
+ * @param  string          $activity    Any sub ID
+ * @param  boolean|integer $sub_id      @deprecated Type of subscriber, empty string for question
  * @return bollean|integer
  */
-function ap_remove_subscriber($user_id, $action_id, $type = false, $sub_id = false){
+function ap_remove_subscriber($item_id, $user_id = false, $activity = false, $sub_id = false) {
+	if ( false !== $sub_id ) {
+		_deprecated_argument( __FUNCTION__, '3.0', '$sub_id argument deprecated since 2.4' );
+	}
+
 	global $wpdb;
 
-	if($type == 'category')
-		$subscribe_type =  "AND apmeta_param = 'category'";
+	$cols = array( 'subs_item_id' => (int) $item_id );
 
-	elseif($type == 'tag')
-		$subscribe_type =  "AND apmeta_param = 'tag'" ;
+	if ( false !== $user_id ) {
+		$cols['subs_user_id'] = (int) $user_id;
+	}
 
-	else
-		$subscribe_type =  '' ;
+	if ( false !== $activity ) {
+		$cols['subs_activity'] = sanitize_title_for_query( $activity );
+	}
 
-	$apmeta_value = "";
-
-	if($sub_id !== false)
-		$apmeta_value =  $wpdb->prepare("AND apmeta_value = %d", $sub_id);
-
-	$row = $wpdb->query(
-		$wpdb->prepare(
-			"DELETE FROM ".$wpdb->prefix."ap_meta
-			 WHERE apmeta_actionid = %d
-			 AND apmeta_userid = %d
-			 AND apmeta_type = 'subscriber'
-			 ".$subscribe_type." ".$apmeta_value,
-	        $action_id, $user_id
-        )
+	$row = $wpdb->delete(
+		$wpdb->ap_subscribers,
+		$cols,
+		array( '%d', '%d', '%s' )
 	);
 
-	if(FALSE !== $row)
-		do_action('ap_removed_subscriber', $user_id, $action_id, $sub_id, $type);
+	if ( false === $row ) {
+		return false;
+	}
+
+	do_action( 'ap_removed_subscriber', $user_id, $item_id, $activity );
 
 	return $row;
 }
 
 /**
  * Check if user is subscribed to question or term
- * @param  integer $action_id Question id or term id
- * @param  integer $user_id User id, default is current user id
- * @param  string|boolean $type Type of subscription, default is question
+ * @param  integer        $item_id 		Item id.
+ * @param  integer        $activity 	Activity name.
+ * @param  string|boolean $user_id 		User id.
  * @return boolean
- * @since unknown
  */
-function ap_is_user_subscribed($action_id, $user_id = false, $type = false){
+function ap_is_user_subscribed($item_id, $activity, $user_id = false) {
 
-	if($user_id === false)
-		$user_id = get_current_user_id();
-
-	if($user_id > 0){
-
-		if($type === 'category')
-			$subscribe_type =  'category' ;
-
-		elseif($type === 'tag')
-			$subscribe_type =  'tag' ;
-
-		else
-			$subscribe_type =  false ;
-
-		$row = ap_meta_user_done('subscriber', $user_id, $action_id, $subscribe_type);
-
-		return $row > 0 ? true : false;
+	if ( ! is_user_logged_in() ) {
+		return false;
 	}
 
-	return false;
+	if ( $user_id === false ) {
+		$user_id = get_current_user_id();
+	}
+
+	global $wpdb;
+
+	$key = $item_id .'::'. $activity .'::'. $user_id;
+
+	$cache = wp_cache_get( $key, 'ap_subscriber_count' );
+
+	if ( false !== $cache ) {
+		return $cache > 0;
+	}
+
+	$count = $wpdb->get_var( $wpdb->prepare( 'SELECT count(*) FROM '. $wpdb->ap_subscribers .' WHERE subs_item_id=%d AND subs_activity="%s" AND subs_user_id = %d', $item_id, $activity, $user_id ) );
+
+	wp_cache_set( $key, $count, 'ap_subscriber_count' );
+
+	return $count > 0;
 }
 
 /**
  * Return the count of subscribers for question or term
- * @param  integer $action_id Question id or term_id
- * @param  string $type Type of subscription
+ * @param  integer $item_id 	Item id.
+ * @param  string  $activity 	Type of subscription.
  * @return integer
  */
-function ap_subscribers_count($action_id = false, $type = ''){
-	$subscribe_type = $type != '' ? 'subscriber_'.$type : 'subscriber' ;
-	$action_id = $action_id ? $action_id : get_question_id();
-	return ap_meta_total_count( $subscribe_type, $action_id );
+function ap_subscribers_count($item_id = false, $activity = 'q_all') {
+	global $wpdb;
+
+	$item_id = $item_id ? $item_id : get_question_id();
+
+	$key = $item_id.'_'.$activity;
+
+	$cache = wp_cache_get( $key, 'ap_subscriber_count' );
+
+	if ( false !== $cache ) {
+		return $cache;
+	}
+
+	$count = $wpdb->get_var( $wpdb->prepare( 'SELECT count(*) FROM '. $wpdb->ap_subscribers .' WHERE subs_item_id=%d AND subs_activity="%s"', $item_id, $activity ) );
+
+	wp_cache_set( $key, $count, 'ap_subscriber_count' );
+
+	if ( ! $count ) {
+		return 0;
+	}
+
+	return $count;
+}
+
+/**
+ * Get question subscribers count from post meta.
+ * @param  intgere|object $question Question object.
+ * @return integer
+ */
+function ap_question_subscriber_count( $question ) {
+	if ( ! is_object( $question ) || ! isset( $question->post_type ) ) {
+		$question = get_post( $question );
+	}
+
+	// Return if not question.
+	if ( 'question' != $question->post_type ) {
+		return 0;
+	}
+
+	return (int) get_post_meta( $question->ID, ANSPRESS_SUBSCRIBER_META, true );
 }
 
 /**
@@ -127,198 +176,227 @@ function ap_subscribers_count($action_id = false, $type = ''){
  * @return string
  * @since 2.0.0-alpha2
  */
-function ap_subscriber_count_html($post = false)
-{
-	if(!$post)
+function ap_subscriber_count_html($post = false) {
+
+	if ( ! $post ) {
 		global $post;
-
-	$subscribed = ap_is_user_subscribed($post->ID);
-	$total_subscribers = ap_subscribers_count($post->ID);
-
-	if( $total_subscribers =='1' && $subscribed)
-		return __('Only you are subscribed to this question.', 'ap');
-	elseif($subscribed)
-		return sprintf( __( 'You and <strong>%s people</strong> subscribed to this question.', 'ap' ), ($total_subscribers -1));
-	elseif($total_subscribers == 0)
-		return __( 'No one is subscribed to this question.', 'ap' );
-	else
-		return sprintf( __( '<strong>%d people</strong> subscribed to this question.', 'ap' ), $total_subscribers);
-}
-
-function ap_question_subscribers($action_id = false, $type = '', $avatar_size = 30){
-	global $question_category, $question_tag;
-
-	if(!$action_id){
-		if(is_question())
-			$action_id = get_question_id();
-		elseif(is_question_category())
-			$action_id = $question_category->term_id;
-		elseif(is_question_tag())
-			$action_id = $question_tag->term_id;
 	}
 
-	if($type=='')
-		$type = is_question() ? '' : 'term' ;
+	$subscribed = ap_is_user_subscribed( $post->ID, 'q_all' );
+	$total_subscribers = ap_subscribers_count( $post->ID );
 
-	$subscribe_type = $type != '' && $type != 'subscriber' ? $type : 'subscriber' ;
+	if ( $total_subscribers == '1' && $subscribed ) {
+		return __( 'Only you are subscribed to this question.', 'ap' ); } elseif ($subscribed)
+		return sprintf( __( 'You and <strong>%s people</strong> subscribed to this question.', 'ap' ), ($total_subscribers -1) );
+	elseif ($total_subscribers == 0)
+		return __( 'No one is subscribed to this question.', 'ap' );
+	else {
+		return sprintf( __( '<strong>%d people</strong> subscribed to this question.', 'ap' ), $total_subscribers ); }
+}
 
-	$subscribers = ap_get_subscribers( $action_id, $subscribe_type );
+/**
+ * Return all subscribers of a question
+ * @param  integer $action_id  Item id.
+ * @param  string  $activity   Subscribe activity.
+ * @return array
+ * @since  2.1
+ */
+function ap_get_subscribers( $action_id, $activity = 'q_all', $limit = 10 ) {
+	global $wpdb;
 
-	if($subscribers){
-		echo '<div class="ap-question-subscribers clearfix">';
-			echo '<div class="ap-question-subscribers-inner">';
-			foreach($subscribers as $subscriber){
-				echo '<a href="'.ap_user_link($subscriber->apmeta_userid).'"';
-				ap_hover_card_attributes($subscriber->apmeta_userid);
-				echo '>'.get_avatar($subscriber->apmeta_userid, $avatar_size).'</a>';
+	$key = $action_id.'_'.$activity;
+
+	$cache = wp_cache_get( $key, 'ap_subscribers' );
+
+	if ( false !== $cache ) {
+		return $cache;
+	}
+
+	$results = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM '.$wpdb->ap_subscribers.' where subs_item_id=%d AND subs_activity="%s" LIMIT 0 , %d', $action_id, $activity, $limit ) );
+
+	// Set individual cache for subscriber.
+	if ( $results ) {
+		foreach ( $results as $s ) {
+			$s_key = $s->subs_item_id .'_'. $s->subs_activity .'_'. $s->subs_user_id;
+			$old_cache = wp_cache_get( $s_key, 'ap_subscribers' );
+
+			if ( false !== $old_cache ) {
+				wp_cache_set( $s_key, $s, 'ap_subscribers' );
 			}
-			echo '</div>';
+		}
+	}
+
+	return $results;
+}
+
+
+/**
+ * Output subscribe btn HTML
+ * @param 	boolean|integer $action_id  Question ID or Term ID.
+ * @param 	string|false    $type       Subscribe type.
+ * @since 	2.0.1
+ */
+function ap_subscribe_btn_html($action_id = false, $type = false) {
+
+	global $question_category, $question_tag;
+
+	$filter = apply_filters( 'ap_subscribe_btn_action_type', array( 'action_id' => $action_id, 'type' => $type ) );
+
+
+	$action_id 	= $filter['action_id'];
+	$type 		= $filter['type'];
+
+	if( false === $action_id ){
+		$action_id = get_question_id();
+	}
+
+	$subscribe_type = 'q_all';
+
+	if ( $type == false ) {
+		$subscribe_type = apply_filters( 'ap_subscribe_btn_type', 'q_all' );
+	} elseif ( $type === 'category' || $type === 'tag' ) {
+		$subscribe_type = 'tax_new_q';
+	}
+
+	$subscribed = ap_is_user_subscribed( $action_id, $subscribe_type );
+
+	$nonce = wp_create_nonce( 'subscribe_'.$action_id.'_'.$subscribe_type );
+
+	$title = ( ! $subscribed) ? __( 'Follow', 'ap' ) : __( 'Unfollow', 'ap' );
+	?>
+	<div class="ap-subscribe-btn" id="<?php echo 'subscribe_'.$action_id; ?>">
+		<a href="#" class="ap-btn<?php echo ($subscribed) ? ' active' :''; ?>" data-query="<?php echo 'subscribe::'. $nonce .'::'. $action_id .'::'. $subscribe_type; ?>" data-action="ajax_btn" data-cb="apSubscribeBtnCB">
+            <?php echo ap_icon( 'rss', true ); ?> <span class="text"><?php echo $title ?></span>      
+        </a>
+        <b class="ap-btn-counter" data-view="<?php echo 'subscribe_'.$action_id; ?>"><?php echo ap_subscribers_count( $action_id, $subscribe_type ) ?></b>
+    </div>
+
+	<?php
+}
+
+function ap_question_subscribers($action_id = false, $type = '', $avatar_size = 30) {
+	global $question_category, $question_tag;
+
+	if ( false === $action_id ) {
+		if ( is_question() ) {
+			$action_id = get_question_id();
+		} elseif ( is_question_category() ) {
+			$action_id = $question_category->term_id;
+		} elseif ( is_question_tag() ) {
+			$action_id = $question_tag->term_id;
+		}
+	}
+
+	if ( $type == '' ) {
+		$type = is_question() ? 'q_all' : 'tax_new_q' ;
+	}
+
+	$subscribers = ap_get_subscribers( $action_id, $type );
+
+	if ( $subscribers ) {
+		echo '<div class="ap-question-subscribers clearfix">';
+		echo '<div class="ap-question-subscribers-inner">';
+		foreach ( $subscribers as $subscriber ) {
+			echo '<a href="'.ap_user_link( $subscriber->subs_user_id ).'"';
+			ap_hover_card_attributes( $subscriber->subs_user_id );
+			echo '>'.get_avatar( $subscriber->subs_user_id, $avatar_size ).'</a>';
+		}
+		echo '</div>';
 		echo '</div>';
 	}
 }
 
 /**
- * Return all subscribers of a question
- * @param  integer $question_id
- * @return array
- * @since 2.1
+ * Subscribe a user for a question.
  */
-function ap_get_subscribers($action_id, $type = false){
+function ap_subscribe_question( $posta, $user_id = false ) {
+	if ( ! is_object( $posta ) || ! isset( $posta->post_type ) ) {
+		$posta = get_post( $posta );
+	}
+
+	// Return if not question.
+	if ( 'question' != $posta->post_type ) {
+		return false;
+	}
+
+	if ( false === $user_id ) {
+		$user_id = $posta->post_author;
+	}
+
+	if ( ! ap_is_user_subscribed( $posta->ID, 'q_all', $user_id ) ) {
+		ap_new_subscriber( $user_id, $posta->ID, 'q_all', $posta->ID );
+	}
+}
+
+/**
+ * Return all subscribers id
+ * @param  integer      $item_id Item id.
+ * @param  string|array $activity Activity type.
+ * @return array   Ids of subscribed user.
+ */
+function ap_subscriber_ids( $item_id =false, $activity = 'q_all', $question_id = 0 ) {
 	global $wpdb;
 
-	if($type === 'category')
-		$subscribe_type =  'category' ;
+	if ( is_array( $activity ) ) {
+		$activity_k = implode( '::', $activity );
+	} else {
+		$activity_k = $activity;
+	}
 
-	elseif($type === 'tag')
-		$subscribe_type =  'tag' ;
+	$key = $item_id . '::' . $activity_k .'::'. $question_id;
 
-	else
-		$subscribe_type =  false ;
+	$activity_q = '';
 
-	$where = array(
-		'apmeta_type' => array('value' => 'subscriber', 'compare' => '=', 'relation' => 'AND')
-	);
+	$cache = wp_cache_get( $key, 'ap_subscribers_ids' );
 
-	if($subscribe_type !== false)
-		$where['apmeta_param'] = array('value' => $subscribe_type, 'compare' => '=', 'relation' => 'AND');
+	if ( false !== $cache ) {
+		return $cache;
+	}
 
-	$where['apmeta_actionid'] = array('value' => $action_id, 'compare' => '=', 'relation' => 'AND');
+	$item = '';
 
-	return ap_get_all_meta(array(
-		'where' => $where,
-		'group' => array(
-			'apmeta_userid' => array('relation' => 'AND'),
-		)));
+	if ( false !== $item_id ) {
+		$item = $wpdb->prepare( 'subs_item_id = %d AND', $item_id );
+	}
+
+	$question = '';
+	if ( 0 != $question_id ) {
+		$question = $wpdb->prepare( 'AND subs_question_id=%d', $question_id );
+	}
+
+	$i = 1;
+	if ( is_array( $activity ) && count( $activity ) > 0 ) {
+		$activity_q .= ' subs_activity IN(';
+
+		foreach ( $activity as $a ) {
+			$activity_q .= '"'. sanitize_title_for_query( $a ) .'"';
+			if ( $i != count( $activity ) ) {
+				$activity_q .= ', ';
+			}
+			$i++;
+		}
+
+		$activity_q .= ') ';
+	} else {
+		$activity_q = ' subs_activity = "'. sanitize_title_for_query( $activity ) .'"';
+	}
+
+	$results = $wpdb->get_col( 'SELECT subs_user_id FROM '.$wpdb->ap_subscribers.' WHERE '.$item.' '. $activity_q .' '. $question .' GROUP BY subs_user_id' );
+
+	wp_cache_set( $key, $results, 'ap_subscribers_ids' );
+	return $results;
 }
 
 /**
- * Subscribe a question
- * @param  integer  		$question_id
- * @param  boolean|integer 	$user_id
- * @return boolean|array
+ * Remove current user id from subscribers id
+ * @param  array $subscribers Subscribers user_id.
+ * @return array
  */
-function ap_add_question_subscriber($question_id, $user_id = false, $type = '', $secondary_id = ''){
-	$is_subscribed = ap_is_user_subscribed( $question_id );
-
-	if($user_id === false)
-		$user_id = get_current_user_id();
-
-	if($user_id < 1)
-		return false;
-
-	if(!$is_subscribed){
-
-		ap_add_subscriber($user_id, $question_id, $type, $secondary_id);
-
-		$counts = ap_subscribers_count($question_id);
-
-		//update post meta
-		update_post_meta($question_id, ANSPRESS_SUBSCRIBER_META, $counts);
-
-		return array('count' => $counts, 'action' => 'subscribed');
+function ap_unset_current_user_from_subscribers($subscribers) {
+	// Remove current user from subscribers.
+	if ( ! empty( $subscribers ) && ($key = array_search( get_current_user_id(), $subscribers )) !== false ) {
+	    unset( $subscribers[$key] );
 	}
 
-	return false;
-}
-
-/**
- * Unscubscribe user from a question
- * @param  integer  $question_id Questions ID
- * @param  boolean|integer $user_id
- * @return boolean|array
- */
-function ap_remove_question_subscriber($question_id, $user_id = false){
-	$is_subscribed = ap_is_user_subscribed( $question_id );
-
-	if($user_id === false)
-		$user_id = get_current_user_id();
-
-	if($is_subscribed){
-
-		ap_remove_subscriber($user_id, $question_id);
-
-		$counts = ap_subscribers_count($question_id);
-
-		//update post meta
-		update_post_meta($question_id, ANSPRESS_SUBSCRIBER_META, $counts);
-
-		return array('count' => $counts, 'action' => 'unsubscribed');
-
-	}
-
-	return false;
-}
-
-
-
-/**
- * Output subscribe btn HTML
- * @param boolean|integer $action_id Question ID or Term ID
- * @return string
- * @since 2.0.1
- */
-function ap_subscribe_btn_html($action_id = false, $type = false){
-
-	global $question_category, $question_tag;
-
-	if($action_id === false){
-		if(is_question())
-			$action_id = get_question_id();
-		elseif(is_question_category())
-			$action_id = $question_category->term_id;
-		elseif(is_question_tag())
-			$action_id = $question_tag->term_id;
-	}
-
-	if($type == false){
-		if(is_question_category())
-			$subscribe_type =  'category' ;
-		elseif(is_question_tag())
-			$subscribe_type =  'tag' ;
-		else
-			$subscribe_type =  false ;
-	}else{
-		if($type === 'category')
-			$subscribe_type =  'category' ;
-		elseif($type === 'tag')
-			$subscribe_type =  'tag' ;
-		else
-			$subscribe_type =  false ;
-	}
-
-	$subscribed = ap_is_user_subscribed($action_id, false, $subscribe_type);
-
-	$nonce = wp_create_nonce( 'subscribe_'.$action_id.'_'.$subscribe_type );
-
-	$title = (!$subscribed) ? __('Follow question', 'ap') : __('Unfollow question', 'ap');
-	?>
-	<div class="ap-subscribe" id="<?php echo 'subscribe_'.$action_id; ?>">
-		<a href="#" class="ap-btn-toggle<?php echo ($subscribed) ? ' active' :''; ?>" data-query="ap_ajax_action=subscribe&action_id=<?php echo $action_id ?>&__nonce=<?php echo $nonce ?>&type=<?php echo $subscribe_type; ?>" data-action="ap_subscribe" data-args="<?php echo $action_id.'-'.$nonce; ?>">
-			<span class="apicon-toggle-on"></span>
-			<span class="apicon-toggle-off"></span>
-		</a>
-		<b><?php echo $title ?></b>
-	</div>
-
-	<?php
+	return $subscribers;
 }

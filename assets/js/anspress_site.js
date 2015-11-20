@@ -6,6 +6,8 @@
  * @license GPL 2+
  */
 (function($) {
+    apFunctions = {}
+
     /* on start */
     $(function() {
         /* create document */
@@ -26,13 +28,12 @@
             this.ajaxData;
             this.appendFormError();
             this.appendMessageBox();
+            this.ajax_btn();
             this.ap_comment_form();
             this.afterPostingAnswer();
-            //this.suggest_similar_questions();
             this.ap_ajax_form();
             this.load_comment_form();
             this.delete_comment();
-            this.ap_subscribe();
             this.vote();
             this.select_answer();
             this.ap_delete_post();
@@ -50,6 +51,9 @@
             this.hoverCard();
             this.delete_notification();
             this.mark_as_read();
+            this.cancel_comment();
+            this.questionSuggestion();
+            this.checkboxUncheck();
         },
         doAjax: function(query, success, context, before, abort) {
             /** Shorthand method for calling ajax */
@@ -85,8 +89,7 @@
                 actions[action] = '1';
                 //if (typeof self[action] === 'function')
                 self[action]('[data-action="' + action + '"]');
-                /*else
-                console.log('No "'+action+'" method found in AnsPress.site{}');*/
+                
             });
         },
         uniqueId: function() {
@@ -121,29 +124,50 @@
 
             return '#apuid-' + uid;
         },
+        
         hideLoading: function(elm) {
-            $($(elm).data('loading')).hide();
+            if( 'all' == elm )
+                $('.ap-loading-icon').hide();
+            else
+                $($(elm).data('loading')).hide();
         },
-        suggest_similar_questions: function() {
-            $('[data-action="suggest_similar_questions"]').on('keyup keydown', function() {
-                if ($.trim($(this).val()) == '') return;
-                ApSite.doAjax(apAjaxData('ap_ajax_action=suggest_similar_questions&value=' + $(this).val()), function(data) {
-                    if (typeof data['html'] !== 'undefined') $('#similar_suggestions').html(data['html']);
-                }, this, false, true);
-            });
-        },
+
         ap_ajax_form: function() {
             $('body').delegate('[data-action="ap_ajax_form"]', 'submit', function() {
                 AnsPress.site.showLoading(this);
 
+                //Before submitting form callback
+                if($(this).is('[data-before]')){
+                    var before_callback = $(this).data('before');
+
+                    if(typeof ApSite[before_callback] === 'function'){
+                        if(false === ApSite[ before_callback](this) ) return false;
+                    }
+                }
+
                 //Add this to form so this form can be identified as ajax form
                 $(this).append('<input type="hidden" name="ap_ajax_action" value="'+ $(this).attr('name') +'">');
+                $(this).append('<input type="hidden" name="action" value="ap_ajax">');
 
                 if (typeof tinyMCE !== 'undefined') tinyMCE.triggerSave();
-                ApSite.doAjax(apAjaxData($(this).formSerialize()), function(data) {
-                    AnsPress.site.hideLoading(this);
-                    if (typeof tinyMCE !== 'undefined' && typeof data.type !== 'undefined' && data.type == 'success') tinyMCE.activeEditor.setContent('');
-                }, this);
+
+                $(this).ajaxSubmit({
+                    type: 'POST',
+                    url: ajaxurl,
+                    success: function(data) {
+                        AnsPress.site.hideLoading(this);
+                        if (typeof tinyMCE !== 'undefined' && typeof data.type !== 'undefined' && data.type == 'success') tinyMCE.activeEditor.setContent('');
+                    },
+                    error: function(jqXHR, textStatus, errorThrown){
+                        console.log(errorThrown);
+                        AnsPress.site.hideLoading(this);
+                    },
+                    dataType: 'json',
+                    context: this,
+                    global: true,
+                    cache:false
+                });
+
                 return false;
             })
         },
@@ -178,8 +202,8 @@
                 'margin-left': 0
             }, 500).delay(5000).fadeOut(200);
         },
-        redirect: function(data) {
-            if (typeof data.redirect_to !== 'undefined') window.location.replace(data.redirect_to);
+        redirect: function(url) {
+            if (typeof url !== 'undefined') window.location.replace(url);
         },
         reload: function(data) {
             location.reload();
@@ -187,34 +211,93 @@
         append: function(data) {
             if (typeof data.container !== 'undefined') $(data.container).append(data.html);
         },
-        updateText: function(data) {
-            if (typeof data.container !== 'undefined') $(data.container).text(data.text);
+
+        /**
+         * Update text of an element.
+         * @param  {string} elm  Selector to update.
+         * @param  {string} text Text.
+         */
+        updateText: function(elm, text) {
+            if (text != '') $(elm).text(text);
         },
-        updateHtml: function(data) {
-            if (typeof data.container !== 'undefined') $(data.container).html(data.html);
+
+        /**
+         * Replace content with new content.
+         * @param  {string} elm  Element selector.
+         * @param  {object} data Ajax success object.
+         */
+        replaceWith: function(elm, data) {
+            if (typeof data.html !== 'undefined')
+                $(elm).replaceWith(data.html);
         },
-        toggle_active_class: function(data) {
-            if (typeof data.toggle_active_class_container !== 'undefined'){
-                $(data.toggle_active_class_container).find('li').removeClass('active');
-                $(data.toggle_active_class_container).find(data.active).addClass('active');
+
+        /**
+         * Update html of an element
+         * @param  {string} elm  Selector.  
+         * @param  {object} data Ajax success response.
+         */
+        updateHtml: function(elm, data) {
+            console.log(data);
+            if (typeof data.html !== 'undefined') $(elm).html(data.html);
+        },
+
+        /**
+         * Toggle active class of an element.
+         * @param  {string} data    Element selector.
+         * @param  {string} active  Currently active selector.
+         */
+        toggle_active_class: function(elm, active) {
+            if (typeof elm !== 'undefined'){
+                $(elm).find('li').removeClass('active');
+                $(elm).find(active).addClass('active');
             }
         },
-        append_before: function(data) {
-            if (typeof data.append_before_container !== 'undefined')
-                $(data.append_before_container).before(data.html);
+
+        /**
+         * Append html before a selector.
+         * @param  {string} elm Selector.
+         */
+        append_before: function(elm, data) {
+            console.log(data);
+            if (typeof elm !== 'undefined')
+                $(elm).before(data.html);
         },
-        remove_if_exists: function(data) {
-            if (typeof data.remove_if_exists_container !== 'undefined' && $(data.remove_if_exists_container).length > 0)
-                $(data.remove_if_exists_container).remove();
+        
+        /**
+         * Remove an element if exists
+         * @param  {string} elm elment selector.
+         */
+        remove_if_exists: function(elm) {
+            if (typeof elm !== 'undefined' && $(elm).length > 0)
+                $(elm).remove();
         },
+        
         clearForm: function(data) {
             if (typeof tinyMCE !== 'undefined')
                 tinyMCE.activeEditor.setContent('');
         },
+
         scrollToCommentForm: function(){
             if ($('#ap-commentform').length > 0) $('html, body').animate({
                 scrollTop: ($('#ap-commentform').offset().top) - 150
             }, 500);
+        },
+        ajax_btn: function() {
+            $('[data-action="ajax_btn"]').click(function(e) {
+                e.preventDefault();
+                AnsPress.site.showLoading(this);
+                var q = $(this).apAjaxQueryString();
+
+                ApSite.doAjax(q, function(data) {
+                    AnsPress.site.hideLoading(this);
+                    if( typeof $(this).data('cb') !== 'undefined' ){
+                        var cb = $(this).data("cb");                       
+                        if( typeof apFunctions[cb] === 'function' ){
+                            apFunctions[cb](data, this);
+                        }
+                    }
+                }, this);
+            });
         },
         load_comment_form: function() {
             $('body').delegate('[data-action="load_comment_form"]', 'click', function(e) {
@@ -267,10 +350,10 @@
                         $('#li-comment-' + data.comment_ID).slideDown(400);
                         $('.ap-comment-form').remove();
                     }
-                    $(this)[0].reset();
                     $('.ap-comment-form').fadeOut(200, function() {
                         $(this).remove()
                     });
+                    $('a[href="#comments-' + data.comment_post_ID+ '"]').removeClass('loaded');
                 }, this);
                 return false;
             })
@@ -334,9 +417,12 @@
                 if (typeof data.action !== 'undefined' && data.action == 'new_answer') {
                     if ($('#answers').length === 0) {
                         $('#question').after($(data['html']));
-                        $(data['div_id']).hide();
-                    } else $('#answers').append($(data['html']).hide());
-                    $(data.div_id).slideDown(500);
+                        $(data.div_id).hide();
+                        $(data.div_id).slideDown(500);
+                    } else{
+                        $('#answers').append($(data['html']).hide());
+                        $(data.div_id).slideDown(500);
+                    }
                 }
             });
         },
@@ -553,37 +639,11 @@
         },
         hoverCard:function(){
             if(!disable_hover_card)
-            $('[data-action="ap_hover_card"]').tooltipster({
+            $('[data-action="ap_hover_card"]').aptip({
                 theme: 'ap-hover-card',
-                delay:500,
-                animation: 'fade',
                 interactive:true,
-                content: aplang.loading,
-                functionBefore: function(origin, continueTooltip) {
-
-                    // we'll make this function asynchronous and allow the tooltip to go ahead and show the loading notification while fetching our data
-                    continueTooltip();
-                    var q = $(this).attr('data-query'),
-                        user_id = $(this).attr('data-userid');
-
-                    // next, we want to check if our data has already been cached
-                    if ( $('#user_'+user_id+'_card').length == 0) {
-                        $.ajax({
-                            type: 'POST',
-                            url: ajaxurl,
-                            data: q+'&ap_ajax_nonce='+ap_nonce,
-                            success: function(data) {
-                                $('body').append(data);
-                                // update our tooltip content with our returned data and cache it
-                                origin.tooltipster('content', $(data).show() );
-                                $(data).show();
-                            }
-                        });
-                    }else{
-                        var html = $('#user_'+user_id+'_card').html();
-                        origin.tooltipster('content', $(html).show() );
-                    }
-                }
+                delay:500,
+                title: aplang.loading
             });
         },
         delete_notification: function() {
@@ -624,86 +684,121 @@
             });
         },
 
+        cancel_comment: function(){
+            $('body').delegate('[data-action="cancel-comment"]', 'click', function(e) {
+                e.preventDefault();
+                var postID = $(this).data('id');
+                $('[href="#comments-'+postID+'"]').removeClass('loaded');
+                $(this).closest('.ap-comment-form').remove();
+            });
+        },
+
+        questionSuggestion: function(){            
+            $('[data-action="suggest_similar_questions"]').on('blur', function(){
+                var title = $(this).val();
+
+                if(title.length == 0)
+                    return;
+
+                ApSite.doAjax(apAjaxData('action=ap_ajax&ap_ajax_action=suggest_similar_questions&ap_ajax_nonce='+ap_nonce+'&value='+title), function(data) {
+
+                    $("#similar_suggestions").html(data.html);      
+                }, this, false, true);
+            });
+        },
+
+        notificationAsRead: function(){
+        	var ids = $('input[name="ap_loaded_notifications"]').val();
+        	
+        	if( ids.length == 0 || $(this).parent().is('.open') ){
+        		return;
+        	}
+
+        	ApSite.doAjax(apAjaxData('ap_ajax_action=set_notifications_as_read&__nonce='+ap_nonce+'&ids='+ids ));
+        },
+
+        checkboxUncheck: function(){
+            $('#anspress input[type="checkbox"]').click(function(){
+                var name = $(this).attr('name');
+                if ($(this).is(':checked')){
+                    $('input[name="'+ name +'"][type="hidden"]').attr('name', '_hidden_'+ name );
+                }else{
+                    $('input[name="_hidden_'+ name +'"]').attr('name', name );
+                }
+
+                
+            })
+        }
+
     }
+
 })(jQuery);
 
 (function($) {
-    $(document).ajaxComplete(function(event, data, settings) {
+    $(document).ajaxComplete(function(event, response, settings) {
+        var data = response.responseJSON;
 
-        if (typeof data !== 'undefined' && typeof data.responseJSON !== 'undefined' && typeof data.responseJSON.ap_responce !== 'undefined') {
-            var data = data.responseJSON;
-            if (typeof data.message !== 'undefined') {
-                var type = typeof data.message_type === 'undefined' ? 'success' : data.message_type;
-                ApSite.addMessage(data.message, type);
-
-                if(typeof grecaptcha !== 'undefined' && data.message_type !== 'success')
-                    grecaptcha.reset(widgetId1);
+        if (response.getResponseHeader('X-ANSPRESS-MESSAGE') !== null) {
+            var type = typeof response.getResponseHeader('X-ANSPRESS-MT') === 'undefined' ? 'success' : response.getResponseHeader('X-ANSPRESS-MT');
+            var message = response.getResponseHeader('X-ANSPRESS-MESSAGE');
+            
+            if( '' != type && '' != message){
+                ApSite.addMessage($.parseJSON(message), type);
             }
+
+            if(typeof grecaptcha !== 'undefined' && type !== 'success')
+                grecaptcha.reset(widgetId1);
+
             $(document).trigger('ap_after_ajax', data);
 
-            if (typeof data.do !=='undefined'){
-                if($.isArray(data.do)){
-                    $.each(data.do, function(index, el) {
-                        if(typeof ApSite[data.do[index]] === 'function')
-                            ApSite[data.do[index]](data);
-                    });
-                }else{
-                    if(typeof ApSite[data.do] === 'function')
-                        ApSite[data.do](data);
-                }
-            }
+            AnsPress.site.hideLoading('all');
+        }
 
-            if (typeof data.view !== 'undefined') {
+        if (response.getResponseHeader('X-ANSPRESS-DO') !== null) {            
+            var doaction = response.getResponseHeader('X-ANSPRESS-DO');
+            if( apIsJsonString(doaction) ){
+                doaction = $.parseJSON(doaction);
 
-                $.each(data.view, function(i, view) {
-                    try {
-                       var html = $(view);
-                    }catch(err){
-                        console.log(err);
-                    }
-
-                    if(typeof data.view_html !== 'undefined' && typeof html !== 'undefined' && html.is('[data-view="' + i + '"]')){
-                        html = html.children();
-                        $('[data-view="' + i + '"]').html(html);
-                    }else{
-                        $('[data-view="' + i + '"]').text(view);
-                        $('[data-view="' + i + '"]').removeClass('ap-view-count-0');
+                $.each(doaction, function(index, el) {
+                    if(typeof ApSite[index] === 'function'){                        
+                        if( typeof el === 'object' ){
+                            el.data = data;
+                            ApSite[index].apply(ApSite, el);
+                        }
+                        else{
+                            ApSite[index](el, data);
+                        }
                     }
                 });
+            }else{
+                if(typeof ApSite[doaction] === 'function'){
+                    ApSite[doaction](data);
+                }
             }
         }
 
-    });
+        if (typeof data.is_ap_ajax !== 'undefined' && typeof data.view !== 'undefined') {
+
+            $.each(data.view, function(i, view) {
+                try {
+                   var html = $(view);
+                }catch(err){
+                    console.log(err);
+                }
+
+                if(typeof data.view_html !== 'undefined' && typeof html !== 'undefined' && html.is('[data-view="' + i + '"]')){
+                    html = html.children();
+                    $('[data-view="' + i + '"]').html(html);
+                }else{
+                    $('[data-view="' + i + '"]').text(view);
+                    $('[data-view="' + i + '"]').removeClass('ap-view-count-0');
+                }
+            });
+        }
+
+    });   
+    
+
 })(jQuery);
 
-function apAjaxData(param) {
-    param = param + '&action=ap_ajax';
-    return param;
-}
 
-function apQueryStringToJSON(string) {
-    var pairs = string.split('&');
-    var result = {};
-    pairs.forEach(function(pair) {
-        pair = pair.split('=');
-        result[pair[0]] = encodeURIComponent(pair[1] || '');
-    });
-    return JSON.parse(JSON.stringify(result));
-}
-
-function apGetValueFromStr(q, name) {
-    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-        results = regex.exec(q);
-    return results == null ? false : decodeURIComponent(results[1].replace(/\+/g, " "));
-}
-
-function apCenterBox(elm){
-    var elm         = jQuery(elm);
-    var parent      = elm.parent();
-
-    parent.css({position: 'relative'});
-
-    elm.css("left", (parent.width()-elm.width())/2);
-    elm.css("top", (parent.height()-elm.height())/2);
-}

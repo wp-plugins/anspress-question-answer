@@ -7,6 +7,7 @@
  * @license    http://opensource.org/licenses/gpl-license.php  GNU Public License
  * @author    Rahul Aryan <support@anspress.io>
  */
+
 ?>
 <div id="ap-single" class="ap-q clearfix" itemtype="http://schema.org/Question" itemscope="">
 	<?php
@@ -48,13 +49,6 @@
 						<div class="question-content ap-q-content" itemprop="text">
 							<?php the_content(); ?>
 						</div>
-						<?php
-							/**
-							 * ACTION: ap_after_question_content
-							 * @since 	2.0
-							 */
-							do_action('ap_after_question_content');
-						?>
 
 						<?php
 							/**
